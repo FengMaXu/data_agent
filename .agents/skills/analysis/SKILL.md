@@ -26,7 +26,7 @@ allowed-tools:
 
 ## 路径 A：内联 Widget
 
-1. `query_database` → 按 answer-spec 流程取数，在查询中把数据聚合到图表需要的粒度
+1. `query_database` → 按 answer-fields 流程取数，在查询中把数据聚合到图表需要的粒度
 2. `publish_query_result` 或 `export_query` → 发布结果，记下返回的 `receiptId`
 3. `show_widget(kind="chart", spec=<ChartSpec>)` → 渲染交互图表
 4. 输出简短的图表结论，并写明返回的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]`
@@ -53,7 +53,7 @@ allowed-tools:
 ## 路径 B：保存图表文件
 
 1. `search_knowledge` → 检索业务规则和图表风格
-2. `query_database` → 按 answer-spec 流程取数，在查询中把数据聚合到图表需要的粒度
+2. `query_database` → 按 answer-fields 流程取数，在查询中把数据聚合到图表需要的粒度
 3. `publish_query_result` 或 `export_query` → 发布结果，记下返回的 `receiptId`
 4. `render_chart(spec, fileName)` → 渲染为 `charts/<fileName>.svg`
 5. 输出文件链接、图注和简短结论

@@ -102,8 +102,8 @@ describe("Cross-target consistency", () => {
     const store = new InMemoryAnsweringStore();
     const resultStore = new InMemoryResultStore();
     const answering = new InMemoryAnswering({ store, resultStore, sqlExecutor: { run: async () => ({ columns: regions.columns, rows: [...regions.rows.map((row) => [...row])], truncated: false }) } });
-    const listSpec = { entity: "regions", metric: "sum", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "full" } };
-    const begun = await answering.begin({ requestMessageId: "m", requestId: "b", spec: listSpec }, context("b"));
+    const listSpec = { "population.entity": "regions", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "sum", of: "sales" }, grouping: "n/a", selection: "n/a", output: { rowMode: "full" } };
+    const begun = await answering.set({ requestMessageId: "m", requestId: "b", fields: listSpec }, context("b"));
     const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT 1" }, context("e"));
     if (execution.artifact.kind !== "candidate") throw new Error("expected Result Candidate");
     const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: "p" }, context("p"));

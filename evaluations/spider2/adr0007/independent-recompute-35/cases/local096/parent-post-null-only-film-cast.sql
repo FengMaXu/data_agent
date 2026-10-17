@@ -1,0 +1,1 @@
+WITH c AS MATERIALIZED (SELECT DISTINCT MID,TRIM(PID) pid FROM M_Cast) SELECT m.MID,m.title,m.year,p.PID,p.Name,p.Gender FROM c JOIN Movie m ON m.MID=c.MID LEFT JOIN Person p ON p.PID=c.pid WHERE m.MID IN ('tt1587388','tt2355921','tt8338754')

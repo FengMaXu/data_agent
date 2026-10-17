@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_d9c450e8-217f-4a18-8320-46fc0e6932c0 revisionId=revision_92a654f3-3e32-4677-a375-07ac41cb3f52\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_92a654f3-3e32-4677-a375-07ac41cb3f52 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"final packaging combinations\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+    "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "final packaging combinations"
+        },
+        "evidenceIds": [
+          "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_d9c450e8-217f-4a18-8320-46fc0e6932c0",
+      "revisionId": "revision_92a654f3-3e32-4677-a375-07ac41cb3f52",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_ff613861-dca0-4c9b-836a-4bd5e9903acd"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

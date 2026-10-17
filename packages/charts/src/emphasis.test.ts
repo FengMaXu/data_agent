@@ -31,7 +31,7 @@ describe("Chart emphasis", () => {
     const [bar] = series(compileChart(bars({ highlight: { values: ["RJ->SP"], tone: "bad" } }), routes, { target: "interactive" }));
     expect((bar!.data as { itemStyle: { color: string } }[]).map((point) => point.itemStyle.color)).toEqual([THEME.bad, THEME.context, THEME.context]);
     // The legend swatch shows what most bars are drawn in.
-    expect(bar!.itemStyle).toEqual({ color: THEME.context, opacity: 0.6 });
+    expect(bar!.itemStyle).toEqual({ color: THEME.context, opacity: 1 });
   });
 
   it("highlights one layer of a paired chart and keeps the other as a backdrop", () => {
@@ -44,9 +44,9 @@ describe("Chart emphasis", () => {
     // Two measures share the axis, so it is named by its unit; the legend names the measures.
     expect((ok(compiled).option.yAxis as { name: string }[])[0]!.name).toBe("（%）");
     // The backdrop layer is one lighter colour throughout; only the target layer marks its focus.
-    expect(orders!.itemStyle).toEqual({ color: THEME.context, opacity: 0.3 });
+    expect(orders!.itemStyle).toEqual({ color: THEME.context, opacity: 0.45 });
     expect(orders!.data).toEqual([0.92 * 100, 0.03 * 100]);
-    expect((negatives!.data as { itemStyle: Record<string, unknown> }[]).map((point) => point.itemStyle)).toEqual([{ color: THEME.context, opacity: 0.6 }, { color: THEME.bad, opacity: 1 }]);
+    expect((negatives!.data as { itemStyle: Record<string, unknown> }[]).map((point) => point.itemStyle)).toEqual([{ color: THEME.context, opacity: 1 }, { color: THEME.bad, opacity: 1 }]);
     const lineLayer = { ...spec, chart: { ...spec.chart, layers: [{ type: "bar", y: { field: "order_share" } }, { type: "line", y: { field: "neg_share" } }] } } as ChartSpec;
     expect(compileChart(lineLayer, dataset, { target: "interactive" })).toMatchObject({ ok: false, errors: [{ code: "INVALID_ENCODING", path: "/chart/highlight/layer" }] });
   });

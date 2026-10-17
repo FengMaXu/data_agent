@@ -1,0 +1,15 @@
+{
+  "all_transition_intervals_tested": 66,
+  "matched_ranges": [
+    [
+      "2024-04-07",
+      "2024-10-22",
+      16,
+      88,
+      32,
+      32,
+      152
+    ]
+  ],
+  "note": "Raw-row count variant only; matching interval is observation, not business reference-date evidence"
+}

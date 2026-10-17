@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "male legislators",
+      "basis": "request",
+      "quote": "male legislators"
+    }
+  }
+}

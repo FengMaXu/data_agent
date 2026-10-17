@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -39,15 +39,38 @@ for name in json.loads(sys.argv[1]):
     removed.append(name)
 print(json.dumps(removed))
 `;
-const removal = spawnSync(executable, ["-c", REMOVE_DISTRIBUTIONS, JSON.stringify(PLOTTING_DISTRIBUTIONS)], { encoding: "utf8" });
+// pip is only needed to build the pack; the shipped runtime never installs packages.
+// User site-packages on the build machine must not mask a missing dependency.
+const isolatedEnv = { ...process.env, PYTHONNOUSERSITE: "1" };
+const removal = spawnSync(executable, ["-c", REMOVE_DISTRIBUTIONS, JSON.stringify([...PLOTTING_DISTRIBUTIONS, "pip"])], { encoding: "utf8", env: isolatedEnv });
 if (removal.status !== 0) {
-  console.error(`Removing plotting libraries failed\n${removal.stderr || removal.stdout}`);
+  console.error(`Removing plotting libraries and pip failed\n${removal.stderr || removal.stdout}`);
   process.exit(1);
+}
+
+// Build-time and GUI parts of a standalone CPython, plus the test suites that
+// numpy and pandas install alongside their code; none are imported at runtime.
+const UNUSED_PATHS = ["tcl", "include", "libs", "Lib/idlelib", "Lib/tkinter", "Lib/turtledemo", "Lib/ensurepip", "Lib/test", "DLLs/_tkinter.pyd", "DLLs/tcl86t.dll", "DLLs/tk86t.dll"];
+for (const relative of UNUSED_PATHS) await rm(path.join(output, relative), { recursive: true, force: true });
+for (const entry of await readdir(path.join(output, "Lib", "site-packages"), { recursive: true, withFileTypes: true }).catch(() => [])) {
+  if (entry.isDirectory() && entry.name === "tests" && /[\\/](numpy|pandas)([\\/]|$)/.test(entry.parentPath)) {
+    await rm(path.join(entry.parentPath, entry.name), { recursive: true, force: true });
+  }
+}
+
+// A ._pth file fixes sys.path to the pack and keeps `site` from adding the
+// user's own site-packages, so packages a user installed with their Python
+// cannot shadow the pack's numpy/pandas/sqlglot. It also ignores PYTHON* env
+// vars, which Python jobs already strip.
+if (process.platform === "win32") {
+  const dll = (await readdir(output)).find((name) => /^python3\d+\.dll$/i.test(name));
+  if (!dll) throw new Error("python3XY.dll not found; cannot write the ._pth isolation file");
+  await writeFile(path.join(output, `${dll.slice(0, -4)}._pth`), ["DLLs", "Lib", "Lib\\site-packages", "."].join("\r\n") + "\r\n", "utf8");
 }
 
 // The manifest must describe an executable capability, not an intended one.
 // Fail the pack build if the data dependencies are unimportable or a plotting library is still present.
-const dataCheck = spawnSync(executable, ["-c", "import importlib.util, numpy, pandas, sqlglot; print('sqlglot='+sqlglot.__version__); print('matplotlib=' + ('present' if importlib.util.find_spec('matplotlib') else 'absent'))"], { encoding: "utf8" });
+const dataCheck = spawnSync(executable, ["-c", "import importlib.util, numpy, pandas, sqlglot; print('sqlglot='+sqlglot.__version__); print('matplotlib=' + ('present' if importlib.util.find_spec('matplotlib') else 'absent'))"], { encoding: "utf8", env: isolatedEnv });
 if (dataCheck.status !== 0 || !dataCheck.stdout.includes(`sqlglot=${requiredSqlglotVersion}`) || !dataCheck.stdout.includes("matplotlib=absent")) {
   console.error(`Python data/query pack is incomplete or still ships matplotlib: numpy, pandas and sqlglot ${requiredSqlglotVersion} must import, matplotlib must be absent\n${dataCheck.stderr || dataCheck.stdout}`);
   process.exit(1);

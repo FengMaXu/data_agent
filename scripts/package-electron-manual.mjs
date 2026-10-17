@@ -10,10 +10,11 @@
  *   1. copy the local Electron runtime into <out>/win-unpacked
  *   2. rename electron.exe -> Data Agent.exe
  *   3. pack the application (package.json + dist + electron + electron-host)
- *      into resources/app.asar with *.node unpacked
+ *      into resources/app.asar
  *   4. stage extraResources (python-runtime, ktx-semantic-context)
+ *   5. keep only the Chinese and English Electron locales
  */
-import { cpSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
@@ -58,11 +59,17 @@ cpSync(path.join(frontend, "node_modules", "electron", "dist"), out, { recursive
 // The stock default_app.asar is replaced by our application archive.
 rmSync(path.join(out, "resources", "default_app.asar"), { force: true });
 
+// The UI ships in Chinese and English; the other Chromium locales are ~44 MB.
+const keptLocales = new Set((pkg.build?.electronLanguages ?? ["zh-CN", "en-US"]).map((locale) => `${locale}.pak`));
+for (const file of readdirSync(path.join(out, "locales"))) {
+  if (!keptLocales.has(file)) rmSync(path.join(out, "locales", file), { force: true });
+}
+
 // 2. Product executable name
 const exeName = `${pkg.build?.productName ?? "Data Agent"}.exe`;
 renameSync(path.join(out, "electron.exe"), path.join(out, exeName));
 
-// 3. Application archive (*.node stays unpacked next to the asar)
+// 3. Application archive
 const staging = path.join(root, ".tmp", "electron-app-stage");
 rmSync(staging, { recursive: true, force: true });
 mkdirSync(staging, { recursive: true });
@@ -86,8 +93,8 @@ for (const name of ["main.cjs", "metadata-worker.cjs", "mcp-mysql.cjs"]) {
   }
 }
 
-// Native module + its runtime deps ship inside the archive but with *.node unpacked.
-// npm may hoist better-sqlite3 to the workspace root, so probe both locations.
+// Runtime deps the bundles keep external ship inside the archive. npm may hoist
+// them to the workspace root, so probe both locations.
 const moduleRoots = [path.join(frontend, "node_modules"), path.join(root, "node_modules")];
 function resolveModule(name) {
   for (const dir of moduleRoots) {
@@ -99,7 +106,6 @@ function resolveModule(name) {
 }
 mkdirSync(path.join(staging, "node_modules"), { recursive: true });
 for (const name of [
-  "better-sqlite3", "bindings", "file-uri-to-path",
   "mysql2", "aws-ssl-profiles", "denque", "generate-function", "is-property",
   "iconv-lite", "safer-buffer", "long", "lru.min", "named-placeholders", "sql-escaper",
   "@modelcontextprotocol/sdk", "ajv", "ajv-formats", "cross-spawn", "fast-deep-equal",
@@ -109,26 +115,24 @@ for (const name of [
   cpSync(resolveModule(name), path.join(staging, "node_modules", name), { recursive: true });
 }
 
-// The workspace copy of better-sqlite3 is compiled for the local Node ABI.
-// Re-fetch the prebuilt binary matching the packaged Electron ABI so the
-// native module loads inside the shipped application.
-const electronMajor = pkg.devDependencies?.electron ?? pkg.dependencies?.electron;
-const electronVersion = String(electronMajor).replace(/[^\d.]/g, "");
-exec(process.platform === "win32" ? "npx.cmd" : "npx", [
-  "prebuild-install",
-  "--runtime=electron", `--target=${electronVersion}`, "--arch=x64", "--verbose",
-], { cwd: path.join(staging, "node_modules", "better-sqlite3") });
-
 const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
-exec(npxCmd, ["@electron/asar", "pack", staging, path.join(out, "resources", "app.asar"), "--unpack=*.node"]);
+exec(npxCmd, ["@electron/asar", "pack", staging, path.join(out, "resources", "app.asar")]);
 
 // 4. extraResources. These capabilities are mandatory for a usable desktop
 // package; fail closed instead of producing a silently incomplete artifact.
-const pythonRuntimeExecutable = path.resolve(frontend, "../dist/python-runtime/Scripts/python.exe");
+// Standalone CPython keeps python.exe at the root (see build-python-runtime.mjs); venv packs used Scripts/.
+const pythonRuntimeExecutable = ["python.exe", "Scripts/python.exe"]
+  .map((relative) => path.resolve(root, "dist", "python-runtime", relative))
+  .find((candidate) => existsSync(candidate));
+if (!pythonRuntimeExecutable) {
+  console.error("required extraResource missing: ../dist/python-runtime/python.exe");
+  process.exit(1);
+}
 for (const required of [
-  "../dist/python-runtime/Scripts/python.exe",
   "../.agents/skills/analysis/SKILL.md",
-  "../.agents/skills/answer-spec/SKILL.md",
+  "../.agents/skills/answer-fields/SKILL.md",
+  "../.agents/knowledge/doc/rules.md",
+  "../.agents/knowledge/doc/semantic_guide.md",
   "../.pi/SYSTEM.md",
 ]) {
   const source = path.resolve(frontend, required);

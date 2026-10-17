@@ -1,0 +1,435 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_903183bb-60c2-44cf-904b-1fb5e3a20c5d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | inventory_id | inventory_qty | allocated_qty | partial\nDer Helle Kumpel | 1202 | 24 | 24 | 0\nDer Helle Kumpel | 1205 | 20 | 20 | 0\nDer Helle Kumpel | 1259 | 26 | 26 | 0\nDer Helle Kumpel | 1262 | 48 | 48 | 0\nDer Helle Kumpel | 1316 | 14 | 14 | 0\nDer Helle Kumpel | 1319 | 70 | 70 | 0\nDer Helle Kumpel | 1373 | 21 | 21 | 0\nDer Helle Kumpel | 1376 | 48 | 48 | 0\nDer Helle Kumpel | 1430 | 72 | 15 | 1\nDer Helle Kumpel | 1433 | 14 | 14 | 0\nHazy Pink Cloud | 1169 | 19 | 19 | 0\nHazy Pink Cloud | 1226 | 21 | 21 | 0\nHazy Pink Cloud | 1283 | 17 | 16 | 1\nHercule Trippel | 1196 | 41 | 41 | 0\nHercule Trippel | 1199 | 48 | 48 | 0\nHercule Trippel | 1253 | 44 | 11 | 1\nHoppy Crude Oil | 1193 | 36 | 36 | 0\nHoppy Crude Oil | 1250 | 39 | 39 | 0\nHoppy Crude Oil | 1307 | 35 | 35 | 0\nHoppy Crude Oil | 1364 | 34 | 34 | 0\nHoppy Crude Oil | 1421 | 37 | 37 | 0\nHoppy Crude Oil | 1469 | 19 | 19 | 0\nMonks and Nuns | 1163 | 41 | 40 | 1\nPale Rider Rides | 1154 | 36 | 36 | 0\nPale Rider Rides | 1178 | 41 | 41 | 0\nPale Rider Rides | 1181 | 48 | 48 | 0\nPale Rider Rides | 1235 | 44 | 25 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_903183bb-60c2-44cf-904b-1fb5e3a20c5d",
+      "preview": {
+        "columns": [
+          "name",
+          "inventory_id",
+          "inventory_qty",
+          "allocated_qty",
+          "partial"
+        ],
+        "rows": [
+          [
+            "Der Helle Kumpel",
+            1202,
+            24,
+            24,
+            0
+          ],
+          [
+            "Der Helle Kumpel",
+            1205,
+            20,
+            20,
+            0
+          ],
+          [
+            "Der Helle Kumpel",
+            1259,
+            26,
+            26,
+            0
+          ],
+          [
+            "Der Helle Kumpel",
+            1262,
+            48,
+            48,
+            0
+          ],
+          [
+            "Der Helle Kumpel",
+            1316,
+            14,
+            14,
+            0
+          ],
+          [
+            "Der Helle Kumpel",
+            1319,
+            70,
+            70,
+            0
+          ],
+          [
+            "Der Helle Kumpel",
+            1373,
+            21,
+            21,
+            0
+          ],
+          [
+            "Der Helle Kumpel",
+            1376,
+            48,
+            48,
+            0
+          ],
+          [
+            "Der Helle Kumpel",
+            1430,
+            72,
+            15,
+            1
+          ],
+          [
+            "Der Helle Kumpel",
+            1433,
+            14,
+            14,
+            0
+          ],
+          [
+            "Hazy Pink Cloud",
+            1169,
+            19,
+            19,
+            0
+          ],
+          [
+            "Hazy Pink Cloud",
+            1226,
+            21,
+            21,
+            0
+          ],
+          [
+            "Hazy Pink Cloud",
+            1283,
+            17,
+            16,
+            1
+          ],
+          [
+            "Hercule Trippel",
+            1196,
+            41,
+            41,
+            0
+          ],
+          [
+            "Hercule Trippel",
+            1199,
+            48,
+            48,
+            0
+          ],
+          [
+            "Hercule Trippel",
+            1253,
+            44,
+            11,
+            1
+          ],
+          [
+            "Hoppy Crude Oil",
+            1193,
+            36,
+            36,
+            0
+          ],
+          [
+            "Hoppy Crude Oil",
+            1250,
+            39,
+            39,
+            0
+          ],
+          [
+            "Hoppy Crude Oil",
+            1307,
+            35,
+            35,
+            0
+          ],
+          [
+            "Hoppy Crude Oil",
+            1364,
+            34,
+            34,
+            0
+          ],
+          [
+            "Hoppy Crude Oil",
+            1421,
+            37,
+            37,
+            0
+          ],
+          [
+            "Hoppy Crude Oil",
+            1469,
+            19,
+            19,
+            0
+          ],
+          [
+            "Monks and Nuns",
+            1163,
+            41,
+            40,
+            1
+          ],
+          [
+            "Pale Rider Rides",
+            1154,
+            36,
+            36,
+            0
+          ],
+          [
+            "Pale Rider Rides",
+            1178,
+            41,
+            41,
+            0
+          ],
+          [
+            "Pale Rider Rides",
+            1181,
+            48,
+            48,
+            0
+          ],
+          [
+            "Pale Rider Rides",
+            1235,
+            44,
+            25,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 27,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "inventory_id",
+        "inventory_qty",
+        "allocated_qty",
+        "partial"
+      ],
+      "rows": [
+        [
+          "Der Helle Kumpel",
+          1202,
+          24,
+          24,
+          0
+        ],
+        [
+          "Der Helle Kumpel",
+          1205,
+          20,
+          20,
+          0
+        ],
+        [
+          "Der Helle Kumpel",
+          1259,
+          26,
+          26,
+          0
+        ],
+        [
+          "Der Helle Kumpel",
+          1262,
+          48,
+          48,
+          0
+        ],
+        [
+          "Der Helle Kumpel",
+          1316,
+          14,
+          14,
+          0
+        ],
+        [
+          "Der Helle Kumpel",
+          1319,
+          70,
+          70,
+          0
+        ],
+        [
+          "Der Helle Kumpel",
+          1373,
+          21,
+          21,
+          0
+        ],
+        [
+          "Der Helle Kumpel",
+          1376,
+          48,
+          48,
+          0
+        ],
+        [
+          "Der Helle Kumpel",
+          1430,
+          72,
+          15,
+          1
+        ],
+        [
+          "Der Helle Kumpel",
+          1433,
+          14,
+          14,
+          0
+        ],
+        [
+          "Hazy Pink Cloud",
+          1169,
+          19,
+          19,
+          0
+        ],
+        [
+          "Hazy Pink Cloud",
+          1226,
+          21,
+          21,
+          0
+        ],
+        [
+          "Hazy Pink Cloud",
+          1283,
+          17,
+          16,
+          1
+        ],
+        [
+          "Hercule Trippel",
+          1196,
+          41,
+          41,
+          0
+        ],
+        [
+          "Hercule Trippel",
+          1199,
+          48,
+          48,
+          0
+        ],
+        [
+          "Hercule Trippel",
+          1253,
+          44,
+          11,
+          1
+        ],
+        [
+          "Hoppy Crude Oil",
+          1193,
+          36,
+          36,
+          0
+        ],
+        [
+          "Hoppy Crude Oil",
+          1250,
+          39,
+          39,
+          0
+        ],
+        [
+          "Hoppy Crude Oil",
+          1307,
+          35,
+          35,
+          0
+        ],
+        [
+          "Hoppy Crude Oil",
+          1364,
+          34,
+          34,
+          0
+        ],
+        [
+          "Hoppy Crude Oil",
+          1421,
+          37,
+          37,
+          0
+        ],
+        [
+          "Hoppy Crude Oil",
+          1469,
+          19,
+          19,
+          0
+        ],
+        [
+          "Monks and Nuns",
+          1163,
+          41,
+          40,
+          1
+        ],
+        [
+          "Pale Rider Rides",
+          1154,
+          36,
+          36,
+          0
+        ],
+        [
+          "Pale Rider Rides",
+          1178,
+          41,
+          41,
+          0
+        ],
+        [
+          "Pale Rider Rides",
+          1181,
+          48,
+          48,
+          0
+        ],
+        [
+          "Pale Rider Rides",
+          1235,
+          44,
+          25,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 27,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_050bf5ef-c176-4094-bcb8-dc0eeeb98735"
+  }
+}

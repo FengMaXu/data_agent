@@ -1,0 +1,56 @@
+{
+  "instance_id": "local279",
+  "status": "ambiguous_after_recompute",
+  "summary": "Independent=original; Gold differences are dates, not abs values. 168 actually computed alternative recurrence/initialization/metric scenarios cannot reproduce both Gold tuples; tie-only explanation disproved",
+  "fork_node": "measure.formula",
+  "error_layer": "unresolved_state_algorithm_or_gold_date_association",
+  "visibility": "original recurrence and tie rule explicit; Gold implementation unavailable",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "starting from December 2018 inventory levels"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json",
+      "quote": "abs_diff ascending, month ascending",
+      "pointer": "/toolCalls/30/result/details/fields/10/value",
+      "original_projection_source": "original-spec-evidence.json"
+    },
+    {
+      "source": "monthly-states.json-response.txt",
+      "pointer": "/details/preview/rows",
+      "quote": "2019-12-01"
+    },
+    {
+      "source": "recurrence-alternatives.json-response.txt",
+      "pointer": "/details/preview/rowCount",
+      "quote": "168"
+    }
+  ],
+  "limitations": [
+    "Inventory lacks snapshot date; no unique business initialization/restock timing supplied; Gold SQL unavailable."
+  ],
+  "parent_field_review": {
+    "instance_id": "local279",
+    "relevant_node": "measure.formula",
+    "node_is_confirmed_original_error": false,
+    "explanation": "递归补货时点/初始状态候选未唯一确定，单纯并列解释已被排除",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "已实际计算多个候选，全部差异机制仍未唯一定位",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "op": "custom",
+      "description": "Recursive month-by-month ending inventory: ending(2019-01) = Dec2018_inventory - budget(2019-01); ending(m) = ending(m-1) - budget(m); if ending(m) < qty_minimum then ending(m) += qty_purchase (restock). Metric(m) = |ending(m) - qty_minimum|. Per product select the 2019 month minimising Metric(m)."
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local279/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/30/result/details/fields/8/value",
+      "quote": "{\"op\": \"custom\", \"description\": \"Recursive month-by-month ending inventory: ending(2019-01) = Dec2018_inventory - budget(2019-01); ending(m) = ending(m-1) - budget(m); if ending(m) < qty_minimum then ending(m) += qty_purchase (restock). Metric(m) = |ending(m) - qty_minimum|. Per product select the 2019 month minimising Metric(m).\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

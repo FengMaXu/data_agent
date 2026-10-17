@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_384d084f-39bb-42a2-9d39-982c079ac335\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomers | ties | conflicting_ratings | largest_tie\n599 | 0 | 0 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_384d084f-39bb-42a2-9d39-982c079ac335",
+      "preview": {
+        "columns": [
+          "customers",
+          "ties",
+          "conflicting_ratings",
+          "largest_tie"
+        ],
+        "rows": [
+          [
+            599,
+            0,
+            0,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "customers",
+        "ties",
+        "conflicting_ratings",
+        "largest_tie"
+      ],
+      "rows": [
+        [
+          599,
+          0,
+          0,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_743d45f9-dcac-426f-9968-fce3883802f6"
+  }
+}

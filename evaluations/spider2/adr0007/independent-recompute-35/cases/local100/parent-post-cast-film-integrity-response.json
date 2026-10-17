@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d65e533e-3924-4644-963e-1e268a997dcd\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncast_movies | missing_movie\n3475 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_d65e533e-3924-4644-963e-1e268a997dcd",
+      "preview": {
+        "columns": [
+          "cast_movies",
+          "missing_movie"
+        ],
+        "rows": [
+          [
+            3475,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "cast_movies",
+        "missing_movie"
+      ],
+      "rows": [
+        [
+          3475,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7e62e8d2-3f6a-4b50-a6e4-7609c25d4f5c"
+  }
+}

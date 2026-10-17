@@ -34,6 +34,14 @@ describe("Python workspace jobs", () => {
     await rm(workspace, { recursive: true, force: true });
   });
 
+  it("returns Chinese output intact whatever the OS locale", async () => {
+    const workspace = await mkdtemp(join(tmpdir(), "data-agent-python-utf8-"));
+    const result = await runPythonJob("import sys\nprint('销售额 合计')\nprint('警告', file=sys.stderr)", { workspace, executable: process.platform === "win32" ? "python" : "python3" });
+    expect(result.stdout).toContain("销售额 合计");
+    expect(result.stderr).toContain("警告");
+    await rm(workspace, { recursive: true, force: true });
+  });
+
   describe("workspace confinement", () => {
     const executable = process.platform === "win32" ? "python" : "python3";
     const withDirs = async (run: (workspace: string, outside: string) => Promise<void>) => {

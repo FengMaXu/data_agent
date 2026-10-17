@@ -1,0 +1,101 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2a9d9ea4-f519-4447-a5fe-75fd19173212\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nbucket | pair_count\n0 | 92\n1000 | 93\n2000 | 37\n3000 | 20\n4000 | 6\n5000 | 3\n6000 | 7"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2a9d9ea4-f519-4447-a5fe-75fd19173212",
+      "preview": {
+        "columns": [
+          "bucket",
+          "pair_count"
+        ],
+        "rows": [
+          [
+            0,
+            92
+          ],
+          [
+            1000,
+            93
+          ],
+          [
+            2000,
+            37
+          ],
+          [
+            3000,
+            20
+          ],
+          [
+            4000,
+            6
+          ],
+          [
+            5000,
+            3
+          ],
+          [
+            6000,
+            7
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "bucket",
+        "pair_count"
+      ],
+      "rows": [
+        [
+          0,
+          92
+        ],
+        [
+          1000,
+          93
+        ],
+        [
+          2000,
+          37
+        ],
+        [
+          3000,
+          20
+        ],
+        [
+          4000,
+          6
+        ],
+        [
+          5000,
+          3
+        ],
+        [
+          6000,
+          7
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_3f6abd19-016e-4649-b8a4-1f69e4345888"
+  }
+}

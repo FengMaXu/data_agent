@@ -1,0 +1,479 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_18e64a55-9f1c-4c8a-8b78-05e675a233b3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | industry | n\n2019 | Fintech | 20\n2019 | Artificial intelligence | 14\n2019 | Internet software & services | 13\n2019 | E-commerce & direct-to-consumer | 12\n2019 | Other | 9\n2019 | \"Supply chain, logistics, & delivery\" | 8\n2019 | Auto & transportation | 6\n2019 | Mobile & telecommunications | 4\n2019 | Data management & analytics | 4\n2019 | Cybersecurity | 4\n2019 | Travel | 3\n2019 | Health | 3\n2019 | Consumer & retail | 3\n2019 | Edtech | 1\n2020 | Internet software & services | 20\n2020 | E-commerce & direct-to-consumer | 16\n2020 | Fintech | 15\n2020 | Other | 11\n2020 | Health | 9\n2020 | Mobile & telecommunications | 8\n2020 | Cybersecurity | 7\n2020 | Data management & analytics | 6\n2020 | Auto & transportation | 5\n2020 | Edtech | 4\n2020 | Artificial intelligence | 3\n2020 | \"Supply chain, logistics, & delivery\" | 2\n2020 | Hardware | 1\n2020 | Consumer & retail | 1\n2021 | Fintech | 138\n2021 | Internet software & services | 119\n2021 | E-commerce & direct-to-consumer | 47\n2021 | Health | 40\n2021 | Artificial intelligence | 36\n2021 | Cybersecurity | 27\n2021 | \"Supply chain, logistics, & delivery\" | 25\n2021 | Other | 21\n2021 | Data management & analytics | 21\n2021 | Hardware | 14\n2021 | Edtech | 12\n2021 | Consumer & retail | 7\n2021 | Mobile & telecommunications | 6\n2021 | Auto & transportation | 4\n2021 | Travel | 3"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_18e64a55-9f1c-4c8a-8b78-05e675a233b3",
+      "preview": {
+        "columns": [
+          "year",
+          "industry",
+          "n"
+        ],
+        "rows": [
+          [
+            2019,
+            "Fintech",
+            20
+          ],
+          [
+            2019,
+            "Artificial intelligence",
+            14
+          ],
+          [
+            2019,
+            "Internet software & services",
+            13
+          ],
+          [
+            2019,
+            "E-commerce & direct-to-consumer",
+            12
+          ],
+          [
+            2019,
+            "Other",
+            9
+          ],
+          [
+            2019,
+            "\"Supply chain, logistics, & delivery\"",
+            8
+          ],
+          [
+            2019,
+            "Auto & transportation",
+            6
+          ],
+          [
+            2019,
+            "Mobile & telecommunications",
+            4
+          ],
+          [
+            2019,
+            "Data management & analytics",
+            4
+          ],
+          [
+            2019,
+            "Cybersecurity",
+            4
+          ],
+          [
+            2019,
+            "Travel",
+            3
+          ],
+          [
+            2019,
+            "Health",
+            3
+          ],
+          [
+            2019,
+            "Consumer & retail",
+            3
+          ],
+          [
+            2019,
+            "Edtech",
+            1
+          ],
+          [
+            2020,
+            "Internet software & services",
+            20
+          ],
+          [
+            2020,
+            "E-commerce & direct-to-consumer",
+            16
+          ],
+          [
+            2020,
+            "Fintech",
+            15
+          ],
+          [
+            2020,
+            "Other",
+            11
+          ],
+          [
+            2020,
+            "Health",
+            9
+          ],
+          [
+            2020,
+            "Mobile & telecommunications",
+            8
+          ],
+          [
+            2020,
+            "Cybersecurity",
+            7
+          ],
+          [
+            2020,
+            "Data management & analytics",
+            6
+          ],
+          [
+            2020,
+            "Auto & transportation",
+            5
+          ],
+          [
+            2020,
+            "Edtech",
+            4
+          ],
+          [
+            2020,
+            "Artificial intelligence",
+            3
+          ],
+          [
+            2020,
+            "\"Supply chain, logistics, & delivery\"",
+            2
+          ],
+          [
+            2020,
+            "Hardware",
+            1
+          ],
+          [
+            2020,
+            "Consumer & retail",
+            1
+          ],
+          [
+            2021,
+            "Fintech",
+            138
+          ],
+          [
+            2021,
+            "Internet software & services",
+            119
+          ],
+          [
+            2021,
+            "E-commerce & direct-to-consumer",
+            47
+          ],
+          [
+            2021,
+            "Health",
+            40
+          ],
+          [
+            2021,
+            "Artificial intelligence",
+            36
+          ],
+          [
+            2021,
+            "Cybersecurity",
+            27
+          ],
+          [
+            2021,
+            "\"Supply chain, logistics, & delivery\"",
+            25
+          ],
+          [
+            2021,
+            "Other",
+            21
+          ],
+          [
+            2021,
+            "Data management & analytics",
+            21
+          ],
+          [
+            2021,
+            "Hardware",
+            14
+          ],
+          [
+            2021,
+            "Edtech",
+            12
+          ],
+          [
+            2021,
+            "Consumer & retail",
+            7
+          ],
+          [
+            2021,
+            "Mobile & telecommunications",
+            6
+          ],
+          [
+            2021,
+            "Auto & transportation",
+            4
+          ],
+          [
+            2021,
+            "Travel",
+            3
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 43,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "industry",
+        "n"
+      ],
+      "rows": [
+        [
+          2019,
+          "Fintech",
+          20
+        ],
+        [
+          2019,
+          "Artificial intelligence",
+          14
+        ],
+        [
+          2019,
+          "Internet software & services",
+          13
+        ],
+        [
+          2019,
+          "E-commerce & direct-to-consumer",
+          12
+        ],
+        [
+          2019,
+          "Other",
+          9
+        ],
+        [
+          2019,
+          "\"Supply chain, logistics, & delivery\"",
+          8
+        ],
+        [
+          2019,
+          "Auto & transportation",
+          6
+        ],
+        [
+          2019,
+          "Mobile & telecommunications",
+          4
+        ],
+        [
+          2019,
+          "Data management & analytics",
+          4
+        ],
+        [
+          2019,
+          "Cybersecurity",
+          4
+        ],
+        [
+          2019,
+          "Travel",
+          3
+        ],
+        [
+          2019,
+          "Health",
+          3
+        ],
+        [
+          2019,
+          "Consumer & retail",
+          3
+        ],
+        [
+          2019,
+          "Edtech",
+          1
+        ],
+        [
+          2020,
+          "Internet software & services",
+          20
+        ],
+        [
+          2020,
+          "E-commerce & direct-to-consumer",
+          16
+        ],
+        [
+          2020,
+          "Fintech",
+          15
+        ],
+        [
+          2020,
+          "Other",
+          11
+        ],
+        [
+          2020,
+          "Health",
+          9
+        ],
+        [
+          2020,
+          "Mobile & telecommunications",
+          8
+        ],
+        [
+          2020,
+          "Cybersecurity",
+          7
+        ],
+        [
+          2020,
+          "Data management & analytics",
+          6
+        ],
+        [
+          2020,
+          "Auto & transportation",
+          5
+        ],
+        [
+          2020,
+          "Edtech",
+          4
+        ],
+        [
+          2020,
+          "Artificial intelligence",
+          3
+        ],
+        [
+          2020,
+          "\"Supply chain, logistics, & delivery\"",
+          2
+        ],
+        [
+          2020,
+          "Hardware",
+          1
+        ],
+        [
+          2020,
+          "Consumer & retail",
+          1
+        ],
+        [
+          2021,
+          "Fintech",
+          138
+        ],
+        [
+          2021,
+          "Internet software & services",
+          119
+        ],
+        [
+          2021,
+          "E-commerce & direct-to-consumer",
+          47
+        ],
+        [
+          2021,
+          "Health",
+          40
+        ],
+        [
+          2021,
+          "Artificial intelligence",
+          36
+        ],
+        [
+          2021,
+          "Cybersecurity",
+          27
+        ],
+        [
+          2021,
+          "\"Supply chain, logistics, & delivery\"",
+          25
+        ],
+        [
+          2021,
+          "Other",
+          21
+        ],
+        [
+          2021,
+          "Data management & analytics",
+          21
+        ],
+        [
+          2021,
+          "Hardware",
+          14
+        ],
+        [
+          2021,
+          "Edtech",
+          12
+        ],
+        [
+          2021,
+          "Consumer & retail",
+          7
+        ],
+        [
+          2021,
+          "Mobile & telecommunications",
+          6
+        ],
+        [
+          2021,
+          "Auto & transportation",
+          4
+        ],
+        [
+          2021,
+          "Travel",
+          3
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 43,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_f0f1bd06-3bdf-4d72-803b-ba51965b5924"
+  }
+}

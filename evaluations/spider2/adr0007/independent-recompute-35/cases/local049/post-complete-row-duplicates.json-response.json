@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_aa1e9d7d-d4b0-432d-906f-f4c6b4d5e77b\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ndate_rows | distinct_date_rows | industry_rows | distinct_industry_rows\n1085 | 1074 | 1085 | 1074"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_aa1e9d7d-d4b0-432d-906f-f4c6b4d5e77b",
+      "preview": {
+        "columns": [
+          "date_rows",
+          "distinct_date_rows",
+          "industry_rows",
+          "distinct_industry_rows"
+        ],
+        "rows": [
+          [
+            1085,
+            1074,
+            1085,
+            1074
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "date_rows",
+        "distinct_date_rows",
+        "industry_rows",
+        "distinct_industry_rows"
+      ],
+      "rows": [
+        [
+          1085,
+          1074,
+          1085,
+          1074
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_dd55fb7c-b288-439d-bfe3-ac931599e366"
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f5217163-af1c-431d-891f-5c998822693e\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nMID | title | year | PID | Name | Gender\ntt2355921 | The Wish Fish | 2012 | NULL | NULL | NULL\ntt8338754 | Vaibhav Sethia: Don't | 2018 | nm9795685 |  Vaibhav Sethia | NULL\ntt1587388 | Yeh Hai Malegaon Ka Superman | 2009 | NULL | NULL | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f5217163-af1c-431d-891f-5c998822693e",
+      "preview": {
+        "columns": [
+          "MID",
+          "title",
+          "year",
+          "PID",
+          "Name",
+          "Gender"
+        ],
+        "rows": [
+          [
+            "tt2355921",
+            "The Wish Fish",
+            "2012",
+            null,
+            null,
+            null
+          ],
+          [
+            "tt8338754",
+            "Vaibhav Sethia: Don't",
+            "2018",
+            "nm9795685",
+            " Vaibhav Sethia",
+            null
+          ],
+          [
+            "tt1587388",
+            "Yeh Hai Malegaon Ka Superman",
+            "2009",
+            null,
+            null,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "NULL",
+          "NULL",
+          "NULL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "MID",
+        "title",
+        "year",
+        "PID",
+        "Name",
+        "Gender"
+      ],
+      "rows": [
+        [
+          "tt2355921",
+          "The Wish Fish",
+          "2012",
+          null,
+          null,
+          null
+        ],
+        [
+          "tt8338754",
+          "Vaibhav Sethia: Don't",
+          "2018",
+          "nm9795685",
+          " Vaibhav Sethia",
+          null
+        ],
+        [
+          "tt1587388",
+          "Yeh Hai Malegaon Ka Superman",
+          "2009",
+          null,
+          null,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "NULL",
+        "NULL",
+        "NULL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ccb1fc4c-9351-418e-a7ab-b2ba1eb46895"
+  }
+}

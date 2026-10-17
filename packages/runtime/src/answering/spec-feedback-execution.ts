@@ -3,9 +3,11 @@ import { assertTaskAccess } from "./answering-store.js";
 import { AnsweringError } from "./errors.js";
 import { taskBudget } from "./budget.js";
 import { now } from "./support.js";
-import { choiceContextFor, viewFromRevision } from "./views.js";
+import { probeContextFor, viewFromRevision } from "./views.js";
 import type { AnsweringDeps, ResolvedSpecFeedbackOptions } from "./deps.js";
+import type { RequirementPhrase } from "../judgment/spec-alignment.js";
 import {
+  admitRequirements,
   assembleSpecFeedbackInput,
   completedSpecFeedback,
   initialSpecFeedback,
@@ -19,6 +21,15 @@ export interface RevisionFeedbackTarget {
   readonly requestMessageId: string;
   /** Evidence frozen in the same transaction that created the Revision. */
   readonly evidence: readonly Evidence[];
+}
+
+/** What a view says about the call and the task rather than the Revision; kept when the view is re-read. */
+function extrasOf(view: AnswerRevisionView): Partial<AnswerRevisionView> {
+  return {
+    ...(view.outcomes ? { outcomes: view.outcomes } : {}),
+    ...(view.role ? { role: view.role } : {}),
+    ...(view.parent ? { parent: view.parent } : {}),
+  };
 }
 
 export interface RevisionSubmissionOutcome {
@@ -47,7 +58,8 @@ export async function finishRevisionSubmission(deps: AnsweringDeps, outcome: Rev
   if (!persisted) return outcome.view;
   try {
     const stored = await deps.store.transact((tx) => ({ revision: tx.getRevision(target.revisionId), task: tx.getTask(target.taskId) }), context);
-    return stored.revision ? viewFromRevision(target.taskId, stored.revision, stored.task ? choiceContextFor(deps, stored.task) : undefined) : outcome.view;
+    if (!stored.revision) return outcome.view;
+    return { ...viewFromRevision(target.taskId, stored.revision, stored.task ? probeContextFor(deps, stored.task, target.evidence) : undefined, stored.task?.role === "report"), ...extrasOf(outcome.view) };
   } catch (error) {
     if (context.signal?.aborted) throw error;
     return outcome.view;
@@ -66,6 +78,7 @@ async function evaluateSpecFeedback(deps: AnsweringDeps, options: ResolvedSpecFe
   }, context);
   const evidence = target.evidence;
   const base = snapshot.revision.specFeedback ?? initialSpecFeedback(snapshot.revision, evidence, true, startedAt);
+  if (base.status === "skipped") return base;
   const configuredTimeout = options.timeoutMs;
   const budget = taskBudget(snapshot.task, deps.budgetPolicy);
   const taskDeadline = Date.parse(budget.startedAt) + budget.policy.maxElapsedMs;
@@ -115,7 +128,16 @@ async function evaluateSpecFeedback(deps: AnsweringDeps, options: ResolvedSpecFe
     if (!originalQuestion) throw new Error("ORIGINAL_QUESTION_UNAVAILABLE");
     if (context.signal?.aborted) throw new AnsweringError("ANSWERING_CONTEXT_INVALID", "Answering operation was cancelled");
     if (timedOut) return unavailable("timeout", assembly);
-    assembly = assembleSpecFeedbackInput(snapshot.revision, evidence, originalQuestion, options.maxInputBytes);
+    const phrases = options.requirementExtractor
+      ? await Promise.race([requirementsOf(options, target.requestMessageId, originalQuestion, controller.signal), deadlinePromise, cancellationPromise])
+      : undefined;
+    if (timedOut) return unavailable("timeout", assembly);
+    const admitted = admitRequirements(originalQuestion, phrases ?? []);
+    const limitations = [
+      ...(!options.requirementExtractor ? ["requirement_extractor_not_configured"] : []),
+      ...(admitted.dropped > 0 ? [`requirements_not_verbatim:${admitted.dropped}`] : []),
+    ];
+    assembly = assembleSpecFeedbackInput(snapshot.revision, evidence, originalQuestion, admitted.admitted, limitations, options.maxInputBytes);
     if (context.signal?.aborted) throw new AnsweringError("ANSWERING_CONTEXT_INVALID", "Answering operation was cancelled");
     if (timedOut) return unavailable("timeout", assembly);
     const assessment = await Promise.race([
@@ -144,6 +166,21 @@ async function evaluateSpecFeedback(deps: AnsweringDeps, options: ResolvedSpecFe
     clearTimeout(timeout);
     context.signal?.removeEventListener("abort", forwardAbort);
   }
+}
+
+/** One extraction per request message: the request does not change across Revisions. A failed extraction is not cached. */
+const extractions = new WeakMap<ResolvedSpecFeedbackOptions, Map<string, Promise<readonly RequirementPhrase[]>>>();
+
+function requirementsOf(options: ResolvedSpecFeedbackOptions, requestMessageId: string, originalQuestion: string, signal: AbortSignal): Promise<readonly RequirementPhrase[]> {
+  let cache = extractions.get(options);
+  if (!cache) extractions.set(options, cache = new Map());
+  const key = `${requestMessageId} ${originalQuestion}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const pending = options.requirementExtractor!.extract(originalQuestion, { signal });
+  cache.set(key, pending);
+  pending.catch(() => cache!.delete(key));
+  return pending;
 }
 
 async function persistSpecFeedback(deps: AnsweringDeps, target: RevisionFeedbackTarget, feedback: SpecFeedback, context: BusinessContext): Promise<SpecFeedback | undefined> {

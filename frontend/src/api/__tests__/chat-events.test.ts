@@ -239,3 +239,14 @@ describe('runtime chat event replay', () => {
         expect(events).toEqual([]);
     });
 });
+
+describe('runtime run outcome', () => {
+    it('maps the terminal outcome to the chat status', () => {
+        const reason = (outcome?: 'completed' | 'stopped' | 'failed') =>
+            (mapRuntimeEvent({ type: 'agent.completed', ...(outcome ? { outcome } : {}) }, 'm')?.event as { reason?: string } | undefined)?.reason;
+        expect(reason()).toBe('completed');
+        expect(reason('completed')).toBe('completed');
+        expect(reason('stopped')).toBe('stopped');
+        expect(reason('failed')).toBe('error');
+    });
+});

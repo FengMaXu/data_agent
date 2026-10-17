@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "female legislators keyed by id_bioguide",
+      "basis": "request",
+      "quote": "female legislators"
+    }
+  }
+}

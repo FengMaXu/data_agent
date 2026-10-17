@@ -1,11 +1,9 @@
-import type { AdvisoryLedger } from "./advisory-ledger.js";
 import {
   contentHash,
   normalizeLimit,
   isReadOnlySql,
   type AnswerRevisionView,
   type AnswerTaskView,
-  type BeginAnswer,
   type BusinessContext,
   type ExecuteQuery,
   type InspectAnswer,
@@ -13,7 +11,7 @@ import {
   type PublishCandidate,
   type RefreshPublication,
   type QueryExecutionView,
-  type ReviseAnswer,
+  type SetAnswerFields,
   type RevisionId,
   type TaskId,
   type QueryBudgetPolicy,
@@ -24,7 +22,7 @@ import { InMemoryResultStore, type ResultStore } from "./result-store.js";
 import type { EvidenceSource } from "./evidence-admission.js";
 import { SPEC_FEEDBACK_DEFAULT_TIMEOUT_MS, SPEC_FEEDBACK_MAX_INPUT_BYTES } from "./spec-feedback.js";
 import { DEFAULT_QUERY_BUDGET_POLICY, obstacle, obstacleDetails, validateBudgetPolicy } from "./budget.js";
-import { beginAnswer, reviseAnswer } from "./revision.js";
+import { setAnswerFields } from "./revision.js";
 import { executeExploration } from "./exploration.js";
 import { executeResult } from "./result-execution.js";
 import { createFanoutSchemaLoader } from "./fanout-execution.js";
@@ -32,6 +30,7 @@ import { publishCandidate } from "./publication.js";
 import { refreshPublication } from "./refresh.js";
 import type { AnsweringDeps, FanoutAnsweringOptions, SemanticQualificationMode, SpecFeedbackOptions } from "./deps.js";
 import type { AnsweringSqlExecutor } from "./sql-execution.js";
+import type { FieldAdviceOptions } from "./advice-execution.js";
 
 export { AnsweringError };
 export { DEFAULT_QUERY_BUDGET_POLICY };
@@ -40,8 +39,8 @@ export type { FanoutAnsweringOptions, SemanticQualificationMode, SpecFeedbackOpt
 
 /** The five public Answering use cases; the architecture gate pins this list. */
 export interface Answering {
-  begin(input: BeginAnswer, context: BusinessContext): Promise<AnswerRevisionView>;
-  revise(input: ReviseAnswer, context: BusinessContext): Promise<AnswerRevisionView>;
+  /** Write Answer Spec fields by path; without taskId it starts the Query Task (ADR-0007). */
+  set(input: SetAnswerFields, context: BusinessContext): Promise<AnswerRevisionView>;
   execute(input: ExecuteQuery, context: BusinessContext): Promise<QueryExecutionView>;
   publish(input: PublishCandidate, context: BusinessContext): Promise<PublicationReceipt>;
   /** Re-run a published result's query and publish the rows as a new Receipt (ADR-0010). */
@@ -70,14 +69,16 @@ export interface InMemoryAnsweringOptions {
    */
   readonly evidenceSource?: EvidenceSource;
   /**
-   * Choice probes (ADR-0005): a Choice is decided only after every alternative
+   * Probes (ADR-0005): an open field is decided only after every alternative
    * has a probe or a waiver, and the view shows whether outputs differ.
    */
-  readonly choiceProbes?: boolean;
-  /** Advice recorded by compare_hypotheses; read when deciding a Choice (ADR-0005). */
-  readonly advisoryLedger?: AdvisoryLedger;
-  /** Set when an advisor is configured: decisive core Choices need advice before a decision. */
-  readonly requireAdvice?: boolean;
+  readonly fieldProbes?: boolean;
+  /**
+   * The comparison advisor (ADR-0005). With probes, the Runtime asks it about
+   * an open field once every alternative's output is known and they differ,
+   * and a decision on such a field needs that advice.
+   */
+  readonly fieldAdvice?: FieldAdviceOptions;
   /**
    * ADR-0006: "require_evidence" (default) when the session can ask the user;
    * "allow_disclosed" when it cannot, so an unverified population decision is disclosed instead.
@@ -109,9 +110,9 @@ function resolveDeps(options: InMemoryAnsweringOptions): AnsweringDeps {
     budgetPolicy: validateBudgetPolicy(options.budgetPolicy ?? DEFAULT_QUERY_BUDGET_POLICY),
     maxResultRows: Math.max(1, Math.trunc(options.maxResultRows ?? MAX_RESULT_ROWS)),
     semanticQualificationMode: options.semanticQualificationMode ?? "required",
-    choiceProbes: options.choiceProbes === true,
-    ...(options.advisoryLedger ? { advisoryLedger: options.advisoryLedger } : {}),
-    adviceRequired: options.requireAdvice === true && Boolean(options.advisoryLedger),
+    fieldProbes: options.fieldProbes === true,
+    ...(options.fieldAdvice ? { fieldAdvice: options.fieldAdvice } : {}),
+    adviceRequired: options.fieldProbes === true && Boolean(options.fieldAdvice),
     populationDecisions: options.populationDecisions ?? "require_evidence",
     ...(options.evidenceSource ? { evidenceSource: options.evidenceSource } : {}),
     ...(options.specFeedback ? {
@@ -143,14 +144,9 @@ export class InMemoryAnswering implements Answering {
     this.deps = resolveDeps(options);
   }
 
-  async begin(input: BeginAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
+  async set(input: SetAnswerFields, context: BusinessContext): Promise<AnswerRevisionView> {
     assertContext(context);
-    return beginAnswer(this.deps, input, context);
-  }
-
-  async revise(input: ReviseAnswer, context: BusinessContext): Promise<AnswerRevisionView> {
-    assertContext(context);
-    return reviseAnswer(this.deps, input, context);
+    return setAnswerFields(this.deps, input, context);
   }
 
   async execute(input: ExecuteQuery, context: BusinessContext): Promise<QueryExecutionView> {
@@ -198,7 +194,7 @@ export class InMemoryAnswering implements Answering {
       throw new AnsweringError("INVALID_QUERY", details.message, obstacleDetails(undefined, details));
     }
     if (input.kind === "exploration") {
-      return executeExploration(this.deps, input, revisionId, normalizeLimit(input.limit, 50, 10_000), context);
+      return executeExploration(this.deps, input, revisionId, context.expectedRevisionId !== undefined, normalizeLimit(input.limit, 50, 10_000), context);
     }
     return executeResult(this.deps, input, revisionId, this.deps.maxResultRows, context);
   }

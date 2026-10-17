@@ -1,0 +1,54 @@
+{
+  "instance_id": "local049",
+  "status": "gold_conflict",
+  "summary": "按公司ID每年20/15/138，总173/3=57.67；重复关联行21/18/140，总179/3=59.67精确Gold，六个ID被重复计入",
+  "fork_node": "not_applicable for original; population.entity / joinMultiplicity in Gold-matching variant",
+  "error_layer": "Gold/entity-count conflict",
+  "visibility": "original entity key, dedup, year denominator explicit",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "average number of new unicorn companies per year"
+    },
+    {
+      "source": "post-fintech-raw.json-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "140"
+    },
+    {
+      "source": "post-raw-final.json-response.json",
+      "pointer": "/details/preview/rows",
+      "quote": "59.67"
+    }
+  ],
+  "limitations": [
+    "date_joined event meaning not backed by reviewed business doc",
+    "same-ID identical duplicates viewed as same company",
+    "Gold SQL absent; raw counting sufficient not unique explanation"
+  ],
+  "parent_field_review": {
+    "instance_id": "local049",
+    "relevant_node": "population.entity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold重复公司ID的关联行，原按公司身份去重",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": {
+      "name": "company",
+      "keyColumns": [
+        "company_id"
+      ]
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/16/result/details/fields/0/value",
+      "quote": "{\"name\": \"company\", \"keyColumns\": [\"company_id\"]}"
+    },
+    "primary_status": "gold_conflict"
+  }
+}

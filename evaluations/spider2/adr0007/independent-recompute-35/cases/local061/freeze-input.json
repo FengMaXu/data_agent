@@ -1,0 +1,8 @@
+{
+  "algorithm": "Same product and calendar month historical SUMs; b*(1+(b-a)/a); monthly 2021 FX then product AVG round2",
+  "assumptions": [
+    "Undefined growth excluded",
+    "No actual2021 sales roster filter"
+  ],
+  "validation": "2021 France currency 12 unique keys all1; extremes and monthly forecasts computed afresh"
+}

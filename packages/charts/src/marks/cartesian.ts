@@ -243,7 +243,8 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
 
   const valueAxes = sides.map((side) => {
     const entry = axisMeta.get(side)!;
-    const axis = valueAxis(entry.meta, entry.field, entry.share);
+    // Stacks reach their totals, so the largest tick is read from the stacked sums, not single segments.
+    const axis = valueAxis(entry.meta, entry.field, entry.share, axisLargest(series, seriesSides, side));
     // Several measures on one axis are named by the legend; a single field name would claim the axis for one of them.
     const measures = new Set(plans.filter((plan) => (plan.layer.y.axis ?? "left") === side).map((plan) => plan.y.field));
     const unit = unitText(entry.meta);
@@ -358,11 +359,35 @@ function addBands(context: CompileContext, chart: CartesianChart, positions: Rea
   }
 }
 
-/** Opacity of the bars and points a highlight puts in context. */
-const CONTEXT_OPACITY = 0.6;
+/** Opacity of the bars and points a highlight puts in context: the grey itself recedes, so it stays solid and gridlines do not show through. */
+const CONTEXT_OPACITY = 1;
 
 /** Opacity of a whole layer behind the highlighted one, lighter than its context so the two layers stay apart. */
-const BACKDROP_OPACITY = 0.3;
+const BACKDROP_OPACITY = 0.45;
+
+/** Largest absolute value drawn against one value axis, summing stacked series per category. */
+function axisLargest(series: readonly Record<string, unknown>[], sides: readonly ("left" | "right")[], side: "left" | "right"): number {
+  const totals = new Map<string, number[]>();
+  let largest = 0;
+  series.forEach((entry, index) => {
+    if (sides[index] !== side || !Array.isArray(entry.data)) return;
+    const values = (entry.data as unknown[]).map((point) => {
+      const raw = point && typeof point === "object" ? (point as { value?: unknown }).value : point;
+      const value = Array.isArray(raw) ? raw[1] : raw;
+      return typeof value === "number" && Number.isFinite(value) ? Math.abs(value) : 0;
+    });
+    const stack = typeof entry.stack === "string" ? entry.stack : undefined;
+    if (!stack) {
+      largest = Math.max(largest, ...values);
+      return;
+    }
+    const sums = totals.get(stack) ?? values.map(() => 0);
+    values.forEach((value, position) => (sums[position] = (sums[position] ?? 0) + value));
+    totals.set(stack, sums);
+  });
+  for (const sums of totals.values()) largest = Math.max(largest, ...sums);
+  return largest;
+}
 
 /** The neutral reference colour as a wash light enough to sit behind data. */
 const BAND_FILL = `rgba(${[1, 3, 5].map((offset) => parseInt(THEME.neutral.slice(offset, offset + 2), 16)).join(", ")}, 0.1)`;

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT count(*) rows,count(distinct zipcode) zips,sum(zipcode IS NULL) missing_zip,sum(Estimate_Mean_income>0 AND Estimate_Median_income>0) positive FROM income_trees",
+  "limit": 100
+}

@@ -1,0 +1,80 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c6c2bec8-93a2-4c93-bd39-1d6615ec385c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ninsert_date | choices | lexical\n2021-07-12 | 143:xiaoganzhan,393:qingyang,1113:guangshui,20990:gaotan,37041:hejiaji | gaotan\n2021-07-19 | 13564:yuquan,19177:rencun,28416:bakeshiyingcun | bakeshiyingcun\n2021-07-27 | 3066:dongxing,17920:shiji,28032:minquan,44022:dangcheng | dangcheng"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c6c2bec8-93a2-4c93-bd39-1d6615ec385c",
+      "preview": {
+        "columns": [
+          "insert_date",
+          "choices",
+          "lexical"
+        ],
+        "rows": [
+          [
+            "2021-07-12",
+            "143:xiaoganzhan,393:qingyang,1113:guangshui,20990:gaotan,37041:hejiaji",
+            "gaotan"
+          ],
+          [
+            "2021-07-19",
+            "13564:yuquan,19177:rencun,28416:bakeshiyingcun",
+            "bakeshiyingcun"
+          ],
+          [
+            "2021-07-27",
+            "3066:dongxing,17920:shiji,28032:minquan,44022:dangcheng",
+            "dangcheng"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "insert_date",
+        "choices",
+        "lexical"
+      ],
+      "rows": [
+        [
+          "2021-07-12",
+          "143:xiaoganzhan,393:qingyang,1113:guangshui,20990:gaotan,37041:hejiaji",
+          "gaotan"
+        ],
+        [
+          "2021-07-19",
+          "13564:yuquan,19177:rencun,28416:bakeshiyingcun",
+          "bakeshiyingcun"
+        ],
+        [
+          "2021-07-27",
+          "3066:dongxing,17920:shiji,28032:minquan,44022:dangcheng",
+          "dangcheng"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d52c61ac-2ae4-4261-a972-592052449f1b"
+  }
+}
+

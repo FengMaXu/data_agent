@@ -1,0 +1,71 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_a8e5d9f3-beaf-4c6b-bfb1-62d4c968ca71\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | tree_ids | missing_id | missing_zip | missing_borough\n690626 | 683788 | 0 | 0 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_a8e5d9f3-beaf-4c6b-bfb1-62d4c968ca71",
+      "preview": {
+        "columns": [
+          "rows",
+          "tree_ids",
+          "missing_id",
+          "missing_zip",
+          "missing_borough"
+        ],
+        "rows": [
+          [
+            690626,
+            683788,
+            0,
+            0,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "tree_ids",
+        "missing_id",
+        "missing_zip",
+        "missing_borough"
+      ],
+      "rows": [
+        [
+          690626,
+          683788,
+          0,
+          0,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7f59538c-d32f-473a-8506-c688b111292f"
+  }
+}

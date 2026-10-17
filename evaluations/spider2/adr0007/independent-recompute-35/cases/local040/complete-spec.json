@@ -1,0 +1,54 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "median>0 and mean>0, non-null nonblank borough; all tree statuses allowed",
+      "basis": "request",
+      "quote": "restricted to records with median and mean income both greater than zero and a valid borough name"
+    },
+    "population.conditions": {
+      "value": [
+        "ZIP full join, coalesce ZIP, positive median and mean, valid borough"
+      ],
+      "basis": "request",
+      "quote": "unifies the trees data with the income data by ZIP code, filling missing ZIP values where necessary"
+    },
+    "population.time": "n/a",
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Per borough count(tree_id) in eligible joined records and average mean income across tree records; rank by count, strict top3"
+      },
+      "basis": "assumed",
+      "rationale": "Average is at combined record grain, tree-row weighted rather than ZIP or household weighted"
+    },
+    "grouping": {
+      "value": [
+        "boroname"
+      ],
+      "basis": "request",
+      "quote": "three boroughs"
+    },
+    "selection": {
+      "value": {
+        "n": 3,
+        "orderBy": "tree_count DESC, boroname ASC"
+      },
+      "basis": "request",
+      "quote": "three boroughs"
+    },
+    "selection.ties": "strict",
+    "output": {
+      "value": {
+        "rowMode": "top_n",
+        "rowCount": 3,
+        "columns": [
+          "boroname",
+          "tree_count",
+          "average_mean_income"
+        ]
+      },
+      "basis": "request",
+      "quote": "highest number of trees, and what is the average mean income"
+    }
+  }
+}

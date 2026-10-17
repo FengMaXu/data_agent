@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT strftime('%Y-%m',payment_date) month, COUNT(*) payments, COUNT(DISTINCT customer_id) customers,SUM(amount) total,MIN(amount) min_amount,MAX(amount) max_amount FROM payment GROUP BY 1 ORDER BY 1",
+  "limit": 100
+}

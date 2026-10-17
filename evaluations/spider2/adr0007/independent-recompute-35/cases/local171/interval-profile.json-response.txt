@@ -1,0 +1,78 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c0cf428e-b8c1-4abe-81ae-77a0b5ea247d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmin(term_start) | max(term_end) | sum(term_end IS NULL) | sum(term_start>term_end) | sum(substr(term_end,6)='12-31') | sum(substr(term_start,6)='12-31')\n1789-03-04 | 2025-01-03 | 0 | 0 | 272 | 8"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c0cf428e-b8c1-4abe-81ae-77a0b5ea247d",
+      "preview": {
+        "columns": [
+          "min(term_start)",
+          "max(term_end)",
+          "sum(term_end IS NULL)",
+          "sum(term_start>term_end)",
+          "sum(substr(term_end,6)='12-31')",
+          "sum(substr(term_start,6)='12-31')"
+        ],
+        "rows": [
+          [
+            "1789-03-04",
+            "2025-01-03",
+            0,
+            0,
+            272,
+            8
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "min(term_start)",
+        "max(term_end)",
+        "sum(term_end IS NULL)",
+        "sum(term_start>term_end)",
+        "sum(substr(term_end,6)='12-31')",
+        "sum(substr(term_start,6)='12-31')"
+      ],
+      "rows": [
+        [
+          "1789-03-04",
+          "2025-01-03",
+          0,
+          0,
+          272,
+          8
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_19b0106e-d816-40a7-a2c9-410b75bf0eed"
+  }
+}
+

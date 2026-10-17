@@ -1,0 +1,133 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c revisionId=revision_65799b49-0dd4-404f-9d9f-afd75e629981\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, population.conditions, population.time, measure.formula, grouping, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_65799b49-0dd4-404f-9d9f-afd75e629981 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"product monthly inventory states\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Products with configured minimum and purchase quantity\"},\"population.conditions\":{\"status\":\"assumed\",\"value\":[\"2019 forecast monthly demand; absent months zero demand\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"Initialize December2018, simulate Jan-Dec2019\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Month pre_end=previous final ending-budget; strictly below minimum triggers one qty_purchase added immediately; final ending=pre_end+purchase; select minimum abs(final ending-minimum), earliest month on ties\"}},\"grouping\":{\"status\":\"assumed\",\"value\":[\"product_id\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"product_id\",\"month\",\"absolute_difference\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+    "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+    "parentRevisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "product monthly inventory states"
+        },
+        "evidenceIds": [
+          "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Products with configured minimum and purchase quantity"
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "2019 forecast monthly demand; absent months zero demand"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "Initialize December2018, simulate Jan-Dec2019"
+        }
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Month pre_end=previous final ending-budget; strictly below minimum triggers one qty_purchase added immediately; final ending=pre_end+purchase; select minimum abs(final ending-minimum), earliest month on ties"
+        }
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "product_id"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "product_id",
+            "month",
+            "absolute_difference"
+          ]
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a",
+        "evidence_6b41579a-8f80-42d7-bd73-fb4acaae1260",
+        "evidence_d5e5f364-604d-4a64-9e72-4603bf47dd1f",
+        "evidence_0ff9dc5b-468f-4846-91f7-3ae870814787",
+        "evidence_2c7cfb16-d665-4806-a9f2-aef82ea5807b",
+        "evidence_7545365d-0e09-4fbf-875a-1be40af5333a"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

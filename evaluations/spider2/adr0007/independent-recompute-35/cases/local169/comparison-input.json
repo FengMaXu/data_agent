@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:08:12.840Z",
+  "registry": {
+    "instance_id": "local169",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 141642,
+    "tool_calls": 19,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local169/attempts/attempt-20261010-154318Z/submissions/sql/local169.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local169.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 14,
+      "toolCalls": 19,
+      "explorationQueries": 5,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 2
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 4,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 4,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH RECURSIVE\ncohort AS (\n  SELECT id_bioguide AS bid,\n         CAST(strftime('%Y', MIN(term_start)) AS INTEGER) AS start_year\n  FROM legislators_terms\n  GROUP BY id_bioguide\n  HAVING MIN(term_start) BETWEEN '1917-01-01' AND '1999-12-31'\n),\nk(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM k WHERE n < 20),\nchecks AS (\n  SELECT c.bid, k.n AS period,\n         printf('%04d-12-31', c.start_year + k.n) AS check_date\n  FROM cohort c CROSS JOIN k\n),\nret AS (\n  SELECT ch.period, COUNT(DISTINCT ch.bid) AS retained\n  FROM checks ch\n  WHERE EXISTS (\n     SELECT 1 FROM legislators_terms t\n     WHERE t.id_bioguide = ch.bid\n       AND t.term_start <= ch.check_date\n       AND t.term_end >= ch.check_date\n  )\n  GROUP BY ch.period\n),\ntot AS (SELECT COUNT(*) AS n FROM cohort)\nSELECT k.n AS period,\n       ROUND(1.0 * COALESCE(r.retained, 0) / (SELECT n FROM tot), 4) AS retention_rate\nFROM k LEFT JOIN ret r ON r.period = k.n\nORDER BY k.n\n",
+  "originalCsv": "period,retention_rate\n1,0.9809\n2,0.7719\n3,0.7672\n4,0.6829\n5,0.6782\n6,0.5753\n7,0.5735\n8,0.4986\n9,0.4949\n10,0.4344\n11,0.4292\n12,0.3558\n13,0.3518\n14,0.306\n15,0.301\n16,0.2586\n17,0.2569\n18,0.2125\n19,0.2093\n20,0.1753\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local169.csv",
+      "content": "period,retention rate\r\n1,0.96974956607984\r\n2,0.78651128192413\r\n3,0.76295561616663\r\n4,0.69923134143318\r\n5,0.67840317381602\r\n6,0.58343664765683\r\n7,0.55913711877015\r\n8,0.4859905777337\r\n9,0.47582444830151\r\n10,0.4200347136127\r\n11,0.40962062980412\r\n12,0.34192908504835\r\n13,0.33176295561617\r\n14,0.29308207289859\r\n15,0.28564344160674\r\n16,0.24473096950161\r\n17,0.23630052070419\r\n18,0.1981155467394\r\n19,0.1886932804364\r\n20,0.15695512025787"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local169",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "141"
+  }
+}

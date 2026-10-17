@@ -1,0 +1,1 @@
+SELECT PID,Name,Gender FROM Person WHERE LOWER(Name) LIKE '%shahrukh%' OR LOWER(Name) LIKE '%shah rukh%'

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT st.status_id,st.status,COUNT(*) n,SUM(re.laps=0) zero_laps FROM results re JOIN races r USING(race_id) JOIN status st USING(status_id) WHERE r.year BETWEEN 1950 AND 1959 GROUP BY st.status_id,st.status ORDER BY n DESC",
+  "limit": 100
+}

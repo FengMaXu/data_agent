@@ -1,0 +1,58 @@
+{
+  "instance_id": "local264",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local264/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local264/publications/publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2/result.csv",
+    "rows": 1,
+    "columns": [
+      "L1_model",
+      "occurrences"
+    ],
+    "head": [
+      {
+        "L1_model": "regression",
+        "occurrences": 213
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local264.csv",
+    "rows": 1,
+    "columns": [
+      "L1_model",
+      "count"
+    ],
+    "head": [
+      {
+        "L1_model": "regression",
+        "count": 213
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local264.csv",
+      "rows": 1,
+      "columns": [
+        "L1_model",
+        "max_cnt"
+      ],
+      "head": [
+        {
+          "L1_model": "regression",
+          "max_cnt": 639
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local264",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "71"
+  }
+}

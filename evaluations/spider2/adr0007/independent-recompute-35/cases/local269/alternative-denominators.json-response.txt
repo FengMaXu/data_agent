@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_085c25ef-7f92-4072-9b86-5b80c16afa2c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\npath_mean | path_count | sum_all\n283.35714285714283 | 14 | 3967"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_085c25ef-7f92-4072-9b86-5b80c16afa2c",
+      "preview": {
+        "columns": [
+          "path_mean",
+          "path_count",
+          "sum_all"
+        ],
+        "rows": [
+          [
+            283.35714285714283,
+            14,
+            3967
+          ]
+        ],
+        "columnTypes": [
+          "REAL",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "path_mean",
+        "path_count",
+        "sum_all"
+      ],
+      "rows": [
+        [
+          283.35714285714283,
+          14,
+          3967
+        ]
+      ],
+      "columnTypes": [
+        "REAL",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_729affed-0057-40b4-85fe-88ed7ea30396"
+  }
+}

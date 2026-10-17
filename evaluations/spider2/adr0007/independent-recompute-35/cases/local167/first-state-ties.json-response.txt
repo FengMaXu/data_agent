@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_50008977-825b-4c9b-aa27-4eb2569536c1\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nid_bioguide | states\n"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_50008977-825b-4c9b-aa27-4eb2569536c1",
+      "preview": {
+        "columns": [
+          "id_bioguide",
+          "states"
+        ],
+        "rows": [],
+        "columnTypes": [
+          "NULL",
+          "NULL"
+        ],
+        "rowCount": 0,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "id_bioguide",
+        "states"
+      ],
+      "rows": [],
+      "columnTypes": [
+        "NULL",
+        "NULL"
+      ],
+      "rowCount": 0,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_420c4a83-bc21-460d-a6c8-a44ef3753cbf"
+  }
+}
+

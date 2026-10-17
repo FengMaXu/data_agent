@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT MID,PID FROM M_Cast WHERE PID IS NULL OR TRIM(PID)='' ",
+  "limit": 100
+}

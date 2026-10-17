@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_4530a9ba-5bef-4824-9628-f660fc1649ae revisionId=revision_e037ada5-813d-4a97-8da9-897ff594233d\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_e037ada5-813d-4a97-8da9-897ff594233d status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"每日玩具销售件数（order_items行）\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_4530a9ba-5bef-4824-9628-f660fc1649ae",
+    "revisionId": "revision_e037ada5-813d-4a97-8da9-897ff594233d",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "每日玩具销售件数（order_items行）"
+        },
+        "evidenceIds": [
+          "evidence_4fb1e669-3432-444a-93d5-3f8c3af0f24a"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_4530a9ba-5bef-4824-9628-f660fc1649ae",
+      "revisionId": "revision_e037ada5-813d-4a97-8da9-897ff594233d",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_4fb1e669-3432-444a-93d5-3f8c3af0f24a"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

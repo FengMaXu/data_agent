@@ -1,0 +1,233 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_20be9bf4-d5df-4b56-814c-fb40cf18a74b\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nPID | n | genders | values_seen\nnm0001162 | 2 | 1 | Male\nnm0001408 | 2 | 1 | Male\nnm0004292 | 2 | 1 | Male\nnm0004363 | 2 | 1 | Male\nnm0004433 | 2 | 1 | Male\nnm0004434 | 2 | 1 | Male\nnm0004564 | 2 | 1 | Female\nnm0004570 | 2 | 1 | Male\nnm0006348 | 2 | 1 | Male\nnm0006370 | 2 | 1 | Male\nnm0007124 | 2 | 1 | Female\nnm0007147 | 2 | 1 | Male\nnm0007806 | 2 | 1 | Male\nnm0013158 | 2 | 1 | Male\nnm0015459 | 2 | 1 | Male"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_20be9bf4-d5df-4b56-814c-fb40cf18a74b",
+      "preview": {
+        "columns": [
+          "PID",
+          "n",
+          "genders",
+          "values_seen"
+        ],
+        "rows": [
+          [
+            "nm0001162",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0001408",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0004292",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0004363",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0004433",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0004434",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0004564",
+            2,
+            1,
+            "Female"
+          ],
+          [
+            "nm0004570",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0006348",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0006370",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0007124",
+            2,
+            1,
+            "Female"
+          ],
+          [
+            "nm0007147",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0007806",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0013158",
+            2,
+            1,
+            "Male"
+          ],
+          [
+            "nm0015459",
+            2,
+            1,
+            "Male"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "TEXT"
+        ],
+        "rowCount": 15,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "PID",
+        "n",
+        "genders",
+        "values_seen"
+      ],
+      "rows": [
+        [
+          "nm0001162",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0001408",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0004292",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0004363",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0004433",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0004434",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0004564",
+          2,
+          1,
+          "Female"
+        ],
+        [
+          "nm0004570",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0006348",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0006370",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0007124",
+          2,
+          1,
+          "Female"
+        ],
+        [
+          "nm0007147",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0007806",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0013158",
+          2,
+          1,
+          "Male"
+        ],
+        [
+          "nm0015459",
+          2,
+          1,
+          "Male"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "TEXT"
+      ],
+      "rowCount": 15,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_9242fa91-ed71-4d67-b322-3fd0cd66238b"
+  }
+}

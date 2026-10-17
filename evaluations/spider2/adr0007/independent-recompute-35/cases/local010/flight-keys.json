@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT count(*) flights,count(distinct flight_id) ids,count(distinct departure_airport||'>'||arrival_airport) directed_airport_routes FROM flights",
+  "limit": 100
+}

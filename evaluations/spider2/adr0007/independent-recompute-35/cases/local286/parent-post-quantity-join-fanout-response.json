@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_ca68ceb2-cc1d-48a2-a1b8-1c8e6c0372cd\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsellers | joined_items | joined_sales\n238 | 70851 | 7304804.33"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_ca68ceb2-cc1d-48a2-a1b8-1c8e6c0372cd",
+      "preview": {
+        "columns": [
+          "sellers",
+          "joined_items",
+          "joined_sales"
+        ],
+        "rows": [
+          [
+            238,
+            70851,
+            7304804.33
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "sellers",
+        "joined_items",
+        "joined_sales"
+      ],
+      "rows": [
+        [
+          238,
+          70851,
+          7304804.33
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_2803137a-9d8c-4c02-846e-2f5478fad61a"
+  }
+}

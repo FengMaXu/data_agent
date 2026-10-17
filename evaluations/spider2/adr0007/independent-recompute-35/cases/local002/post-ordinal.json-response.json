@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_9e78e91f-5053-447f-b8cb-8b3b12868e4d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nn | a | b | answer\n582 | 665.9251021202103 | 0.5436361088893874 | 4195.666963331135"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_9e78e91f-5053-447f-b8cb-8b3b12868e4d",
+      "preview": {
+        "columns": [
+          "n",
+          "a",
+          "b",
+          "answer"
+        ],
+        "rows": [
+          [
+            582,
+            665.9251021202103,
+            0.5436361088893874,
+            4195.666963331135
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "n",
+        "a",
+        "b",
+        "answer"
+      ],
+      "rows": [
+        [
+          582,
+          665.9251021202103,
+          0.5436361088893874,
+          4195.666963331135
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_84c9b7ce-ef3a-48d9-b95f-0bae5f34dcef"
+  }
+}

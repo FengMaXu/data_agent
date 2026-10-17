@@ -1,0 +1,49 @@
+{
+  "instance_id": "local061",
+  "status": "ambiguous_after_recompute",
+  "summary": "独立与原12月完全一致；新增2021有实际销售商品月资格逐month键精确重现全部Gold。2021资格并非题面明确，文档只明确收集目标年销售。",
+  "fork_node": "population.eligibility",
+  "error_layer": "unresolved_target_year_roster",
+  "visibility": "explicit_historical_pair_eligibility; target_year_roster_omitted",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "taking each product’s monthly sales from 2019 and 2020"
+    },
+    {
+      "source": "blind.json",
+      "pointer": "/documents/projection_calculation.md/content",
+      "quote": "including sales amounts each month for the years 2019, 2020, and 2021."
+    },
+    {
+      "source": "post-roster-rounding.json",
+      "pointer": "/sql",
+      "quote": "CASE WHEN s21 IS NOT NULL THEN v END"
+    }
+  ],
+  "limitations": [
+    "Gold SQL缺失；实测精确重现不唯一确定参考实现或业务意图",
+    "商品预测先舍入与否在2位输出不可区分",
+    "本题与local050共享数据库与文档，按计划不采用其Gold方案进行独立解题"
+  ],
+  "parent_field_review": {
+    "instance_id": "local061",
+    "relevant_node": "population.eligibility",
+    "node_is_confirmed_original_error": false,
+    "explanation": "仅历史成对商品月还是要求目标年可见，声明可见但意图未裁决",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "evidence",
+    "original_node_value": "A product is included for a month only if it has a summed sales amount in both 2019 and 2020 (so the growth rate is computable); products lacking either year are excluded, with no zero-fill.",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local061/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/10/result/details/fields/1/value",
+      "quote": "A product is included for a month only if it has a summed sales amount in both 2019 and 2020 (so the growth rate is computable); products lacking either year are excluded, with no zero-fill."
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

@@ -1,0 +1,240 @@
+{
+  "frozenAt": "2026-10-11T09:17:07.227Z",
+  "instance_id": "local358",
+  "independent": true,
+  "taskId": "task_4feeb335-4c80-43c5-888c-8647c2c08e0c",
+  "revisionId": "revision_dbc9aaf2-c653-44bd-9ecf-d11a90d4afd6",
+  "publication": {
+    "receiptId": "publication_cfa0036b-9d04-416a-be18-7529556561b1",
+    "taskId": "task_4feeb335-4c80-43c5-888c-8647c2c08e0c",
+    "principalId": "independent-analyst",
+    "sessionId": "local358",
+    "candidateId": "candidate_984be3f8-7501-47df-9e4a-1ae8ab595350",
+    "revisionId": "revision_dbc9aaf2-c653-44bd-9ecf-d11a90d4afd6",
+    "resultRef": "result_f67b2769-b27c-4f95-ada2-b3e28350b4c4",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_cfa0036b-9d04-416a-be18-7529556561b1?session_id=local358",
+    "contentHash": "e95f510fd1fbaf8322b777c24f5369f8902d8dc25fde290c8bc05d24308b0191",
+    "presentationContentHash": "40b2866520669737fb69c9a5324849ddceb4da31316cb830fa37839cd0e2f477",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 5,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "age_category",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 5
+        },
+        {
+          "name": "user_count",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 4,
+          "min": "2",
+          "max": "13"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "65f92c7b-5d51-46a2-904b-4018cf89fb1e",
+    "requestId": "65f92c7b-5d51-46a2-904b-4018cf89fb1e",
+    "createdAt": "2026-10-11T09:17:04.645Z"
+  },
+  "currentRevision": {
+    "taskId": "task_4feeb335-4c80-43c5-888c-8647c2c08e0c",
+    "revisionId": "revision_dbc9aaf2-c653-44bd-9ecf-d11a90d4afd6",
+    "parentRevisionId": "revision_45eea87c-b6cb-44ce-bf80-994f7324d541",
+    "requestId": "30f647cf-6765-422c-a361-f17671769b44",
+    "createdAt": "2026-10-11T09:17:01.424Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "users by user_id"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_fc48532a-75c3-4c50-a059-b355c51303ba"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only observed eligible records; no fabricated missing records",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "All master users including withdrawn; deduplicate user_id"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "Fixed query observation day 2026-10-11 (SQLite date now verified); age birthday completed"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "One count per distinct user_id; full birthday-completed age at 2026-10-11; age20..29,30..39,40..49,50..59 else others; five buckets including zeros"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "age_category"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "age_category",
+            "user_count"
+          ]
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_dbc9aaf2-c653-44bd-9ecf-d11a90d4afd6",
+      "ready": "ready_9b289fdc-1d63-484c-9e26-9f6598a649f6"
+    },
+    "specFeedback": {
+      "taskId": "task_4feeb335-4c80-43c5-888c-8647c2c08e0c",
+      "revisionId": "revision_dbc9aaf2-c653-44bd-9ecf-d11a90d4afd6",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_fc48532a-75c3-4c50-a059-b355c51303ba",
+        "evidence_a6718c19-0596-4109-b08b-b8c29b8f27c2",
+        "evidence_17fe26ed-f521-4275-b098-8869c4660876",
+        "evidence_e58a658b-7531-4f95-9d31-b58b307b7fc0",
+        "evidence_4ba41346-6fbd-436a-b525-d90595019f6e",
+        "evidence_fa25a0c2-8f7e-4c7e-984b-f9388e636ba4",
+        "evidence_ff9e879e-6847-400a-948a-89a48d9e3ed5",
+        "evidence_7830b482-8137-4315-8db6-d4245d6cdaa4"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "master users distinct identity; completed age at fixed run date; five disjoint buckets",
+    "assumptions": [
+      "reference day = current 2026-10-11, not given by request",
+      "include withdrawn users",
+      "unknown birth goes others if any"
+    ],
+    "observations": [
+      "320 rows,30 ids; birth_date identical within id",
+      "Log data spans2016..2017 so current day materially different"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}
+

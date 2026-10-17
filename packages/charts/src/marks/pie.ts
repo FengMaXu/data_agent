@@ -1,10 +1,17 @@
 import { type PieChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
-import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
+import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue, headlineDigits } from "../semantics.js";
+import { THEME } from "../theme.js";
 import { CompileContext, temporalNotice, orderCategories, checkPartOfWhole } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
 const MAX_STATIC_PIE_SLICES = 12;
+
+/** Slices below this share of the whole get no outside label: their leader lines collide. The legend carries every share. */
+const MIN_LABELLED_SHARE = 0.04;
+
+/** A part this large leaves the others as slivers; one number tells it better than a ring. */
+const DOMINANT_SHARE = 0.9;
 
 function compilePie(context: CompileContext, chart: PieChart): ChartOption | undefined {
   const categoryIndex = context.column(chart.category.field, "/chart/category/field");
@@ -24,20 +31,48 @@ function compilePie(context: CompileContext, chart: PieChart): ChartOption | und
   if (context.errors.length > 0) return undefined;
   const order = orderCategories(labels, context.meta(chart.category.field));
   const scale = displayScale(value.meta);
-  const data = order.map((label) => ({ name: label, value: (value.values[labels.indexOf(label)] ?? 0) * scale }));
+  const total = order.reduce((sum, label) => sum + (value.values[labels.indexOf(label)] ?? 0) * scale, 0);
+  const shareOf = (shown: number) => (total > 0 ? shown / total : 0);
+  // Slivers keep their slice and legend entry but no leader line, so the labels that remain never overlap.
+  const data = order.map((label) => {
+    const shown = (value.values[labels.indexOf(label)] ?? 0) * scale;
+    return { name: label, value: shown, ...(shareOf(shown) < MIN_LABELLED_SHARE ? { label: { show: false }, labelLine: { show: false } } : {}) };
+  });
+  const largest = Math.max(0, ...data.map((slice) => shareOf(slice.value)));
+  if (largest >= DOMINANT_SHARE) {
+    context.notice({ kind: "layout", code: "PIE_DOMINATED", message: `最大的一类占 ${(largest * 100).toFixed(1)}%，其余扇区细到读不出；改用 KPI 卡写出这个占比，或用排序后的条形图比较其余类目`, field: chart.category.field });
+  }
+  // Each legend entry carries its share, so slices too thin to label are still read.
+  const shareByName = new Map(data.map((slice) => {
+    const share = shareOf(slice.value) * 100;
+    return [slice.name, `${share.toFixed(share < 1 ? 2 : 1)}%`];
+  }));
+  const donut = chart.donut !== false;
   return {
     color: [...PALETTE],
     ...(context.options.target === "static" ? { animation: false } : {}),
     tooltip: { trigger: "item", formatter: (params: { name: string; value: number; percent: number }) => `${params.name}：${formatValue(params.value, value.meta)}（${params.percent}%）` },
-    legend: { bottom: 0, type: labels.length > 8 ? "scroll" : "plain" },
+    legend: { bottom: 0, type: labels.length > 8 ? "scroll" : "plain", formatter: (name: string) => `${name}  ${shareByName.get(name) ?? ""}` },
+    // The ring's hole holds the whole every share is a part of.
+    ...(donut ? {
+      graphic: [{
+        type: "text",
+        left: "center",
+        top: "middle",
+        style: { text: `${formatValue(total, value.meta, { decimals: headlineDigits(total, value.meta) })}\n合计`, textAlign: "center", fill: THEME.ink, fontSize: 15, fontWeight: 600, lineHeight: 20 },
+      }],
+    } : {}),
     series: [{
       type: "pie",
       name: fieldTitle(value.field, value.meta),
-      // Leave room around the ring so labels wrap instead of being cut off.
-      radius: chart.donut === false ? "60%" : ["36%", "60%"],
+      // The ring sits at the centre the hole's text is drawn at; room around it lets labels wrap instead of being cut off.
+      radius: donut ? ["42%", "62%"] : "60%",
+      avoidLabelOverlap: true,
+      itemStyle: { borderColor: THEME.surface, borderWidth: 2 },
       data,
       // Name and share on separate lines, wrapping long names: a truncated label would hide the share.
-      label: { formatter: "{b}\n{d}%", overflow: "break", lineHeight: 16 },
+      label: { formatter: "{b}\n{d}%", overflow: "break", lineHeight: 16, color: THEME.inkSoft },
+      labelLine: { length: 8, length2: 8, lineStyle: { color: THEME.muted } },
     }],
   };
 }

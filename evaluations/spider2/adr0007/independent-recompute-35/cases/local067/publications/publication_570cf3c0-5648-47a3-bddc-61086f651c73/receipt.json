@@ -1,0 +1,103 @@
+{
+  "receiptId": "publication_570cf3c0-5648-47a3-bddc-61086f651c73",
+  "taskId": "task_b33629e2-811c-4fe4-acac-7248e4fb048c",
+  "principalId": "independent-analyst",
+  "sessionId": "local067",
+  "candidateId": "candidate_ec37592b-d8a6-458c-a73a-09a13f5c8549",
+  "revisionId": "revision_24a015f0-e0a7-41f0-86b4-8365c96fdac4",
+  "resultRef": "result_2904c559-6b16-4f98-9719-8e03a5e8d18a",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_570cf3c0-5648-47a3-bddc-61086f651c73?session_id=local067",
+  "contentHash": "a942e969952f7d2b7b1f7baf704e31b996144e78f0ee1afb52829b8d537c7459",
+  "presentationContentHash": "fb2dde61eb501509b80b6301cd0ac96791a7120f3c9bc05ea346ed1242f2199a",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.joinMultiplicity",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.countGrain",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.joinMultiplicity, measure.formula, measure.countGrain。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 10,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "tier",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 10,
+        "min": "1",
+        "max": "10"
+      },
+      {
+        "name": "highest_profit",
+        "kind": "decimal",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 10,
+        "min": "-10.030000000000086",
+        "max": "785.1500000000001"
+      },
+      {
+        "name": "lowest_profit",
+        "kind": "decimal",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 10,
+        "min": "-27.93999999999994",
+        "max": "698.35"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "cbbf3f71-4636-4e27-bdad-3952a045deb6",
+  "requestId": "cbbf3f71-4636-4e27-bdad-3952a045deb6",
+  "createdAt": "2026-10-11T09:19:47.901Z"
+}

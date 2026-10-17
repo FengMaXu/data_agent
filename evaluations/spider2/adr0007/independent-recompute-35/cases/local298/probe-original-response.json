@@ -1,0 +1,69 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_5cffcdcc-d85b-4a2f-8a22-72defc128a39\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmonth | total_balance\n2020-02 | 235595\n2020-03 | 261508\n2020-04 | 260971"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_5cffcdcc-d85b-4a2f-8a22-72defc128a39",
+      "preview": {
+        "columns": [
+          "month",
+          "total_balance"
+        ],
+        "rows": [
+          [
+            "2020-02",
+            235595
+          ],
+          [
+            "2020-03",
+            261508
+          ],
+          [
+            "2020-04",
+            260971
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "month",
+        "total_balance"
+      ],
+      "rows": [
+        [
+          "2020-02",
+          235595
+        ],
+        [
+          "2020-03",
+          261508
+        ],
+        [
+          "2020-04",
+          260971
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_8c731624-76ab-4d46-ae38-d389fcef162f"
+  }
+}

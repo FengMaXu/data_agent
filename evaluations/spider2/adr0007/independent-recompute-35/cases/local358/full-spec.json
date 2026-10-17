@@ -1,0 +1,52 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Only observed eligible records; no fabricated missing records",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.conditions": {
+      "value": [
+        "All master users including withdrawn; deduplicate user_id"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.time": {
+      "value": "Fixed query observation day 2026-10-11 (SQLite date now verified); age birthday completed",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "One count per distinct user_id; full birthday-completed age at 2026-10-11; age20..29,30..39,40..49,50..59 else others; five buckets including zeros"
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "grouping": {
+      "value": [
+        "age_category"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "selection": {
+      "value": "n/a",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "output": {
+      "value": {
+        "rowMode": "full",
+        "columns": [
+          "age_category",
+          "user_count"
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    }
+  }
+}

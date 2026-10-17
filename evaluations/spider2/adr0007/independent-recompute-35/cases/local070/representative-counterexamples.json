@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT insert_date,group_concat(city_id||':'||city_name) choices,MIN(city_name) lexical FROM cities WHERE country_code_2='cn' AND insert_date IN ('2021-07-12','2021-07-19','2021-07-27') GROUP BY insert_date",
+  "limit": 1000
+}

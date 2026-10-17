@@ -1,0 +1,4 @@
+{
+  "sql": "WITH d AS (SELECT distinct date(insert_date) dt FROM cities WHERE country_code_2='cn' AND insert_date >= '2021-07-01' AND insert_date < '2021-08-01'),g AS (SELECT dt,julianday(dt)-row_number() over(order by dt) island FROM d) SELECT min(dt) start,max(dt) end,count(*) days FROM g GROUP BY island ORDER BY start",
+  "limit": 1000
+}

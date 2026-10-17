@@ -1,0 +1,86 @@
+[
+  {
+    "lane": "A",
+    "focus": "回归、距离、ZIP连接与总体计数",
+    "ids": [
+      "local002",
+      "local010",
+      "local040",
+      "local049",
+      "local168"
+    ],
+    "write_root": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/lanes/A"
+  },
+  {
+    "lane": "B",
+    "focus": "付款计数、月度商品预测及销售报告",
+    "ids": [
+      "local037",
+      "local050",
+      "local061",
+      "local067",
+      "local286"
+    ],
+    "write_root": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/lanes/B"
+  },
+  {
+    "lane": "C",
+    "focus": "银行时间序列、余额与批发财务",
+    "ids": [
+      "local064",
+      "local285",
+      "local297",
+      "local298",
+      "local299"
+    ],
+    "write_root": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/lanes/C"
+  },
+  {
+    "lane": "D",
+    "focus": "电影关系图、资格条件与首次租赁",
+    "ids": [
+      "local056",
+      "local096",
+      "local098",
+      "local100",
+      "local196"
+    ],
+    "write_root": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/lanes/D"
+  },
+  {
+    "lane": "E",
+    "focus": "任职区间、留存年、日期连续段与年龄参考日",
+    "ids": [
+      "local070",
+      "local167",
+      "local169",
+      "local171",
+      "local358"
+    ],
+    "write_root": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/lanes/E"
+  },
+  {
+    "lane": "F",
+    "focus": "球员胜负、模型步骤粒度与F1赛季归属",
+    "ids": [
+      "local220",
+      "local263",
+      "local264",
+      "local335",
+      "local354"
+    ],
+    "write_root": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/lanes/F"
+  },
+  {
+    "lane": "G",
+    "focus": "零值风格、包装递归、FIFO、库存状态与终止事件",
+    "ids": [
+      "local131",
+      "local269",
+      "local273",
+      "local279",
+      "local331"
+    ],
+    "write_root": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/lanes/G"
+  }
+]

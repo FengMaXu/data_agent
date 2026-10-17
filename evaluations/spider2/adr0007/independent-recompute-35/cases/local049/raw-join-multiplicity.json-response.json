@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_6275008b-cb5f-4644-b544-dcdde723f0f3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nrows | companies\n747 | 732"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_6275008b-cb5f-4644-b544-dcdde723f0f3",
+      "preview": {
+        "columns": [
+          "rows",
+          "companies"
+        ],
+        "rows": [
+          [
+            747,
+            732
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "rows",
+        "companies"
+      ],
+      "rows": [
+        [
+          747,
+          732
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_a836c770-9db7-4721-81cd-ce59729ae761"
+  }
+}

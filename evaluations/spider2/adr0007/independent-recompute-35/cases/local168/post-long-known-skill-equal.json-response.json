@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_10040909-88f3-47ea-b775-355e2d982501\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_equal_average | available_skills\n94275 | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_10040909-88f3-47ea-b775-355e2d982501",
+      "preview": {
+        "columns": [
+          "skill_equal_average",
+          "available_skills"
+        ],
+        "rows": [
+          [
+            94275,
+            2
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_equal_average",
+        "available_skills"
+      ],
+      "rows": [
+        [
+          94275,
+          2
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b50b8a2c-d6f6-40cc-8970-859297468b67"
+  }
+}

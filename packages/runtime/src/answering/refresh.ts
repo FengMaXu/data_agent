@@ -51,7 +51,7 @@ export async function refreshPublication(deps: AnsweringDeps, input: RefreshPubl
   }));
   if (result.truncated) throw new AnsweringError("RESULT_INCOMPLETE", "The refreshed result exceeds the row limit and cannot be published");
   const privateResult = await deps.resultStore.createPrivate(result, context);
-  const checkReport = evaluateCandidateCheckReport({ spec: revision.spec, result: privateResult, queryHash: candidate.queryHash });
+  const checkReport = evaluateCandidateCheckReport({ fields: revision.fields, result: privateResult, queryHash: candidate.queryHash });
   const failure = candidateCheckFailure(checkReport.findings);
   if (failure) {
     await deps.resultStore.discard(privateResult.resultRef, context);

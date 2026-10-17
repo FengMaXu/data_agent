@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT r.year,COUNT(DISTINCT r.round) rounds,MIN(r.round) lo,MAX(r.round) hi,COUNT(*) entries,COUNT(DISTINCT re.driver_id) drivers FROM races r JOIN results re USING(race_id) WHERE year BETWEEN 1950 AND 1959 GROUP BY year ORDER BY year",
+  "limit": 100
+}

@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "product monthly inventory states",
+      "basis": "request",
+      "quote": "for each product"
+    }
+  }
+}

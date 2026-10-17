@@ -1,0 +1,73 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Product-months with positive 2019 sales and non-null 2020 sales; no invented growth for missing baseline",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "population.conditions": {
+      "value": [
+        "France",
+        "promo_total_id=1",
+        "channel_total_id=1"
+      ],
+      "basis": "request",
+      "quote": "filtered by promo_total_id=1 and channel_total_id=1"
+    },
+    "population.time": {
+      "value": "Historical calendar 2019,2020; forecast calendar 2021",
+      "basis": "request",
+      "quote": "monthly sales data from 2019 and 2020"
+    },
+    "population.joinMultiplicity": {
+      "value": "Join dimension keys then sum per product-year-month; one currency key per France/2021/month",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "SUM historical sales product/year/month; project each paired product/month a2020*a2020/a2019; multiply France/2021/month currency.to_us default1; AVG across projected products per month; ROUND monthly AVG 2 decimals; median 12 monthly AVGs via middle-two average"
+      },
+      "cite": [
+        {
+          "source": "knowledge:projection_calculation.md",
+          "quote": "Apply this percentage change to the 2020 sales to estimate 2021 sales."
+        }
+      ]
+    },
+    "measure.countGrain": {
+      "value": "Product-month projections in monthly mean; monthly means in median",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.denominator": {
+      "value": "Number of valid paired product projections per month; then all non-empty months in median",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "grouping": {
+      "value": [
+        "product/month/year historical",
+        "month projected mean",
+        "overall median"
+      ],
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "scalar",
+        "columns": [
+          "median_monthly_projected_sales_usd"
+        ],
+        "units": {
+          "median_monthly_projected_sales_usd": "USD"
+        }
+      },
+      "basis": "request",
+      "quote": "What is the median"
+    }
+  }
+}

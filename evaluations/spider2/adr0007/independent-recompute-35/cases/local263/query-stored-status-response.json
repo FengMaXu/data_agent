@@ -1,0 +1,101 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_46d72761-e056-46b9-aa9c-59fa452879e5\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nL1_model | status | n | models\nregression | soft | 36 | 21\ntree | soft | 11 | 5\nregression | strong | 78 | 37\ntree | strong | 14 | 6"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_46d72761-e056-46b9-aa9c-59fa452879e5",
+      "preview": {
+        "columns": [
+          "L1_model",
+          "status",
+          "n",
+          "models"
+        ],
+        "rows": [
+          [
+            "regression",
+            "soft",
+            36,
+            21
+          ],
+          [
+            "tree",
+            "soft",
+            11,
+            5
+          ],
+          [
+            "regression",
+            "strong",
+            78,
+            37
+          ],
+          [
+            "tree",
+            "strong",
+            14,
+            6
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "L1_model",
+        "status",
+        "n",
+        "models"
+      ],
+      "rows": [
+        [
+          "regression",
+          "soft",
+          36,
+          21
+        ],
+        [
+          "tree",
+          "soft",
+          11,
+          5
+        ],
+        [
+          "regression",
+          "strong",
+          78,
+          37
+        ],
+        [
+          "tree",
+          "strong",
+          14,
+          6
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_999f9b38-4c23-4405-a5b8-0f2b71d710a5"
+  }
+}

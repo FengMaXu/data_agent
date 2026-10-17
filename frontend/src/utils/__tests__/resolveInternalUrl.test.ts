@@ -39,6 +39,12 @@ describe('workspace markdown link resolution', () => {
         expect(url.searchParams.get('path')).toBe('session-123/chart1_trend.png');
     });
 
+    it('does not double-encode a non-ASCII asset name already percent-encoded by markdown', () => {
+        const encoded = `charts/${encodeURIComponent('待纳统企业街道分布')}.svg`;
+        const url = new URL(resolveWorkspaceAssetUrl(encoded, undefined, 'session-123'));
+        expect(url.searchParams.get('path')).toBe('session-123/charts/待纳统企业街道分布.svg');
+    });
+
     it('routes Receipt-authorized publications through the Electron application protocol', () => {
         window.dataAgentRuntime = { invokeRuntimeCommand: async () => ({}), subscribeRuntimeEvents: () => () => undefined };
         try {

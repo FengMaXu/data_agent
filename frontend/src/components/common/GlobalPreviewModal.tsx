@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExternalLink, X } from '../icons/Typicons';
+import { X } from '../icons/Typicons';
+import { RiChrome } from '../icons/RemixIcons';
 import { useLanguage } from '../../context/LanguageContext';
 import { usePreview } from '../../context/PreviewContext';
 import { resolveWorkspaceAssetUrl } from '../../utils/resolveInternalUrl';
@@ -316,7 +317,7 @@ const GlobalPreviewModal: React.FC = () => {
                         <div className="global-preview-meta">{normalizedType || t('preview.file')}</div>
                     </div>
                     <div className="global-preview-actions" onPointerDown={(event) => event.stopPropagation()}>
-                        <button type="button" className="global-preview-icon-btn" onClick={handleOpenExternal} aria-label={t('preview.openExternal')} title={t('preview.openExternal')}><ExternalLink size={18} strokeWidth={2} /></button>
+                        <button type="button" className="global-preview-icon-btn" onClick={handleOpenExternal} aria-label={t('preview.openExternal')} title={t('preview.openExternal')}><RiChrome size={18} /></button>
                         <button type="button" className="global-preview-icon-btn" onClick={closePreview} aria-label={t('preview.close')} title={t('preview.close')}><X size={19} strokeWidth={2} /></button>
                     </div>
                 </header>

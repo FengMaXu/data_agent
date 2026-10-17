@@ -1,0 +1,3 @@
+{
+  "sql": "WITH oc AS (SELECT DISTINCT i.order_id,p.product_category_name category FROM olist_order_items i JOIN olist_products p USING(product_id)) SELECT category,COUNT(*) events,COUNT(DISTINCT pay.order_id) orders,COUNT(*)-COUNT(DISTINCT pay.order_id) additional_events FROM oc JOIN olist_order_payments pay USING(order_id) WHERE payment_type='credit_card' AND category IN ('cama_mesa_banho','beleza_saude','esporte_lazer') GROUP BY category"
+}

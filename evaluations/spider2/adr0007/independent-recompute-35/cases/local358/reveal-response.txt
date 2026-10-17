@@ -1,0 +1,74 @@
+{
+  "revealedAt": "2026-10-11T09:17:10.150Z",
+  "registry": {
+    "instance_id": "local358",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 118803,
+    "tool_calls": 10,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/submissions/sql/local358.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local358.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 8,
+      "toolCalls": 10,
+      "explorationQueries": 1,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 0
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 1,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH ages AS (\n  SELECT\n    CAST(strftime('%Y', date('now')) AS INTEGER) - CAST(substr(birth_date, 1, 4) AS INTEGER)\n      - CASE WHEN strftime('%m-%d', date('now')) < substr(birth_date, 6, 5) THEN 1 ELSE 0 END AS age\n  FROM mst_users\n)\nSELECT\n  CASE\n    WHEN age BETWEEN 20 AND 29 THEN '20s'\n    WHEN age BETWEEN 30 AND 39 THEN '30s'\n    WHEN age BETWEEN 40 AND 49 THEN '40s'\n    WHEN age BETWEEN 50 AND 59 THEN '50s'\n    ELSE 'others'\n  END AS age_category,\n  COUNT(*) AS user_count\nFROM ages\nGROUP BY age_category\nORDER BY CASE age_category\n           WHEN '20s' THEN 1 WHEN '30s' THEN 2 WHEN '40s' THEN 3 WHEN '50s' THEN 4 ELSE 5\n         END;\n",
+  "originalCsv": "age_category,user_count\n20s,32\n30s,88\n40s,24\n50s,24\nothers,152\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local358.csv",
+      "content": "category,user_count\r\n20s,16\r\n30s,88\r\n40s,32\r\n50s,32\r\nothers,152"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local358",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "96"
+  }
+}
+

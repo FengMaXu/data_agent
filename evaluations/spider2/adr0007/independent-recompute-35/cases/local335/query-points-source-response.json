@@ -1,0 +1,55 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_5e09484f-c3c5-4261-a70a-f7e4b4c5dd06\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | forename | surname | standings | result_and_sprint\n"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_5e09484f-c3c5-4261-a70a-f7e4b4c5dd06",
+      "preview": {
+        "columns": [
+          "year",
+          "forename",
+          "surname",
+          "standings",
+          "result_and_sprint"
+        ],
+        "rows": [],
+        "columnTypes": [
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL"
+        ],
+        "rowCount": 0,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "forename",
+        "surname",
+        "standings",
+        "result_and_sprint"
+      ],
+      "rows": [],
+      "columnTypes": [
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL"
+      ],
+      "rowCount": 0,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b4c0bbb4-4753-4108-a617-076f9d53e0b9"
+  }
+}

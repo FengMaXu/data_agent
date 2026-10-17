@@ -1,0 +1,109 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_491995a4-e279-41fc-a354-025c0bbe83ed\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmetric | n\nitem_rows | 112650\nitem_keys | 112650\nseller_rows | 3095\nseller_ids | 3095\nqualified_sellers | 236\nqualified_distinct_products | 46\nreview_rows | 99224\nreview_id_order_keys | 99224"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_491995a4-e279-41fc-a354-025c0bbe83ed",
+      "preview": {
+        "columns": [
+          "metric",
+          "n"
+        ],
+        "rows": [
+          [
+            "item_rows",
+            112650
+          ],
+          [
+            "item_keys",
+            112650
+          ],
+          [
+            "seller_rows",
+            3095
+          ],
+          [
+            "seller_ids",
+            3095
+          ],
+          [
+            "qualified_sellers",
+            236
+          ],
+          [
+            "qualified_distinct_products",
+            46
+          ],
+          [
+            "review_rows",
+            99224
+          ],
+          [
+            "review_id_order_keys",
+            99224
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 8,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "metric",
+        "n"
+      ],
+      "rows": [
+        [
+          "item_rows",
+          112650
+        ],
+        [
+          "item_keys",
+          112650
+        ],
+        [
+          "seller_rows",
+          3095
+        ],
+        [
+          "seller_ids",
+          3095
+        ],
+        [
+          "qualified_sellers",
+          236
+        ],
+        [
+          "qualified_distinct_products",
+          46
+        ],
+        [
+          "review_rows",
+          99224
+        ],
+        [
+          "review_id_order_keys",
+          99224
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 8,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6e6b5763-c160-4804-ad55-62c074a03d6f"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT 'payment_rows' metric,COUNT(*) n FROM olist_order_payments UNION ALL SELECT 'payment_keys',COUNT(*) FROM (SELECT DISTINCT order_id,payment_sequential FROM olist_order_payments) UNION ALL SELECT 'item_rows',COUNT(*) FROM olist_order_items UNION ALL SELECT 'order_category_rows',COUNT(*) FROM (SELECT DISTINCT i.order_id,p.product_category_name FROM olist_order_items i JOIN olist_products p ON p.product_id=i.product_id) UNION ALL SELECT 'unknown_category_items',COUNT(*) FROM olist_order_items i JOIN olist_products p ON p.product_id=i.product_id WHERE p.product_category_name IS NULL",
+  "limit": 100
+}

@@ -1,0 +1,1 @@
+{"fields": {"selection": {"value": {"n": 1, "orderBy": {"column": "positive_customers", "direction": "desc"}}, "basis": "assumed", "rationale": "Two separate branches select highest and lowest positive customer counts, earliest month tie; scalar difference joins them"}}}

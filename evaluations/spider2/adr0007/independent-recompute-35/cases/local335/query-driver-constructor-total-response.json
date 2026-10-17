@@ -1,0 +1,109 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c168bb6b-9d2e-4672-9afd-d5f5f21e1a65\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | n\nWilliams | 6\nToro Rosso | 5\nJordan | 3\nArrows | 2\nMinardi | 2\nSauber | 2\nAlfa Romeo | 1\nAlpine F1 Team | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c168bb6b-9d2e-4672-9afd-d5f5f21e1a65",
+      "preview": {
+        "columns": [
+          "name",
+          "n"
+        ],
+        "rows": [
+          [
+            "Williams",
+            6
+          ],
+          [
+            "Toro Rosso",
+            5
+          ],
+          [
+            "Jordan",
+            3
+          ],
+          [
+            "Arrows",
+            2
+          ],
+          [
+            "Minardi",
+            2
+          ],
+          [
+            "Sauber",
+            2
+          ],
+          [
+            "Alfa Romeo",
+            1
+          ],
+          [
+            "Alpine F1 Team",
+            1
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 8,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "n"
+      ],
+      "rows": [
+        [
+          "Williams",
+          6
+        ],
+        [
+          "Toro Rosso",
+          5
+        ],
+        [
+          "Jordan",
+          3
+        ],
+        [
+          "Arrows",
+          2
+        ],
+        [
+          "Minardi",
+          2
+        ],
+        [
+          "Sauber",
+          2
+        ],
+        [
+          "Alfa Romeo",
+          1
+        ],
+        [
+          "Alpine F1 Team",
+          1
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 8,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_0e0b1a4b-029c-4776-9955-f4d220fc2945"
+  }
+}

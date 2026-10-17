@@ -1,0 +1,25 @@
+{
+  "fields": {
+    "population.eligibility": "Products with configured minimum and purchase quantity",
+    "population.conditions": [
+      "2019 forecast monthly demand; absent months zero demand"
+    ],
+    "population.time": "Initialize December2018, simulate Jan-Dec2019",
+    "measure.formula": {
+      "op": "custom",
+      "description": "Month pre_end=previous final ending-budget; strictly below minimum triggers one qty_purchase added immediately; final ending=pre_end+purchase; select minimum abs(final ending-minimum), earliest month on ties"
+    },
+    "grouping": [
+      "product_id"
+    ],
+    "selection": "n/a",
+    "output": {
+      "rowMode": "full",
+      "columns": [
+        "product_id",
+        "month",
+        "absolute_difference"
+      ]
+    }
+  }
+}

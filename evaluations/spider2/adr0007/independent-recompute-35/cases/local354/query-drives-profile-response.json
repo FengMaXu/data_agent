@@ -1,0 +1,221 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_0d166c1a-bf67-4e48-9aba-4f7bb4711bbc\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nyear | drive_rows | drivers | first_flags | last_flags | single_round_drives\n1950 | 88 | 81 | 82 | 82 | 58\n1951 | 92 | 84 | 84 | 84 | 64\n1952 | 121 | 105 | 105 | 105 | 81\n1953 | 122 | 108 | 114 | 114 | 91\n1954 | 109 | 97 | 102 | 102 | 75\n1955 | 97 | 84 | 84 | 84 | 63\n1956 | 104 | 85 | 85 | 85 | 72\n1957 | 86 | 76 | 76 | 76 | 60\n1958 | 108 | 87 | 88 | 86 | 70\n1959 | 112 | 88 | 88 | 88 | 80"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_0d166c1a-bf67-4e48-9aba-4f7bb4711bbc",
+      "preview": {
+        "columns": [
+          "year",
+          "drive_rows",
+          "drivers",
+          "first_flags",
+          "last_flags",
+          "single_round_drives"
+        ],
+        "rows": [
+          [
+            1950,
+            88,
+            81,
+            82,
+            82,
+            58
+          ],
+          [
+            1951,
+            92,
+            84,
+            84,
+            84,
+            64
+          ],
+          [
+            1952,
+            121,
+            105,
+            105,
+            105,
+            81
+          ],
+          [
+            1953,
+            122,
+            108,
+            114,
+            114,
+            91
+          ],
+          [
+            1954,
+            109,
+            97,
+            102,
+            102,
+            75
+          ],
+          [
+            1955,
+            97,
+            84,
+            84,
+            84,
+            63
+          ],
+          [
+            1956,
+            104,
+            85,
+            85,
+            85,
+            72
+          ],
+          [
+            1957,
+            86,
+            76,
+            76,
+            76,
+            60
+          ],
+          [
+            1958,
+            108,
+            87,
+            88,
+            86,
+            70
+          ],
+          [
+            1959,
+            112,
+            88,
+            88,
+            88,
+            80
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "year",
+        "drive_rows",
+        "drivers",
+        "first_flags",
+        "last_flags",
+        "single_round_drives"
+      ],
+      "rows": [
+        [
+          1950,
+          88,
+          81,
+          82,
+          82,
+          58
+        ],
+        [
+          1951,
+          92,
+          84,
+          84,
+          84,
+          64
+        ],
+        [
+          1952,
+          121,
+          105,
+          105,
+          105,
+          81
+        ],
+        [
+          1953,
+          122,
+          108,
+          114,
+          114,
+          91
+        ],
+        [
+          1954,
+          109,
+          97,
+          102,
+          102,
+          75
+        ],
+        [
+          1955,
+          97,
+          84,
+          84,
+          84,
+          63
+        ],
+        [
+          1956,
+          104,
+          85,
+          85,
+          85,
+          72
+        ],
+        [
+          1957,
+          86,
+          76,
+          76,
+          76,
+          60
+        ],
+        [
+          1958,
+          108,
+          87,
+          88,
+          86,
+          70
+        ],
+        [
+          1959,
+          112,
+          88,
+          88,
+          88,
+          80
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_1abed66d-5880-4d86-905c-39d00049ee37"
+  }
+}

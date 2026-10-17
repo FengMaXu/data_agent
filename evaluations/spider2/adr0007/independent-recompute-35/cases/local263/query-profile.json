@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT 'model_score' source,COUNT(*) rows,COUNT(DISTINCT name||':'||version||':'||step) steps,COUNT(DISTINCT name||':'||version) models FROM model_score UNION ALL SELECT 'model',COUNT(*),COUNT(DISTINCT name||':'||version||':'||step),COUNT(DISTINCT name||':'||version) FROM model;",
+  "limit": 100
+}

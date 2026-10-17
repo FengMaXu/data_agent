@@ -1,0 +1,108 @@
+{
+  "receiptId": "publication_67e7bc2a-42d0-4c3d-acc7-1d76df9b40ad",
+  "taskId": "task_a60fd16a-87cb-417d-9f19-c421aa06cbe3",
+  "principalId": "independent-analyst",
+  "sessionId": "local196",
+  "candidateId": "candidate_97816c49-8289-4a80-9643-209ad554278f",
+  "revisionId": "revision_aef75b5a-b7a8-4cf3-900e-ccffdf4ca2eb",
+  "resultRef": "result_0386a0c3-2963-4e9e-ba60-4e4bb51e55e1",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_67e7bc2a-42d0-4c3d-acc7-1d76df9b40ad?session_id=local196",
+  "contentHash": "34133835e33fec568cf2a969d255e4190b1e4d7863555857523707ff7b24ec42",
+  "presentationContentHash": "a8362821114ae1b3124cd4c5c64d837b59b0d8256f2fdd3664fc418bcd04a3ef",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.conditions",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.countGrain",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.denominator",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain, measure.denominator, output。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 5,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "rating",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 5
+      },
+      {
+        "name": "average_total_spent",
+        "kind": "decimal",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 5,
+        "min": "110.65990384615385",
+        "max": "115.23639455782313"
+      },
+      {
+        "name": "average_subsequent_rentals",
+        "kind": "decimal",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 5,
+        "min": "25.298076923076923",
+        "max": "26.38095238095238"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "21b19db6-abd3-4863-9c38-1046f29b42c1",
+  "requestId": "21b19db6-abd3-4863-9c38-1046f29b42c1",
+  "createdAt": "2026-10-11T10:05:09.388Z"
+}

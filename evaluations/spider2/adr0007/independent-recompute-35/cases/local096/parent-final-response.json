@@ -1,0 +1,438 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586 revisionId=revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c\n[FANOUT_CHECK] status=unknown reasons=check_disabled\nNo source-key duplication was observed within the supported probe coverage.\nyear | total_movies | female_percentage\n1931 | 1 | 0\n1936 | 3 | 0\n1939 | 2 | 50\n1941 | 1 | 0\n1943 | 1 | 0\n1946 | 2 | 0\n1947 | 2 | 0\n1948 | 3 | 0\n1949 | 3 | 0\n1950 | 2 | 0\n1951 | 6 | 0\n1952 | 6 | 0\n1953 | 8 | 0\n1954 | 6 | 0\n1955 | 9 | 0\n1956 | 6 | 0\n1957 | 13 | 0\n1958 | 9 | 0\n1959 | 6 | 0\n1960 | 14 | 0\n1961 | 7 | 0\n1962 | 12 | 0\n1963 | 10 | 0\n1964 | 15 | 0\n1965 | 14 | 0\n1966 | 18 | 0\n1967 | 19 | 0\n1968 | 21 | 0\n1969 | 18 | 0\n1970 | 24 | 0\n1971 | 24 | 0\n1972 | 29 | 0\n1973 | 29 | 0\n1974 | 26 | 0\n1975 | 24 | 0\n1976 | 22 | 0\n1977 | 28 | 0\n1978 | 23 | 0\n1979 | 25 | 0\n1980 | 31 | 0\n1981 | 33 | 0\n1982 | 36 | 0\n1983 | 37 | 0\n1984 | 33 | 0\n1985 | 31 | 0\n1986 | 33 | 0\n1987 | 32 | 0\n1988 | 37 | 0\n1989 | 47 | 0\n1990 | 42 | 0\n(truncated preview)"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586",
+        "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+        "resultRef": "result_e6249ef6-0065-4e6c-92a7-4d3d3de8c9ba"
+      },
+      "preview": {
+        "columns": [
+          "year",
+          "total_movies",
+          "female_percentage"
+        ],
+        "rows": [
+          [
+            1931,
+            1,
+            0
+          ],
+          [
+            1936,
+            3,
+            0
+          ],
+          [
+            1939,
+            2,
+            50
+          ],
+          [
+            1941,
+            1,
+            0
+          ],
+          [
+            1943,
+            1,
+            0
+          ],
+          [
+            1946,
+            2,
+            0
+          ],
+          [
+            1947,
+            2,
+            0
+          ],
+          [
+            1948,
+            3,
+            0
+          ],
+          [
+            1949,
+            3,
+            0
+          ],
+          [
+            1950,
+            2,
+            0
+          ],
+          [
+            1951,
+            6,
+            0
+          ],
+          [
+            1952,
+            6,
+            0
+          ],
+          [
+            1953,
+            8,
+            0
+          ],
+          [
+            1954,
+            6,
+            0
+          ],
+          [
+            1955,
+            9,
+            0
+          ],
+          [
+            1956,
+            6,
+            0
+          ],
+          [
+            1957,
+            13,
+            0
+          ],
+          [
+            1958,
+            9,
+            0
+          ],
+          [
+            1959,
+            6,
+            0
+          ],
+          [
+            1960,
+            14,
+            0
+          ],
+          [
+            1961,
+            7,
+            0
+          ],
+          [
+            1962,
+            12,
+            0
+          ],
+          [
+            1963,
+            10,
+            0
+          ],
+          [
+            1964,
+            15,
+            0
+          ],
+          [
+            1965,
+            14,
+            0
+          ],
+          [
+            1966,
+            18,
+            0
+          ],
+          [
+            1967,
+            19,
+            0
+          ],
+          [
+            1968,
+            21,
+            0
+          ],
+          [
+            1969,
+            18,
+            0
+          ],
+          [
+            1970,
+            24,
+            0
+          ],
+          [
+            1971,
+            24,
+            0
+          ],
+          [
+            1972,
+            29,
+            0
+          ],
+          [
+            1973,
+            29,
+            0
+          ],
+          [
+            1974,
+            26,
+            0
+          ],
+          [
+            1975,
+            24,
+            0
+          ],
+          [
+            1976,
+            22,
+            0
+          ],
+          [
+            1977,
+            28,
+            0
+          ],
+          [
+            1978,
+            23,
+            0
+          ],
+          [
+            1979,
+            25,
+            0
+          ],
+          [
+            1980,
+            31,
+            0
+          ],
+          [
+            1981,
+            33,
+            0
+          ],
+          [
+            1982,
+            36,
+            0
+          ],
+          [
+            1983,
+            37,
+            0
+          ],
+          [
+            1984,
+            33,
+            0
+          ],
+          [
+            1985,
+            31,
+            0
+          ],
+          [
+            1986,
+            33,
+            0
+          ],
+          [
+            1987,
+            32,
+            0
+          ],
+          [
+            1988,
+            37,
+            0
+          ],
+          [
+            1989,
+            47,
+            0
+          ],
+          [
+            1990,
+            42,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 78,
+        "truncated": true
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "attemptId": "attempt_5c9e48e6-ba2a-40e8-8d64-3feaf17408fe"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5?session_id=local096) receiptId=publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain。 JOIN fanout 检查未能完整完成：check_disabled。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5",
+      "taskId": "task_8f48f1b9-67d7-4ac0-be97-e687527c5a22",
+      "principalId": "independent-analyst",
+      "sessionId": "local096",
+      "candidateId": "candidate_e66469f5-bf89-4a21-b2a1-38a2ad792586",
+      "revisionId": "revision_f0dec9fa-125c-4141-bd9d-cff06c142f7c",
+      "resultRef": "result_e6249ef6-0065-4e6c-92a7-4d3d3de8c9ba",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5?session_id=local096",
+      "contentHash": "e974fe9e9ef3a819e3530dd9295a40c3eacd4ba8a75738b3eb18a39ee7f4496d",
+      "presentationContentHash": "17ac62057bb50b8b7bfa3f3a8566d233fa1600c508cb2fce81b72c9387a38dea",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "unknown",
+          "reason": "check_disabled"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "unknown",
+        "snapshotScope": "unbound",
+        "targets": [],
+        "unsupportedReasons": [
+          "check_disabled"
+        ]
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, measure.formula, measure.countGrain。 JOIN fanout 检查未能完整完成：check_disabled。",
+        "fanoutStatus": "unknown"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 78,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "year",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 78,
+            "min": "1931",
+            "max": "2018"
+          },
+          {
+            "name": "total_movies",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 52,
+            "min": "1",
+            "max": "136"
+          },
+          {
+            "name": "female_percentage",
+            "kind": "decimal",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 5,
+            "min": "0",
+            "max": "50"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+      "requestId": "77cbdbae-89eb-44e7-b786-9023150259bf",
+      "createdAt": "2026-10-11T10:03:06.551Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local096\\publications\\publication_e6432aaa-bac2-4c1b-85ac-a79cb8f8c5d5\\result.csv"
+}

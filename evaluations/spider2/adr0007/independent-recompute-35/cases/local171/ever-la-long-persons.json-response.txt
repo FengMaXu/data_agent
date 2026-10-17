@@ -1,0 +1,192 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_2a5c55f8-0da8-401d-ab94-0e07280424b2\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nid_bioguide | full_name | first_state | first_start | first_snapshot | last_snapshot | observations\nL000366 | Edward Livingston | NY | 1795-12-07 | 1826-12-31 | 1831-12-31 | 6\nS000768 | Louis St. Martin | LA | 1851-12-01 | 1885-12-31 | 1886-12-31 | 2\nR000059 | Joseph Eugene Ransdell | LA | 1899-12-04 | 1930-12-31 | 1930-12-31 | 1\nE000112 | Allen Joseph Ellender | LA | 1937-01-05 | 1968-12-31 | 1971-12-31 | 4\nH000437 | Felix Edward Hébert | LA | 1941-01-03 | 1972-12-31 | 1976-12-31 | 5\nL000428 | Russell Billiu Long | LA | 1948-01-01 | 1979-12-31 | 1986-12-31 | 8\nB000780 | John B. Breaux | LA | 1971-01-21 | 2002-12-31 | 2004-12-31 | 3"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_2a5c55f8-0da8-401d-ab94-0e07280424b2",
+      "preview": {
+        "columns": [
+          "id_bioguide",
+          "full_name",
+          "first_state",
+          "first_start",
+          "first_snapshot",
+          "last_snapshot",
+          "observations"
+        ],
+        "rows": [
+          [
+            "L000366",
+            "Edward Livingston",
+            "NY",
+            "1795-12-07",
+            "1826-12-31",
+            "1831-12-31",
+            6
+          ],
+          [
+            "S000768",
+            "Louis St. Martin",
+            "LA",
+            "1851-12-01",
+            "1885-12-31",
+            "1886-12-31",
+            2
+          ],
+          [
+            "R000059",
+            "Joseph Eugene Ransdell",
+            "LA",
+            "1899-12-04",
+            "1930-12-31",
+            "1930-12-31",
+            1
+          ],
+          [
+            "E000112",
+            "Allen Joseph Ellender",
+            "LA",
+            "1937-01-05",
+            "1968-12-31",
+            "1971-12-31",
+            4
+          ],
+          [
+            "H000437",
+            "Felix Edward Hébert",
+            "LA",
+            "1941-01-03",
+            "1972-12-31",
+            "1976-12-31",
+            5
+          ],
+          [
+            "L000428",
+            "Russell Billiu Long",
+            "LA",
+            "1948-01-01",
+            "1979-12-31",
+            "1986-12-31",
+            8
+          ],
+          [
+            "B000780",
+            "John B. Breaux",
+            "LA",
+            "1971-01-21",
+            "2002-12-31",
+            "2004-12-31",
+            3
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "id_bioguide",
+        "full_name",
+        "first_state",
+        "first_start",
+        "first_snapshot",
+        "last_snapshot",
+        "observations"
+      ],
+      "rows": [
+        [
+          "L000366",
+          "Edward Livingston",
+          "NY",
+          "1795-12-07",
+          "1826-12-31",
+          "1831-12-31",
+          6
+        ],
+        [
+          "S000768",
+          "Louis St. Martin",
+          "LA",
+          "1851-12-01",
+          "1885-12-31",
+          "1886-12-31",
+          2
+        ],
+        [
+          "R000059",
+          "Joseph Eugene Ransdell",
+          "LA",
+          "1899-12-04",
+          "1930-12-31",
+          "1930-12-31",
+          1
+        ],
+        [
+          "E000112",
+          "Allen Joseph Ellender",
+          "LA",
+          "1937-01-05",
+          "1968-12-31",
+          "1971-12-31",
+          4
+        ],
+        [
+          "H000437",
+          "Felix Edward Hébert",
+          "LA",
+          "1941-01-03",
+          "1972-12-31",
+          "1976-12-31",
+          5
+        ],
+        [
+          "L000428",
+          "Russell Billiu Long",
+          "LA",
+          "1948-01-01",
+          "1979-12-31",
+          "1986-12-31",
+          8
+        ],
+        [
+          "B000780",
+          "John B. Breaux",
+          "LA",
+          "1971-01-21",
+          "2002-12-31",
+          "2004-12-31",
+          3
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_053b8214-7ccd-448c-ab33-503d315e1875"
+  }
+}
+

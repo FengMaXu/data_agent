@@ -1,0 +1,52 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Only observed eligible records; no fabricated missing records",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.conditions": {
+      "value": [
+        "global first term starts 1917-01-01..1999-12-31 inclusive"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.time": {
+      "value": "First 20 year-end observations: initial start-year Dec31 through start-year+19 Dec31; inclusive term endpoints; no 1999 follow-up truncation",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Fixed cohort denominator = count distinct people whose global first term starts in 1917..1999. For period 0..19, observation is Dec31 in start year plus period; numerator people with any inclusive term covering observation; retain all periods including zero. Ratio 0..1."
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "grouping": {
+      "value": [
+        "period 0..19"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "selection": {
+      "value": "n/a",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "output": {
+      "value": {
+        "rowMode": "full",
+        "columns": [
+          "period",
+          "retention_rate"
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    }
+  }
+}

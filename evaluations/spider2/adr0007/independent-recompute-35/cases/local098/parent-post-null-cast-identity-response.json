@@ -1,0 +1,61 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_7c97fd8f-4778-4a09-8cb9-af37766483bc\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nMID | PID\ntt2355921 | NULL\ntt1587388 | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_7c97fd8f-4778-4a09-8cb9-af37766483bc",
+      "preview": {
+        "columns": [
+          "MID",
+          "PID"
+        ],
+        "rows": [
+          [
+            "tt2355921",
+            null
+          ],
+          [
+            "tt1587388",
+            null
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "NULL"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "MID",
+        "PID"
+      ],
+      "rows": [
+        [
+          "tt2355921",
+          null
+        ],
+        [
+          "tt1587388",
+          null
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "NULL"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_5bdff9f1-77c6-4a4e-b675-2c9b74737a34"
+  }
+}

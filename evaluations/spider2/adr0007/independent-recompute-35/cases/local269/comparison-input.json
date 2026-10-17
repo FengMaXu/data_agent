@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:03:33.994Z",
+  "registry": {
+    "instance_id": "local269",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 63422,
+    "tool_calls": 13,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local269/attempts/attempt-20261010-154318Z/submissions/sql/local269.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local269.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 7,
+      "toolCalls": 13,
+      "explorationQueries": 2,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 0
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 1,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH RECURSIVE roots AS (\n  SELECT p.id AS root_id\n  FROM packaging p\n  WHERE NOT EXISTS (SELECT 1 FROM packaging_relations r WHERE r.contains_id = p.id)\n),\nexpand AS (\n  SELECT root_id, root_id AS node_id, 1 AS mult,\n         '>' || CAST(root_id AS TEXT) || '>' AS path\n  FROM roots\n  UNION ALL\n  SELECT e.root_id, r.contains_id, e.mult * r.qty,\n         e.path || CAST(r.contains_id AS TEXT) || '>'\n  FROM expand e\n  JOIN packaging_relations r ON r.packaging_id = e.node_id\n  WHERE instr(e.path, '>' || CAST(r.contains_id AS TEXT) || '>') = 0\n),\nleaf_totals AS (\n  SELECT e.root_id, SUM(e.mult) AS total_qty\n  FROM expand e\n  WHERE NOT EXISTS (SELECT 1 FROM packaging_relations r2 WHERE r2.packaging_id = e.node_id)\n  GROUP BY e.root_id\n)\nSELECT AVG(total_qty) AS average_total_leaf_quantity\nFROM leaf_totals;\n",
+  "originalCsv": "average_total_leaf_quantity\n946\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local269.csv",
+      "content": "avg_qty\r\n530.67\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local269",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "160"
+  }
+}

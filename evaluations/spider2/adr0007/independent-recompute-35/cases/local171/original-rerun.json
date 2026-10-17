@@ -1,0 +1,4 @@
+{
+  "sql": "WITH RECURSIVE nums(k) AS (SELECT 31 UNION ALL SELECT k+1 FROM nums WHERE k<49),\nml AS (\n  SELECT t.id_bioguide AS idb\n  FROM legislators_terms t\n  JOIN legislators l ON l.id_bioguide = t.id_bioguide\n  WHERE t.state = 'LA' AND l.gender = 'M'\n  GROUP BY t.id_bioguide\n),\nft AS (\n  SELECT t.id_bioguide AS idb, MIN(t.term_start) AS first_start\n  FROM legislators_terms t\n  JOIN ml ON ml.idb = t.id_bioguide\n  GROUP BY t.id_bioguide\n)\nSELECT n.k AS years_since_first_term,\n       COUNT(DISTINCT ft.idb) AS legislator_count\nFROM ft JOIN nums n\nWHERE EXISTS (\n  SELECT 1 FROM legislators_terms t2\n  WHERE t2.id_bioguide = ft.idb\n    AND t2.term_start <= (CAST(substr(ft.first_start,1,4) AS INT)+n.k)||'-12-31'\n    AND t2.term_end   >= (CAST(substr(ft.first_start,1,4) AS INT)+n.k)||'-12-31'\n)\nGROUP BY n.k\nORDER BY n.k;\n",
+  "limit": 1000
+}

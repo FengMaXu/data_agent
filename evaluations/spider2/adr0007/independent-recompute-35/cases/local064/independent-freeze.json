@@ -1,0 +1,317 @@
+{
+  "frozenAt": "2026-10-11T09:00:54.733Z",
+  "instance_id": "local064",
+  "independent": true,
+  "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+  "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+  "publication": {
+    "receiptId": "publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49",
+    "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+    "principalId": "independent-analyst",
+    "sessionId": "local064",
+    "candidateId": "candidate_a06c17e8-bda3-44ea-8836-ab751aaee731",
+    "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+    "resultRef": "result_54f7c827-505f-4e65-9581-a87e7e02fec8",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_4be5110e-1c5d-4d56-8de8-9ea8218c2a49?session_id=local064",
+    "contentHash": "2fdfa03fd945860dc7a5b30ab7d1d290ce82f0fc77be84a2be27cb554b7001ed",
+    "presentationContentHash": "f6fb9798a07a833bc652aae8c37c9f9a7095c8cd148b93b34a3faaab4a43197d",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.denominator",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection.ties",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        },
+        {
+          "path": "selection",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：measure.countGrain, measure.denominator, selection.ties, output, selection。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "highest_month",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 1
+        },
+        {
+          "name": "highest_count",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "424",
+          "max": "424"
+        },
+        {
+          "name": "highest_average",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "557.704",
+          "max": "557.704"
+        },
+        {
+          "name": "lowest_month",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 1
+        },
+        {
+          "name": "lowest_count",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "0",
+          "max": "0"
+        },
+        {
+          "name": "lowest_average",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "0",
+          "max": "0"
+        },
+        {
+          "name": "difference",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "557.704",
+          "max": "557.704"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "13916638-30d8-4684-a98e-19aea60d8b0c",
+    "requestId": "13916638-30d8-4684-a98e-19aea60d8b0c",
+    "createdAt": "2026-10-11T09:00:51.142Z"
+  },
+  "currentRevision": {
+    "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+    "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+    "parentRevisionId": "revision_7a7a4ad9-a787-4841-b950-9b0f5d8329f0",
+    "requestId": "e18b9ee6-905b-4bd8-90a3-a840f9d2778f",
+    "createdAt": "2026-10-11T09:00:46.901Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "customer-month pairs"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Include all 500 customers, including zero-transaction customer-months",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "Only deposit adds and withdrawal subtracts; purchase contributes zero"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_2c31e542-71a3-4023-a17a-d972124b5707"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "2020-01-01 inclusive through 2021-01-01 exclusive, all 12 calendar months"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687"
+          ]
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Monthly deposit-withdrawal for each customer; positive customer count by month; average monthly net over all 500 customers; highest-count month average minus lowest-count month average"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_c9ca100e-408b-425c-b105-d73bd60e638c"
+          ]
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "Distinct customer per calendar month",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "All 500 customers, zero-filled months",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "calendar month"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_f38f6a99-6947-4957-8048-261c630887f3"
+          ]
+        }
+      },
+      "selection.ties": {
+        "state": "specified",
+        "value": "strict",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "highest_month",
+            "highest_count",
+            "highest_average",
+            "lowest_month",
+            "lowest_count",
+            "lowest_average",
+            "difference"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection": {
+        "state": "specified",
+        "value": {
+          "n": 1,
+          "orderBy": "positive_customers DESC, m ASC for high; positive_customers ASC, m ASC for low"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "Two separate branches select highest and lowest positive customer counts, earliest month tie; scalar difference joins them"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+      "ready": "ready_017a265f-cb3b-44d2-910b-5c1521fa430d"
+    },
+    "specFeedback": {
+      "taskId": "task_3932e0c7-258c-4b17-a966-5eb63818b3de",
+      "revisionId": "revision_0ba2b2b8-87df-4070-8c2e-a40a40d8ad11",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_08e3496a-1a1b-4f9a-a9fb-f9ce04b4d963",
+        "evidence_512d5719-8c74-409b-8755-7d57d0e0f2dc",
+        "evidence_fcd5ec21-d2a0-4626-9be7-1d6d325f795f",
+        "evidence_37daa9d1-f165-4cfa-9b5e-8dd3b142570c",
+        "evidence_2c31e542-71a3-4023-a17a-d972124b5707",
+        "evidence_05cb28f2-e9fd-4952-bbbc-2039aaf06687",
+        "evidence_c9ca100e-408b-425c-b105-d73bd60e638c",
+        "evidence_f38f6a99-6947-4957-8048-261c630887f3"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "2020 full calendar customer-month grid; monthly deposit minus withdrawal only, not cumulative; positive counts and mean over all 500; earliest tied month; high average minus low average",
+    "observed": "May-Dec have no transactions; zero means no recorded monthly flow, not confirmed account balance",
+    "limitations": [
+      "Missing May-Dec source transactions",
+      "Earliest tied minimum selected",
+      "Currency unspecified"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

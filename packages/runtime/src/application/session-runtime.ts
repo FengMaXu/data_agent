@@ -1,6 +1,6 @@
 import { MemorySessionRepo, TODO_CONTEXT } from "@earendil-works/pi-agent-core";
 import type { Session, Skill } from "@earendil-works/pi-agent-core";
-import { InMemoryAdvisoryLedger, InMemoryAnswering, isScopedReadOnlySql, type AdvisoryLedger, type Answering, type AnsweringSqlExecutor, type AnsweringStore, type EvidenceSource, type FanoutAnsweringOptions, type QueryBudgetPolicy, type ResultStore } from "../answering/public.js";
+import { InMemoryAnswering, isScopedReadOnlySql, type Answering, type AnsweringSqlExecutor, type AnsweringStore, type EvidenceSource, type FanoutAnsweringOptions, type QueryBudgetPolicy, type ResultStore } from "../answering/public.js";
 import { PiSessionAnsweringStore } from "../adapters/pi-session-answering-store.js";
 import { PiSessionClarificationLedger } from "../adapters/pi-session-clarification-ledger.js";
 import { FileResultStore, InMemoryResultStore } from "../answering/result-store.js";
@@ -14,7 +14,7 @@ import { createChartToolDefinitions } from "../tools/charts.js";
 import { createDashboardToolDefinitions } from "../tools/dashboard.js";
 import { DerivedDatasets, FileDerivedDatasetStore, InMemoryDerivedDatasetStore } from "../facets/derived-datasets.js";
 import { DashboardRefresher } from "../facets/dashboard-refresh.js";
-import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type HypothesisComparisonToolOptions, type SemanticSpecMode, type SpecInterface } from "../tools/answering.js";
+import { createAnsweringAgentToolDefinitions, type DataAgentToolContext, type SemanticSpecMode } from "../tools/answering.js";
 import { createCoreAgentToolDefinitions } from "../tools/core.js";
 import { createDataAgentPiRuntime, createPiSessionHost, type DataAgentModelProfile, type DataAgentSessionHost, type DataAgentSessionHostOptions, type OpenOperation, type SessionInput, type SessionQueryExecutor } from "../agent/harness-factory.js";
 import type { PresentationAgentEvent } from "../facets/transcript.js";
@@ -27,7 +27,8 @@ import { createQueryTaskDelegationResolver, type DelegationSqlExplorer } from ".
 import { createSubagentToolDefinition } from "../tools/subagent.js";
 import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
-import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import type { RequirementExtractor, SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import { ModelRequirementExtractor } from "../adapters/model-requirement-extractor.js";
 import { isRuntimeInjected } from "../runtime-injected.js";
 
 export interface DataAgentSessionRuntimeOptions {
@@ -57,10 +58,10 @@ export interface DataAgentSessionRuntimeOptions {
   readonly hypothesisChoiceAdvisor?: HypothesisChoiceAdvisor;
   /** Optional post-commit Jev Spec alignment assessor. */
   readonly specAlignmentAssessor?: SpecAlignmentAssessor;
+  /** Overrides the session-model requirement extractor used by Spec feedback. */
+  readonly requirementExtractor?: RequirementExtractor;
   /** Evaluation-only semantic-spec ablation. Product composition leaves this required. */
   readonly semanticSpecMode?: SemanticSpecMode;
-  /** ADR-0007 phase 1: "fields" exposes set_answer_spec instead of begin/revise_answer_spec. */
-  readonly specInterface?: SpecInterface;
   /** Explicit Answering budget; omitted uses the production default policy. */
   readonly answeringBudgetPolicy?: QueryBudgetPolicy;
   /** Explicit fanout capability setting; omitted uses the production default. */
@@ -82,7 +83,8 @@ export interface DataAgentSessionRuntimeOptions {
 export type AnsweringEvidenceDocuments = Readonly<Record<string, "task_document" | "reviewed_definition">>;
 
 export function composeKnowledgeCatalogPrompt(base: string, knowledge?: KnowledgeIndex, options: { readonly delegation?: boolean } = {}): string {
-  const entries = knowledge?.catalog() ?? [];
+  // An unfilled placeholder would send the Agent to read a document with no content.
+  const entries = (knowledge?.catalog() ?? []).filter((entry) => entry.hasContent);
   if (entries.length === 0) return base;
   const header = "Knowledge Catalog (choose sources by need; do not treat catalog metadata as business evidence):";
   if (!options.delegation) return `${base}\n\n${header}\n${renderKnowledgeCatalog(entries)}`;
@@ -230,21 +232,6 @@ export function createEvidenceSource(options: {
   };
 }
 
-function simpleHypothesisComparisonOptions(
-  advisor: HypothesisChoiceAdvisor,
-  session: Session<any>,
-  ledger: AdvisoryLedger,
-): HypothesisComparisonToolOptions {
-  return {
-    advisor,
-    ledger,
-    getOriginalQuestion: async (requestMessageId?: string) => {
-      if (requestMessageId) return readOriginalQuestion(session, requestMessageId);
-      throw new Error("HYPOTHESIS_COMPARISON_ORIGINAL_QUESTION_UNAVAILABLE");
-    },
-  };
-}
-
 /**
  * Session Runtime is the composition root. It creates one Answering domain,
  * one Pi-session adapter and one immutable ResultStore, then hands all of them
@@ -256,12 +243,13 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
   // The user's clarification answers live in this Session, where Evidence Admission reads them.
   const clarificationLedger = new PiSessionClarificationLedger(session, TODO_CONTEXT);
   const resultStore = options.resultStore ?? (options.resultRoot ? new FileResultStore(options.resultRoot) : new InMemoryResultStore());
+  const piRuntime = await createDataAgentPiRuntime(options.profile);
+  // The requirement list comes from the session's model reading only the request; the assessor decides each item (ADR-0003).
   const specFeedback = options.specAlignmentAssessor ? {
     assessor: options.specAlignmentAssessor,
+    requirementExtractor: options.requirementExtractor ?? new ModelRequirementExtractor(piRuntime.models, piRuntime.model),
     getOriginalQuestion: (requestMessageId: string, feedbackOptions?: { readonly signal?: AbortSignal }) => readOriginalQuestion(session, requestMessageId, feedbackOptions?.signal),
   } : undefined;
-  // compare_hypotheses writes advice here; Answering reads it when a Choice is decided (ADR-0005).
-  const advisoryLedger = new InMemoryAdvisoryLedger();
   const answering: Answering = new InMemoryAnswering({
     store: answeringStore,
     resultStore,
@@ -269,10 +257,15 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ...(options.answeringBudgetPolicy ? { budgetPolicy: options.answeringBudgetPolicy } : {}),
     ...(options.answeringFanout ? { fanout: options.answeringFanout } : {}),
     semanticQualificationMode: options.semanticSpecMode === "disabled" ? "bypassed" : "required",
-    // A Choice is decided after its alternatives' outputs are known (ADR-0005).
-    choiceProbes: options.semanticSpecMode !== "disabled",
-    advisoryLedger,
-    requireAdvice: Boolean(options.hypothesisChoiceAdvisor),
+    // An open field is decided after its alternatives' outputs are known (ADR-0005).
+    fieldProbes: options.semanticSpecMode !== "disabled",
+    // Answering asks the advisor once an open field's probe outputs differ; without a semantic Spec there is nothing to compare (ADR-0005).
+    ...(options.hypothesisChoiceAdvisor && options.semanticSpecMode !== "disabled" ? {
+      fieldAdvice: {
+        advisor: options.hypothesisChoiceAdvisor,
+        getOriginalQuestion: (requestMessageId: string, adviceOptions?: { readonly signal?: AbortSignal }) => readOriginalQuestion(session, requestMessageId, adviceOptions?.signal),
+      },
+    } : {}),
     // ADR-0006: without a clarification tool an unverified population decision is disclosed, not blocked.
     populationDecisions: options.enableClarificationTool === false ? "allow_disclosed" : "require_evidence",
     ...(specFeedback ? { specFeedback } : {}),
@@ -326,7 +319,6 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ...(skill.disableModelInvocation ? { disableModelInvocation: true } : {}),
   }));
   const toolContext: DataAgentToolContext = { sessionId: options.sessionId, principalId: options.principalId ?? "local" };
-  const piRuntime = await createDataAgentPiRuntime(options.profile);
   const toolDefinitions: DataAgentToolDefinition<DataAgentToolContext>[] = [
     ...createCoreAgentToolDefinitions({
       workspace: options.workspace,
@@ -342,9 +334,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ...createAnsweringAgentToolDefinitions(
       answering,
       artifacts,
-      // Comparison is over a Choice in the Answer Spec; without a semantic Spec there is nothing to compare.
-      options.hypothesisChoiceAdvisor && options.semanticSpecMode !== "disabled" ? simpleHypothesisComparisonOptions(options.hypothesisChoiceAdvisor, session, advisoryLedger) : undefined,
-      { semanticSpecMode: options.semanticSpecMode ?? "required", ...(options.specInterface ? { specInterface: options.specInterface } : {}) },
+      { semanticSpecMode: options.semanticSpecMode ?? "required" },
     ),
     ...createChartToolDefinitions({ workspace: options.workspace, artifacts, derived: derivedDatasets }),
     ...(options.enableDashboards !== false ? createDashboardToolDefinitions({ workspace: options.workspace, artifacts, derived: derivedDatasets }) : []),

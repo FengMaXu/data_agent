@@ -1,0 +1,329 @@
+{
+  "frozenAt": "2026-10-11T10:06:52.081Z",
+  "instance_id": "local286",
+  "independent": true,
+  "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+  "revisionId": "revision_caac8f30-af45-4eac-b0b2-e3fe00d09961",
+  "publication": {
+    "receiptId": "publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553",
+    "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+    "principalId": "independent-analyst",
+    "sessionId": "local286",
+    "candidateId": "candidate_900c5720-9215-4157-84bb-95673958393a",
+    "revisionId": "revision_caac8f30-af45-4eac-b0b2-e3fe00d09961",
+    "resultRef": "result_36db6bbc-9dcb-4da9-9e5b-13f333df66fb",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553?session_id=local286",
+    "contentHash": "a0140ddd0b3ef25409b384b31821ee442686be0d24416567e55a1ab717d7dde5",
+    "presentationContentHash": "19d5505c51eefe87069fe21b1bde752d93f8a602f8e6b12fd0114a0302c7e6f2",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "unknown",
+        "reason": "check_disabled"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "unknown",
+      "snapshotScope": "unbound",
+      "targets": [],
+      "unsupportedReasons": [
+        "check_disabled"
+      ]
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.joinMultiplicity",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.denominator",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.conditions, population.time, population.joinMultiplicity, measure.formula, measure.countGrain, measure.denominator。 JOIN fanout 检查未能完整完成：check_disabled。",
+      "fanoutStatus": "unknown"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 236,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "seller_id",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 236
+        },
+        {
+          "name": "total_sales",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 236,
+          "min": "2574.7799999999997",
+          "max": "229472.63"
+        },
+        {
+          "name": "products_sold",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 157,
+          "min": "101",
+          "max": "2033"
+        },
+        {
+          "name": "average_item_price",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 236,
+          "min": "15.235384615384614",
+          "max": "543.3562195121951"
+        },
+        {
+          "name": "average_review_score",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 233,
+          "min": "2.3333333333333335",
+          "max": "4.603960396039604"
+        },
+        {
+          "name": "average_packing_days",
+          "kind": "decimal",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 236,
+          "min": "0.9766663636948855",
+          "max": "11.384186236296628"
+        },
+        {
+          "name": "top_category_english",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 36
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "d3ab88c6-f30d-43a8-8c7f-6888d841df06",
+    "requestId": "d3ab88c6-f30d-43a8-8c7f-6888d841df06",
+    "createdAt": "2026-10-11T10:06:50.308Z"
+  },
+  "currentRevision": {
+    "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+    "revisionId": "revision_caac8f30-af45-4eac-b0b2-e3fe00d09961",
+    "parentRevisionId": "revision_1565d684-b61c-42be-905e-54ab0cba23ca",
+    "requestId": "b634b9d6-8b2b-429c-bf42-04be4b60353c",
+    "createdAt": "2026-10-11T09:25:46.522Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "sellers",
+          "keyColumns": [
+            "seller_id"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_6b198137-c60e-4572-aba4-717178312fca"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Only sellers whose recorded sold units exceed100",
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_82ee64c5-9c03-47cf-b96c-eb40648a1df4"
+          ]
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "HAVING COUNT(order_items rows)>100",
+          "All recorded order_items statuses; no delivered-only restriction",
+          "Packing average excludes missing or negative event durations only"
+        ],
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "All stored history; no user date bound"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "population.joinMultiplicity": {
+        "state": "specified",
+        "value": "Aggregate sales separately; DISTINCT seller/order before reviews and time join; products/translation observed one-row keys",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Seller SUM(price), COUNT item rows sold, AVG item price; AVG review rows associated through distinct seller/order; AVG nonnegative carrier-minus-approved Julian days per seller/order; mode category by unit count, translate English, join all tied highest categories"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "Sales/prices: item rows; review average: review records once per seller-order; packing average: distinct seller-order valid event pairs",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "measure.denominator": {
+        "state": "specified",
+        "value": "Price non-null item count; reviews non-null review records; packing non-null nonnegative approved-to-carrier event durations",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立题解；题目未明确，作为假定披露"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "seller_id"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_9da1a872-502e-4f0f-bd6e-701b514d392d"
+          ]
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "grouped",
+          "columns": [
+            "seller_id",
+            "total_sales",
+            "products_sold",
+            "average_item_price",
+            "average_review_score",
+            "average_packing_days",
+            "top_category_english"
+          ],
+          "units": {
+            "average_packing_days": "days"
+          }
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_02aa8b28-1ceb-45b5-8364-ed3385fec293"
+          ]
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_caac8f30-af45-4eac-b0b2-e3fe00d09961",
+      "ready": "ready_4cd26e7e-a4ec-4f85-94ba-92130dbc6e47"
+    },
+    "specFeedback": {
+      "taskId": "task_3e79711a-7848-4c69-89b9-da6773f63499",
+      "revisionId": "revision_caac8f30-af45-4eac-b0b2-e3fe00d09961",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_6b198137-c60e-4572-aba4-717178312fca",
+        "evidence_491995a4-e279-41fc-a354-025c0bbe83ed",
+        "evidence_3ed163aa-a4ed-4d13-ac92-dbf0efe9bc34",
+        "evidence_07bfa263-2d53-498c-92af-5d0838617c0b",
+        "evidence_6978894b-617b-4cea-bcbe-988eab270e9b",
+        "evidence_82ee64c5-9c03-47cf-b96c-eb40648a1df4",
+        "evidence_9da1a872-502e-4f0f-bd6e-701b514d392d",
+        "evidence_02aa8b28-1ceb-45b5-8364-ed3385fec293"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "preserved already independently derived seller report: >100 item units; sales separate from seller/order review and packing averages; top category by unit count",
+    "assumptions": [
+      "packing carrier-approved nonnegative valid dates",
+      "all recorded item statuses; no delivered restriction",
+      "review records once per seller/order"
+    ],
+    "limitations": [
+      "definition of packing interval and review weight not explicit",
+      "initial final JSON erroneously included limit; parent removed only interface option, not SQL/semantics"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

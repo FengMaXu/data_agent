@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT min(date) min_date,max(date) max_date,count(*) n,sum(month_name='December' AND day_of_month=31) dec31 FROM legislation_date_dim",
+  "limit": 1000
+}

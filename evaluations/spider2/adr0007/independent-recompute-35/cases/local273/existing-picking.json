@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT p.name,l.order_id,l.location_id,l.qty FROM picking_line l JOIN products p ON l.product_id=p.id ORDER BY p.name,l.order_id,l.location_id",
+  "limit": 1000
+}

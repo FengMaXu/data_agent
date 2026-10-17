@@ -1,0 +1,209 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4a5c6167-d011-46b7-89a1-5f395a5664a0\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nroot | node | total | paths\n511 | 501 | 3 | 1\n511 | 502 | 2 | 1\n521 | 502 | 72 | 1\n522 | 501 | 36 | 1\n523 | 502 | 30 | 1\n524 | 501 | 24 | 1\n524 | 502 | 16 | 1\n531 | 502 | 864 | 1\n532 | 501 | 720 | 1\n533 | 501 | 360 | 1\n533 | 502 | 600 | 1\n534 | 501 | 384 | 1\n534 | 502 | 856 | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4a5c6167-d011-46b7-89a1-5f395a5664a0",
+      "preview": {
+        "columns": [
+          "root",
+          "node",
+          "total",
+          "paths"
+        ],
+        "rows": [
+          [
+            511,
+            501,
+            3,
+            1
+          ],
+          [
+            511,
+            502,
+            2,
+            1
+          ],
+          [
+            521,
+            502,
+            72,
+            1
+          ],
+          [
+            522,
+            501,
+            36,
+            1
+          ],
+          [
+            523,
+            502,
+            30,
+            1
+          ],
+          [
+            524,
+            501,
+            24,
+            1
+          ],
+          [
+            524,
+            502,
+            16,
+            1
+          ],
+          [
+            531,
+            502,
+            864,
+            1
+          ],
+          [
+            532,
+            501,
+            720,
+            1
+          ],
+          [
+            533,
+            501,
+            360,
+            1
+          ],
+          [
+            533,
+            502,
+            600,
+            1
+          ],
+          [
+            534,
+            501,
+            384,
+            1
+          ],
+          [
+            534,
+            502,
+            856,
+            2
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 13,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "root",
+        "node",
+        "total",
+        "paths"
+      ],
+      "rows": [
+        [
+          511,
+          501,
+          3,
+          1
+        ],
+        [
+          511,
+          502,
+          2,
+          1
+        ],
+        [
+          521,
+          502,
+          72,
+          1
+        ],
+        [
+          522,
+          501,
+          36,
+          1
+        ],
+        [
+          523,
+          502,
+          30,
+          1
+        ],
+        [
+          524,
+          501,
+          24,
+          1
+        ],
+        [
+          524,
+          502,
+          16,
+          1
+        ],
+        [
+          531,
+          502,
+          864,
+          1
+        ],
+        [
+          532,
+          501,
+          720,
+          1
+        ],
+        [
+          533,
+          501,
+          360,
+          1
+        ],
+        [
+          533,
+          502,
+          600,
+          1
+        ],
+        [
+          534,
+          501,
+          384,
+          1
+        ],
+        [
+          534,
+          502,
+          856,
+          2
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 13,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_2c7a0871-496b-4f47-b9a8-1caad10807a2"
+  }
+}

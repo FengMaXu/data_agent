@@ -1,0 +1,85 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_8d04c9ad-cc77-4253-8295-2c111636e82c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | n\nWilliams | 6\nToro Rosso | 5\nArrows | 2\nJordan | 2\nMinardi | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_8d04c9ad-cc77-4253-8295-2c111636e82c",
+      "preview": {
+        "columns": [
+          "name",
+          "n"
+        ],
+        "rows": [
+          [
+            "Williams",
+            6
+          ],
+          [
+            "Toro Rosso",
+            5
+          ],
+          [
+            "Arrows",
+            2
+          ],
+          [
+            "Jordan",
+            2
+          ],
+          [
+            "Minardi",
+            2
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "n"
+      ],
+      "rows": [
+        [
+          "Williams",
+          6
+        ],
+        [
+          "Toro Rosso",
+          5
+        ],
+        [
+          "Arrows",
+          2
+        ],
+        [
+          "Jordan",
+          2
+        ],
+        [
+          "Minardi",
+          2
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_f7c351d1-2d8e-45f3-b348-733e5c6bf8e5"
+  }
+}

@@ -10,7 +10,7 @@ import type { DashboardRefreshRequest, DashboardRefreshResult } from "../facets/
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
 import type { FanoutAnsweringOptions, QueryBudgetPolicy } from "../answering/public.js";
 import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
-import type { SemanticSpecMode, SpecInterface } from "../tools/answering.js";
+import type { SemanticSpecMode } from "../tools/answering.js";
 
 export interface HostRequestContext {
   readonly userId: string;
@@ -43,8 +43,6 @@ export interface DataAgentSessionApplicationOptions {
   readonly specAlignmentAssessor?: SpecAlignmentAssessor;
   /** Evaluation-only; ordinary product sessions use the required semantic Spec. */
   readonly semanticSpecMode?: SemanticSpecMode;
-  /** ADR-0007 phase 1 switch; omitted keeps begin/revise_answer_spec. */
-  readonly specInterface?: SpecInterface;
   readonly answeringBudgetPolicy?: QueryBudgetPolicy;
   readonly answeringFanout?: FanoutAnsweringOptions;
   /** Knowledge ids admitted as business evidence and their authority (ADR-0004). */
@@ -228,7 +226,6 @@ export class DataAgentSessionApplication {
       ...(this.options.hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor: this.options.hypothesisChoiceAdvisor } : {}),
       ...(this.options.specAlignmentAssessor ? { specAlignmentAssessor: this.options.specAlignmentAssessor } : {}),
       ...(this.options.semanticSpecMode ? { semanticSpecMode: this.options.semanticSpecMode } : {}),
-      ...(this.options.specInterface ? { specInterface: this.options.specInterface } : {}),
       ...(this.options.answeringBudgetPolicy ? { answeringBudgetPolicy: this.options.answeringBudgetPolicy } : {}),
       ...(this.options.answeringFanout ? { answeringFanout: this.options.answeringFanout } : {}),
       ...(this.options.answeringEvidenceDocuments ? { answeringEvidenceDocuments: this.options.answeringEvidenceDocuments } : {}),

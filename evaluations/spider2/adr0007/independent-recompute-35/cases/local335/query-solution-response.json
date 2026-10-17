@@ -1,0 +1,85 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_9ab2aa42-e597-4ca8-b091-80601a3e8761\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | seasons\nWilliams | 6\nToro Rosso | 5\nSauber | 3\nMinardi | 3\nJordan | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_9ab2aa42-e597-4ca8-b091-80601a3e8761",
+      "preview": {
+        "columns": [
+          "name",
+          "seasons"
+        ],
+        "rows": [
+          [
+            "Williams",
+            6
+          ],
+          [
+            "Toro Rosso",
+            5
+          ],
+          [
+            "Sauber",
+            3
+          ],
+          [
+            "Minardi",
+            3
+          ],
+          [
+            "Jordan",
+            2
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "seasons"
+      ],
+      "rows": [
+        [
+          "Williams",
+          6
+        ],
+        [
+          "Toro Rosso",
+          5
+        ],
+        [
+          "Sauber",
+          3
+        ],
+        [
+          "Minardi",
+          3
+        ],
+        [
+          "Jordan",
+          2
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7be918a7-d856-4096-8ea5-a03bb6bb86d5"
+  }
+}

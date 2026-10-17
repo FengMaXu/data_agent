@@ -1,0 +1,109 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e2cc50ef-b00e-4be1-9b3b-67c7328cd35c\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncompany_id | date_joined | joined_copies\n109 | 2020-09-08T00:00:00.000 | 2\n162 | 2020-01-24T00:00:00.000 | 2\n316 | 2021-05-26T00:00:00.000 | 2\n318 | 2020-01-07T00:00:00.000 | 2\n450 | 2021-04-29T00:00:00.000 | 2\n983 | 2019-08-22T00:00:00.000 | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e2cc50ef-b00e-4be1-9b3b-67c7328cd35c",
+      "preview": {
+        "columns": [
+          "company_id",
+          "date_joined",
+          "joined_copies"
+        ],
+        "rows": [
+          [
+            109,
+            "2020-09-08T00:00:00.000",
+            2
+          ],
+          [
+            162,
+            "2020-01-24T00:00:00.000",
+            2
+          ],
+          [
+            316,
+            "2021-05-26T00:00:00.000",
+            2
+          ],
+          [
+            318,
+            "2020-01-07T00:00:00.000",
+            2
+          ],
+          [
+            450,
+            "2021-04-29T00:00:00.000",
+            2
+          ],
+          [
+            983,
+            "2019-08-22T00:00:00.000",
+            2
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 6,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "company_id",
+        "date_joined",
+        "joined_copies"
+      ],
+      "rows": [
+        [
+          109,
+          "2020-09-08T00:00:00.000",
+          2
+        ],
+        [
+          162,
+          "2020-01-24T00:00:00.000",
+          2
+        ],
+        [
+          316,
+          "2021-05-26T00:00:00.000",
+          2
+        ],
+        [
+          318,
+          "2020-01-07T00:00:00.000",
+          2
+        ],
+        [
+          450,
+          "2021-04-29T00:00:00.000",
+          2
+        ],
+        [
+          983,
+          "2019-08-22T00:00:00.000",
+          2
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 6,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_3d33e8fb-4871-42f5-b55a-6f25f4f2b9b5"
+  }
+}

@@ -4,8 +4,8 @@ import type { ResultStore } from "./result-store.js";
 import type { EvidenceSource } from "./evidence-admission.js";
 import type { FanoutDialect, FanoutSchema } from "./fanout-check.js";
 import type { AnsweringSqlExecutor } from "./sql-execution.js";
-import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
-import type { AdvisoryLedger } from "./advisory-ledger.js";
+import type { RequirementExtractor, SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
+import type { FieldAdviceOptions } from "./advice-execution.js";
 
 export interface FanoutAnsweringOptions {
   readonly enabled?: boolean;
@@ -17,6 +17,8 @@ export interface FanoutAnsweringOptions {
 
 export interface SpecFeedbackOptions {
   readonly assessor: SpecAlignmentAssessor;
+  /** Lists the request's requirement phrases once per request; without it only output columns are assessed. */
+  readonly requirementExtractor?: RequirementExtractor;
   readonly getOriginalQuestion: (requestMessageId: string, options?: { readonly signal?: AbortSignal }) => Promise<string | undefined>;
   readonly timeoutMs?: number;
   readonly maxInputBytes?: number;
@@ -41,11 +43,11 @@ export interface AnsweringDeps {
   readonly budgetPolicy: QueryBudgetPolicy;
   readonly maxResultRows: number;
   readonly semanticQualificationMode: SemanticQualificationMode;
-  /** Choice probe tracking and the decide-after-probe rule (ADR-0005). */
-  readonly choiceProbes: boolean;
-  /** compare_hypotheses advice per Choice, written by the trusted comparison tool. */
-  readonly advisoryLedger?: AdvisoryLedger;
-  /** An advisor is configured, so decisive core Choices need advice before a decision. */
+  /** Probe tracking for open fields and the decide-after-probe rule (ADR-0005). */
+  readonly fieldProbes: boolean;
+  /** The advisor the Runtime asks about an open field whose probe outputs differ (ADR-0005). */
+  readonly fieldAdvice?: FieldAdviceOptions;
+  /** An advisor is configured and probes are tracked, so decisive open fields need advice before a decision. */
   readonly adviceRequired: boolean;
   /** Whether an unverified decision may settle the material population (ADR-0006). */
   readonly populationDecisions: "require_evidence" | "allow_disclosed";

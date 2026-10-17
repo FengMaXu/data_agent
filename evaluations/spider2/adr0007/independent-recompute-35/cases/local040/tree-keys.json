@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT count(*) rows,count(distinct tree_id) tree_ids,sum(tree_id IS NULL) missing_id,sum(zipcode IS NULL) missing_zip,sum(boroname IS NULL OR trim(boroname)='') missing_borough FROM trees",
+  "limit": 100
+}

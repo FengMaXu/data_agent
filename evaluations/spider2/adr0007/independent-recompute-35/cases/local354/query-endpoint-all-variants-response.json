@@ -1,0 +1,77 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4efce196-2586-489e-8d45-1aa15c3a524f\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nvariant | drivers\nwithout_status_filter | 104\nstatus_filtered | 103\ncalendar_endpoints | 43\nall_steps_same_team | 103"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4efce196-2586-489e-8d45-1aa15c3a524f",
+      "preview": {
+        "columns": [
+          "variant",
+          "drivers"
+        ],
+        "rows": [
+          [
+            "without_status_filter",
+            104
+          ],
+          [
+            "status_filtered",
+            103
+          ],
+          [
+            "calendar_endpoints",
+            43
+          ],
+          [
+            "all_steps_same_team",
+            103
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "variant",
+        "drivers"
+      ],
+      "rows": [
+        [
+          "without_status_filter",
+          104
+        ],
+        [
+          "status_filtered",
+          103
+        ],
+        [
+          "calendar_endpoints",
+          43
+        ],
+        [
+          "all_steps_same_team",
+          103
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_a8d0dfa7-a52f-4986-b6b1-3ec7ef1884cd"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH ev AS (SELECT r.year,re.driver_id,re.points FROM results re JOIN races r USING(race_id) WHERE year>=2001 UNION ALL SELECT r.year,s.driver_id,s.points FROM sprint_results s JOIN races r USING(race_id) WHERE year>=2001), totals AS (SELECT year,driver_id,SUM(points) points FROM ev GROUP BY year,driver_id), lr AS (SELECT r.year,MAX(round) round FROM races r JOIN driver_standings ds USING(race_id) WHERE year>=2001 GROUP BY year) SELECT r.year,d.forename,d.surname,ds.points standings,t.points result_and_sprint FROM driver_standings ds JOIN races r USING(race_id) JOIN lr ON lr.year=r.year AND lr.round=r.round JOIN totals t ON t.year=r.year AND t.driver_id=ds.driver_id JOIN drivers d USING(driver_id) WHERE ABS(ds.points-t.points)>0.00001 ORDER BY r.year,ds.driver_id",
+  "limit": 100
+}

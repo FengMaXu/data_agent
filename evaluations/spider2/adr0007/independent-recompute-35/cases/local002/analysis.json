@@ -1,0 +1,51 @@
+{
+  "instance_id": "local002",
+  "status": "ambiguous_after_recompute",
+  "summary": "常规金额OLS精确复现旧值4340.10，独立件数36.890234；多种缺期/日序实测未匹配Gold14334.62114，未唯一定位",
+  "fork_node": "population.entity (independent-vs-original; not proven erroneous)",
+  "error_layer": "undetermined; evidence support scope is local concern",
+  "visibility": "original formula explicitly records algorithm; sales unit assumed",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "5-day symmetric moving average of predicted toy sales"
+    },
+    {
+      "source": "executor-events.jsonl",
+      "quote": "4340.100656966221"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/goldCsv/0/content",
+      "quote": "14334.62114"
+    }
+  ],
+  "limitations": [
+    "sales unit and zero-fill not uniquely specified",
+    "Gold construction remains unknown despite real experiments"
+  ],
+  "parent_field_review": {
+    "instance_id": "local002",
+    "relevant_node": "measure.formula",
+    "node_is_confirmed_original_error": false,
+    "explanation": "金额/件数、缺期及回归输入定义仍未唯一确定",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "已实际计算多个候选，全部差异机制仍未唯一定位",
+    "original_node_declared": true,
+    "original_node_status": "request",
+    "original_node_value": {
+      "op": "custom",
+      "description": "对 2017-01-01..2018-08-29 每日玩具销售额（brinquedos 类目 order_items.price 按日合计，缺日补 0）拟合简单线性回归 sales=a+b·x（x=自 2017-01-01 起的日历日序号）；预测 2018-12-05..2018-12-08 的日销售额 P(x)；对每个预测日取 5 日对称（中心）移动平均 MA(x)=(P(x-2)+P(x-1)+P(x)+P(x+1)+P(x+2))/5；最后对这 4 个 MA 求和",
+      "of": "daily toy sales"
+    },
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local002/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/24/result/details/fields/8/value",
+      "quote": "{\"op\": \"custom\", \"description\": \"对 2017-01-01..2018-08-29 每日玩具销售额（brinquedos 类目 order_items.price 按日合计，缺日补 0）拟合简单线性回归 sales=a+b·x（x=自 2017-01-01 起的日历日序号）；预测 2018-12-05..2018-12-08 的日销售额 P(x)；对每个预测日取 5 日对称（中心）移动平均 MA(x)=(P(x-2)+P(x-1)+P(x)+P(x+1)+P(x+2))/5；最后对这 4 个 MA 求和\", \"of\": \"daily toy sales\"}"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

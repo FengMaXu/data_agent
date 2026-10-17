@@ -1,0 +1,14 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": {
+        "name": "customers",
+        "keyColumns": [
+          "customer.customer_id"
+        ]
+      },
+      "basis": "request",
+      "quote": "customers"
+    }
+  }
+}

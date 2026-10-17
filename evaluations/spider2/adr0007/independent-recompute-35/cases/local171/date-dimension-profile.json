@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT min(date),max(date),count(*) FROM legislation_date_dim",
+  "limit": 1000
+}

@@ -1,0 +1,65 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_11cce2c9-b6f4-428a-9a00-0f67d64ba571\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsellers | smallest_units | eligible_item_units | eligible_sales\n236 | 101 | 70157 | 7226280.71"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_11cce2c9-b6f4-428a-9a00-0f67d64ba571",
+      "preview": {
+        "columns": [
+          "sellers",
+          "smallest_units",
+          "eligible_item_units",
+          "eligible_sales"
+        ],
+        "rows": [
+          [
+            236,
+            101,
+            70157,
+            7226280.71
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "sellers",
+        "smallest_units",
+        "eligible_item_units",
+        "eligible_sales"
+      ],
+      "rows": [
+        [
+          236,
+          101,
+          70157,
+          7226280.71
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_e8e70699-3523-40d8-8359-c8a35595fb94"
+  }
+}

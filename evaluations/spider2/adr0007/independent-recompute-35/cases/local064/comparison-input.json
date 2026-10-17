@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:01:05.387Z",
+  "registry": {
+    "instance_id": "local064",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 167075,
+    "tool_calls": 15,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local064/attempts/attempt-001/submissions/sql/local064.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local064.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 12,
+      "toolCalls": 15,
+      "explorationQueries": 3,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 2,
+      "byStatus": {
+        "pending": 0,
+        "completed": 1,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH mb AS (\n  SELECT customer_id, substr(txn_date,1,7) AS ym,\n    SUM(CASE WHEN txn_type='deposit' THEN txn_amount ELSE 0 END)\n    - SUM(CASE WHEN txn_type='withdrawal' THEN txn_amount ELSE 0 END) AS bal\n  FROM customer_transactions\n  WHERE txn_date >= '2020-01-01' AND txn_date <= '2020-12-31'\n    AND txn_type IN ('deposit','withdrawal')\n  GROUP BY customer_id, ym\n),\nd AS (SELECT COUNT(DISTINCT customer_id) AS n_all FROM customer_transactions),\nms AS (\n  SELECT ym, SUM(CASE WHEN bal>0 THEN 1 ELSE 0 END) AS pos_cnt, SUM(bal) AS sum_bal\n  FROM mb GROUP BY ym\n),\nhi AS (SELECT * FROM ms ORDER BY pos_cnt DESC, ym ASC LIMIT 1),\nlo AS (SELECT * FROM ms ORDER BY pos_cnt ASC, ym ASC LIMIT 1)\nSELECT\n  hi.ym AS highest_count_month,\n  hi.pos_cnt AS highest_count,\n  ROUND(hi.sum_bal*1.0/(SELECT n_all FROM d),2) AS highest_month_avg_balance,\n  lo.ym AS lowest_count_month,\n  lo.pos_cnt AS lowest_count,\n  ROUND(lo.sum_bal*1.0/(SELECT n_all FROM d),2) AS lowest_month_avg_balance,\n  ROUND((hi.sum_bal-lo.sum_bal)*1.0/(SELECT n_all FROM d),2) AS avg_difference\nFROM hi, lo;\n",
+  "originalCsv": "highest_count_month,highest_count,highest_month_avg_balance,lowest_count_month,lowest_count,lowest_month_avg_balance,avg_difference\n2020-01,424,557.7,2020-04,169,137.71,419.99\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local064.csv",
+      "content": "balance_diff\r\n363.74199999999996\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local064",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "228"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_acbe2324-21ec-4ad4-9deb-6a67cd7dd1bf\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nbaseline_month | customers | first_start | last_start | earliest_end | latest_end\n2020-01-01 | 500 | 2020-01-01 | 2020-01-30 | 2020-01-05 | 2020-04-28\nsame_day_multiple_transactions | 396 | NULL | NULL | NULL | NULL"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_acbe2324-21ec-4ad4-9deb-6a67cd7dd1bf",
+      "preview": {
+        "columns": [
+          "baseline_month",
+          "customers",
+          "first_start",
+          "last_start",
+          "earliest_end",
+          "latest_end"
+        ],
+        "rows": [
+          [
+            "2020-01-01",
+            500,
+            "2020-01-01",
+            "2020-01-30",
+            "2020-01-05",
+            "2020-04-28"
+          ],
+          [
+            "same_day_multiple_transactions",
+            396,
+            null,
+            null,
+            null,
+            null
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "baseline_month",
+        "customers",
+        "first_start",
+        "last_start",
+        "earliest_end",
+        "latest_end"
+      ],
+      "rows": [
+        [
+          "2020-01-01",
+          500,
+          "2020-01-01",
+          "2020-01-30",
+          "2020-01-05",
+          "2020-04-28"
+        ],
+        [
+          "same_day_multiple_transactions",
+          396,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_31b528e4-983a-4d58-baad-2294e1881fb6"
+  }
+}

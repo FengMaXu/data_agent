@@ -1,0 +1,101 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_22b2dbc4-cdfd-4d74-8b9c-98a56bbfeaff\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nMID | title | year | actors\ntt0375882 | Kala Jigar | 1939 | 1\ntt0272001 | Bindhaast | 1999 | 11\ntt0354922 | Snegithiye | 2000 | 10\ntt8458202 | Pihu | 2018 | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_22b2dbc4-cdfd-4d74-8b9c-98a56bbfeaff",
+      "preview": {
+        "columns": [
+          "MID",
+          "title",
+          "year",
+          "actors"
+        ],
+        "rows": [
+          [
+            "tt0375882",
+            "Kala Jigar",
+            1939,
+            1
+          ],
+          [
+            "tt0272001",
+            "Bindhaast",
+            1999,
+            11
+          ],
+          [
+            "tt0354922",
+            "Snegithiye",
+            2000,
+            10
+          ],
+          [
+            "tt8458202",
+            "Pihu",
+            2018,
+            2
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "MID",
+        "title",
+        "year",
+        "actors"
+      ],
+      "rows": [
+        [
+          "tt0375882",
+          "Kala Jigar",
+          1939,
+          1
+        ],
+        [
+          "tt0272001",
+          "Bindhaast",
+          1999,
+          11
+        ],
+        [
+          "tt0354922",
+          "Snegithiye",
+          2000,
+          10
+        ],
+        [
+          "tt8458202",
+          "Pihu",
+          2018,
+          2
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_351dce55-5058-47c1-83fb-d2c64b1edcbf"
+  }
+}

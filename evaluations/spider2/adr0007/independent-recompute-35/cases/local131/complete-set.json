@@ -1,0 +1,25 @@
+{
+  "fields": {
+    "population.eligibility": "All catalog styles including zero preferences",
+    "population.conditions": [],
+    "population.time": "All available records",
+    "measure.formula": {
+      "op": "custom",
+      "description": "For each StyleID count Musical_Preferences rows separately for PreferenceSeq 1,2,3; zero for absent rows"
+    },
+    "grouping": [
+      "StyleID",
+      "StyleName"
+    ],
+    "selection": "n/a",
+    "output": {
+      "rowMode": "full",
+      "columns": [
+        "StyleName",
+        "FirstPreference",
+        "SecondPreference",
+        "ThirdPreference"
+      ]
+    }
+  }
+}

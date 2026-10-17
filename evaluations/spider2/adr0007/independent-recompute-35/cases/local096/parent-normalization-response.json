@@ -1,0 +1,93 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_557a0e23-1f47-4632-b631-895b49e6c4b8\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ntable_name | rows | pairs | normalized_pairs | padded_mid | padded_pid\ncast | 82837 | 82835 | 82835 | 0 | 82835\nPerson | 38285 | 37565 | 37565 | 0 | 0"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_557a0e23-1f47-4632-b631-895b49e6c4b8",
+      "preview": {
+        "columns": [
+          "table_name",
+          "rows",
+          "pairs",
+          "normalized_pairs",
+          "padded_mid",
+          "padded_pid"
+        ],
+        "rows": [
+          [
+            "cast",
+            82837,
+            82835,
+            82835,
+            0,
+            82835
+          ],
+          [
+            "Person",
+            38285,
+            37565,
+            37565,
+            0,
+            0
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "table_name",
+        "rows",
+        "pairs",
+        "normalized_pairs",
+        "padded_mid",
+        "padded_pid"
+      ],
+      "rows": [
+        [
+          "cast",
+          82837,
+          82835,
+          82835,
+          0,
+          82835
+        ],
+        [
+          "Person",
+          38285,
+          37565,
+          37565,
+          0,
+          0
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_5ea7b21c-6268-4ad6-85ad-4eb3467eaed9"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c3c2d6d8-ba29-4e8b-bbbd-d69970ede419\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nfull_name\nMICHEAL FORMAN"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c3c2d6d8-ba29-4e8b-bbbd-d69970ede419",
+      "preview": {
+        "columns": [
+          "full_name"
+        ],
+        "rows": [
+          [
+            "MICHEAL FORMAN"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "full_name"
+      ],
+      "rows": [
+        [
+          "MICHEAL FORMAN"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_21dbef9e-ec38-4539-8752-d4a7199e1ca2"
+  }
+}

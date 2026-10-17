@@ -1,0 +1,3 @@
+# local061 独立推导（本题揭示前）
+原题逐字 "taking each product’s monthly sales from 2019 and 2020"、"for that same product and month"、"with the 2021 exchange rates"、"finally averaging and listing them by month"。按产品及同日历月配对历史，不做总销售的同比，不以实际2021销量作为预测入选条件。文档 "Sum up the sales amounts for each product, country, month, and year."要求先SUM历史明细；"Apply this percentage change to the 2020 sales to estimate 2021 sales."给出2020*(1+(2020-2019)/2019)。currency按France/year2021/月，缺率用文档 "If specific rates are not available, use a default rate of 1."。最后每月对可计算产品预测做AVG，再按文档 "Round the results to two decimal places."舍入月均值。最终12月列表，而非全年标量。
+缺2019、缺2020或基期0不能定义同比，暂排除，不补0；此为假定。实测覆盖与汇率唯一键。local050为同数据库/相近题，已处理；本题不将此前Gold重现方案（2021实际销售入选/商品预测舍入）视为业务依据，不以任何已有数值当目标，重新通过本题任务执行所有验证及final。

@@ -1,0 +1,3 @@
+{
+  "sql": "WITH dates AS (SELECT DISTINCT company_id,date_joined,year_founded FROM companies_dates), industries AS (SELECT DISTINCT company_id,industry FROM companies_industries), new_companies AS (SELECT d.company_id,CAST(strftime('%Y',d.date_joined) AS INTEGER) year,i.industry FROM dates d JOIN industries i USING(company_id) WHERE d.date_joined>='2019-01-01' AND d.date_joined<'2022-01-01'), totals AS (SELECT industry,count(distinct company_id) total FROM new_companies GROUP BY industry) SELECT industry,total/3.0 average_new_companies FROM totals ORDER BY total DESC,industry LIMIT 1"
+}

@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { createRequire } from "node:module";
+import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 
@@ -22,10 +22,31 @@ function forbiddenSql(reason: string) {
   return { content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "FORBIDDEN_SQL", message } }) }] };
 }
 
+/**
+ * Cells as the server has always returned them: integers as JavaScript numbers
+ * (precision past 2^53 is lost, as before) and BLOBs as Buffers. node:sqlite
+ * would otherwise throw on out-of-range integers and return Uint8Arrays.
+ */
+function cell(value: unknown): unknown {
+  if (typeof value === "bigint") return Number(value);
+  if (value instanceof Uint8Array && !Buffer.isBuffer(value)) return Buffer.from(value);
+  return value;
+}
+
+function rowsOf(rows: Iterable<unknown>): Iterable<Record<string, unknown>> {
+  return (function* () {
+    for (const row of rows) yield Object.fromEntries(Object.entries(row as Record<string, unknown>).map(([key, value]) => [key, cell(value)]));
+  })();
+}
+
+function readStatement(db: DatabaseSync, sql: string): StatementSync {
+  const statement = db.prepare(sql);
+  statement.setReadBigInts(true);
+  return statement;
+}
+
 export function createReferenceSqliteServer(options: ReferenceSqliteServerOptions) {
-  const require_ = createRequire(import.meta.url);
-  const Database = require_("better-sqlite3");
-  const db = new (Database as any)(options.databasePath, { readonly: false });
+  const db = new DatabaseSync(options.databasePath);
   const maxRows = Math.min(options.maxPreviewRows ?? MAX_PREVIEW_LIMIT, MAX_PREVIEW_LIMIT);
 
   const server = new McpServer(
@@ -49,12 +70,12 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
       if (!/^(?:SELECT|WITH)\b/i.test(trimmed)) return forbiddenSql("Only SELECT/WITH statements are supported");
       if (extra.signal?.aborted) return { content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "QUERY_CANCELLED" } }) }] };
       const effectiveLimit = Math.min(limit ?? DEFAULT_PREVIEW_LIMIT, maxRows);
-      const statement = db.prepare(`SELECT * FROM (${trimmed}) __preview LIMIT ?`);
+      const statement = readStatement(db, `SELECT * FROM (${trimmed}) __preview LIMIT ?`);
       const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
       const rows: any[] = [];
       let truncated = false;
       const byteLimit = maxBytes === undefined ? undefined : Math.max(1_024, maxBytes - 512);
-      for (const row of statement.iterate(effectiveLimit + 1) as Iterable<any>) {
+      for (const row of rowsOf(statement.iterate(effectiveLimit + 1))) {
         if (extra.signal?.aborted) return { content: [{ type: "text" as const, text: JSON.stringify({ error: { code: "QUERY_CANCELLED" } }) }] };
         const candidate = [...rows, row];
         if (candidate.length > effectiveLimit || (byteLimit !== undefined && Buffer.byteLength(JSON.stringify({ columns, rows: candidate }), "utf8") > byteLimit)) {
@@ -77,9 +98,9 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
       if (!guard.allowed) return forbiddenSql(guard.reason);
       if (!/^(?:SELECT|WITH)\b/i.test(trimmed)) return forbiddenSql("Only SELECT/WITH statements are supported");
       const rowLimit = Math.min(requestedMaxRows ?? 100000, 100000);
-      const statement = db.prepare(`SELECT * FROM (${trimmed}) __result LIMIT ?`);
+      const statement = readStatement(db, `SELECT * FROM (${trimmed}) __result LIMIT ?`);
       const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
-      const rows = statement.all(rowLimit + 1) as Record<string, unknown>[];
+      const rows = [...rowsOf(statement.all(rowLimit + 1))];
       if (rows.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
       return { content: [{ type: "text", text: JSON.stringify({ rows, columns, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
     },
@@ -94,9 +115,9 @@ export function createReferenceSqliteServer(options: ReferenceSqliteServerOption
       const guard = readonlySql(trimmed);
       if (!guard.allowed) return forbiddenSql(guard.reason);
       try {
-        const statement = db.prepare(`EXPLAIN QUERY PLAN ${trimmed}`);
+        const statement = readStatement(db, `EXPLAIN QUERY PLAN ${trimmed}`);
         const columns: string[] = statement.columns().map((column: { name: string }) => column.name);
-        const rows = statement.all() as Record<string, unknown>[];
+        const rows = [...rowsOf(statement.all())];
         return { content: [{ type: "text", text: JSON.stringify({ columns, rows, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPLAIN_FAILED", message: String((error as Error).message).slice(0, 300) } }) }] };

@@ -1,0 +1,229 @@
+{
+  "frozenAt": "2026-10-11T10:05:12.459Z",
+  "instance_id": "local098",
+  "independent": true,
+  "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+  "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+  "publication": {
+    "receiptId": "publication_100fa935-2fa9-4d9d-b187-dde933024236",
+    "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+    "principalId": "independent-analyst",
+    "sessionId": "local098",
+    "candidateId": "candidate_ba4cb05c-6775-4662-b2dc-1ee39d7a726f",
+    "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+    "resultRef": "result_9143a50a-6018-4564-a74e-6be31cc5d7fa",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_100fa935-2fa9-4d9d-b187-dde933024236?session_id=local098",
+    "contentHash": "fcba4e43ad3e83082c589f1f516efe9067fc56f38b73cd985c38d6160f4b0289",
+    "presentationContentHash": "d2f43e31d524aa233c5b1465ece31b5aef5ffe47f3f5e755efed82152a5fc571",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.countGrain",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, measure.formula, measure.countGrain, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 1,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "actors_without_four_year_gap",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 1,
+          "min": "28699",
+          "max": "28699"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "39f9c3fa-ae14-4428-987b-6ce865dd48ff",
+    "requestId": "39f9c3fa-ae14-4428-987b-6ce865dd48ff",
+    "createdAt": "2026-10-11T10:05:10.480Z"
+  },
+  "currentRevision": {
+    "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+    "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+    "parentRevisionId": "revision_adc4cc8a-e576-4bad-a3db-16e61373bfbe",
+    "requestId": "0e50b289-ae86-4bde-a3cd-958933d6b28d",
+    "createdAt": "2026-10-11T10:05:08.194Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "actors with film credits",
+          "keyColumns": [
+            "M_Cast.PID"
+          ]
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "所有有可解析电影出演年记录的演员，包括只出演一年者",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "每演员相邻出演年差不超过4；无四年连续无片窗口"
+        ],
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_aadeab1e-4123-45e4-b962-06779e35f6fc"
+          ]
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "各演员最早到最晚出演年"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_1729a556-dc81-4502-9cb0-e135d3d5f2cd"
+          ]
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "distinct PID/year -> LAG(year) -> MAX(year-prev)<=4 -> COUNT演员；单年max_diff=0"
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "measure.countGrain": {
+        "state": "specified",
+        "value": "演员PID",
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      },
+      "grouping": {
+        "state": "not_applicable"
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "actors_without_four_year_gap"
+          ]
+        },
+        "basis": {
+          "kind": "assumed",
+          "rationale": "独立解题所采用的解释，未将其冒充已审核业务定义。"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+      "ready": "ready_f8a2774b-0478-49fc-821e-ab0c1d3a84fe"
+    },
+    "specFeedback": {
+      "taskId": "task_60e61a4a-e567-4c9d-b18e-50861ce36ab9",
+      "revisionId": "revision_7d6fab88-415d-44e4-8fbc-bfe7ecab3ad4",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_2d772de6-b63f-4ce5-ad8f-96b70f0ccaf4",
+        "evidence_883cedf5-bac7-458a-a099-220aac22892d",
+        "evidence_4c662b52-1e1e-487a-9adc-a19678c43ce8",
+        "evidence_52bb5342-2dc8-4dc0-a394-1398dd326113",
+        "evidence_679f9001-8c55-4629-a529-15f3ebebfd0b",
+        "evidence_aadeab1e-4123-45e4-b962-06779e35f6fc",
+        "evidence_1729a556-dc81-4502-9cb0-e135d3d5f2cd"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "出演年差最多4等价中间最多3无片年，按PID去重",
+    "assumptions": [
+      "只出演一年者纳入",
+      "cast PID外围空白清理"
+    ],
+    "limitations": [
+      "没有以演员同名合并身份"
+    ]
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

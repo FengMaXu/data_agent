@@ -10,6 +10,8 @@ allowed-tools:
   - run_python
   - write_file
   - read_file
+  - search_knowledge
+  - read_knowledge
 ---
 
 # 数据分析报告生成 Skill
@@ -27,7 +29,7 @@ allowed-tools:
 
 ### 第二步：取数并发布
 
-- 每张图或每个数据表对应一个查询，按 answer-spec 流程完成 Answer Spec 与结果查询。当前工具目录有 `set_answer_spec` 时，按 answer-fields 的“报告与看板”一节：一个报告任务声明共用口径和指标定义，每张图或表一个图表查询。
+- 每张图或每个数据表对应一个查询，按 answer-fields 流程完成 Answer Spec 与结果查询，并按其“报告与看板”一节：一个报告任务声明共用的统计总体和度量定义，每张图或表一个图表查询。
 - **在查询中把数据聚合到图表需要的粒度**：每个类目（或类目加系列）一行；比率、均值等指标在 SQL 中算好，不依赖画图时相加。
 - 用 `publish_query_result` 或 `export_query` 发布结果，记下返回的 `receiptId`。图表只能引用已发布的结果。
 
@@ -124,4 +126,4 @@ allowed-tools:
 - 所有数据必须来自已发布的查询结果，不得编造。
 - 不使用 matplotlib 或其他 Python 绘图库画图。
 - 需要随报告附数据文件时，使用 `export_query` 返回的下载链接。
-- 图表风格遵循 knowledge/doc/business.md 中的规范。
+- 配色、字体和图例由图表工具统一提供，不要自行指定颜色；业务文档里的配色建议不适用于工具生成的图表。

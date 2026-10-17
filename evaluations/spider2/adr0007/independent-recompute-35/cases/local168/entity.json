@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "远程Data Analyst职位发布，job_id",
+      "basis": "request",
+      "quote": "job postings"
+    }
+  }
+}

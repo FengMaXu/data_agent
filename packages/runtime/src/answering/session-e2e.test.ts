@@ -17,12 +17,14 @@ const context = (invocationId: string): BusinessContext => ({
 });
 
 const spec = {
-  entity: "orders",
-  metric: "count",
-  filters: [],
-  groupBy: [],
-  time: { state: "not_applicable" },
-  ranking: { state: "not_applicable" },
+  "population.entity": "orders",
+  "population.eligibility": "n/a",
+  "population.conditions": "n/a",
+  "population.time": "n/a",
+  "measure.formula": { op: "count", of: "orders" },
+  "measure.countGrain": "one row per order",
+  grouping: "n/a",
+  selection: "n/a",
   output: { rowMode: "scalar", rowCount: 1 },
 };
 
@@ -36,7 +38,7 @@ describe("Pi Session Answering production seam", () => {
       let sqlCalls = 0;
       const sqlExecutor = { run: async () => { sqlCalls += 1; return { columns: ["count"], rows: [[1n]], truncated: false, columnTypes: ["BIGINT"] }; } };
       const first = new InMemoryAnswering({ store: new PiSessionAnsweringStore(native), resultStore: results, sqlExecutor });
-      const begun = await first.begin({ requestMessageId: "message-1", requestId: "begin-1", spec }, context("begin-1"));
+      const begun = await first.set({ requestMessageId: "message-1", requestId: "begin-1", fields: spec }, context("begin-1"));
       const candidate = await first.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT COUNT(*) FROM orders" }, context("result-1"));
       expect(candidate.artifact.kind).toBe("candidate");
       if (candidate.artifact.kind !== "candidate") throw new Error("candidate expected");

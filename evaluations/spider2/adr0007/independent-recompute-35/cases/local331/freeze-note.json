@@ -1,0 +1,9 @@
+{
+  "algorithm": "Exact /detail paths; same-session three-event windows; actual third events only; top3 counts",
+  "assumptions": [
+    "Timestamp ties by rowid; retain logged duplicates",
+    "No trailing-slash normalization",
+    "Top3 cutoff tie lexicographic strict"
+  ],
+  "validation": "Observed33,2,1,1 among37 qualifying actual-third windows"
+}

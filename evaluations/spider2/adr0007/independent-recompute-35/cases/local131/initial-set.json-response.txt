@@ -1,0 +1,54 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_09ea77a9-d637-443d-99eb-6c1ee236baf1 revisionId=revision_81652f0e-8656-480a-8b5a-1643a6cf2350\n- ✓ population.entity\n状态：\n- 未声明: population.eligibility, population.conditions, population.time, measure.formula, grouping, selection, output\n[SPEC_FEEDBACK] revisionId=revision_81652f0e-8656-480a-8b5a-1643a6cf2350 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"musical style keyed by StyleID\"}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+    "revisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "musical style keyed by StyleID"
+        },
+        "evidenceIds": [
+          "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375"
+        ]
+      }
+    ],
+    "undeclared": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "selection",
+      "output"
+    ],
+    "open": [],
+    "unverified": [],
+    "specFeedback": {
+      "taskId": "task_09ea77a9-d637-443d-99eb-6c1ee236baf1",
+      "revisionId": "revision_81652f0e-8656-480a-8b5a-1643a6cf2350",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_b714ba4f-2bee-4d3c-840f-94e09dff3375"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.entity",
+        "status": "applied"
+      }
+    ]
+  }
+}

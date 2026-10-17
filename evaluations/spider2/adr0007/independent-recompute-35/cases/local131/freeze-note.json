@@ -1,0 +1,7 @@
+{
+  "algorithm": "catalog left join with three conditional counts",
+  "assumptions": [
+    "each includes zero-count styles"
+  ],
+  "checks": "sequence distribution and count conservation queried"
+}

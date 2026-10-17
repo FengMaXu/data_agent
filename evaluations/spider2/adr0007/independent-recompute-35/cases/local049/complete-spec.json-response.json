@@ -1,0 +1,167 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_51d64568-2a51-4a4a-839d-8497ee615252 revisionId=revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, measure.formula, selection.ties\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"新增独角兽公司 company_id\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Companies with joined date in interval and known industry; distinct company IDs\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"company joining unicorn list 2019..2021\"]},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"2019-01-01 inclusive to 2022-01-01 exclusive, 3 calendar years\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Distinct new company IDs by industry across 3 years; choose highest total industry; average yearly new company count=total/3.0, including zero years\"}},\"grouping\":{\"status\":\"request\",\"value\":[\"industry\"]},\"selection\":{\"status\":\"request\",\"value\":{\"n\":1,\"orderBy\":\"total DESC, industry ASC\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"request\",\"value\":{\"rowMode\":\"top_n\",\"rowCount\":1,\"columns\":[\"industry\",\"average_new_companies\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+    "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+    "parentRevisionId": "revision_b55e5363-bf65-49f2-acc8-6e11d8e7c97e",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "新增独角兽公司 company_id"
+        },
+        "evidenceIds": [
+          "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Companies with joined date in interval and known industry; distinct company IDs",
+        "rationale": "new unicorn is date joined not founding; distinct IDs count company entities"
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "company joining unicorn list 2019..2021"
+        ],
+        "evidenceIds": [
+          "evidence_eae88191-901f-4af9-9bfd-c92b81ba43a9"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "request",
+        "value": {
+          "expression": "2019-01-01 inclusive to 2022-01-01 exclusive, 3 calendar years"
+        },
+        "evidenceIds": [
+          "evidence_212310d3-1764-4934-ae9a-e94faa3993c5"
+        ]
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Distinct new company IDs by industry across 3 years; choose highest total industry; average yearly new company count=total/3.0, including zero years"
+        },
+        "rationale": "top industry over entire requested period; yearly average has 3-year denominator"
+      },
+      {
+        "path": "grouping",
+        "status": "request",
+        "value": [
+          "industry"
+        ],
+        "evidenceIds": [
+          "evidence_898f5fef-7dab-4605-80ec-0c705e58467c"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "request",
+        "value": {
+          "n": 1,
+          "orderBy": "total DESC, industry ASC"
+        },
+        "evidenceIds": [
+          "evidence_51e6ac24-4dab-4a50-848a-2416aa29093d"
+        ]
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "strict"
+      },
+      {
+        "path": "output",
+        "status": "request",
+        "value": {
+          "rowMode": "top_n",
+          "rowCount": 1,
+          "columns": [
+            "industry",
+            "average_new_companies"
+          ]
+        },
+        "evidenceIds": [
+          "evidence_26c04f79-25f3-4cfa-8dd7-192edc130f47"
+        ]
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "measure.formula",
+      "selection.ties"
+    ],
+    "specFeedback": {
+      "taskId": "task_51d64568-2a51-4a4a-839d-8497ee615252",
+      "revisionId": "revision_81c5b68d-4d0d-4a81-ba3a-3b535fb4c856",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_a8d39bab-33d1-47fb-90d8-ba41552b8e47",
+        "evidence_f1b31b9c-d48b-4d82-b396-c16fda8461fa",
+        "evidence_8d91415f-6c5a-49ed-929d-3b1095df5271",
+        "evidence_ab5fe007-8818-4d6d-be4a-3d8136f77da8",
+        "evidence_35efe166-3fc5-449a-b0f4-2a2c1f025459",
+        "evidence_18e64a55-9f1c-4c8a-8b78-05e675a233b3",
+        "evidence_cbf20a9e-4e95-48b7-b7ac-a9c50c5edd4a",
+        "evidence_6275008b-cb5f-4644-b544-dcdde723f0f3",
+        "evidence_eae88191-901f-4af9-9bfd-c92b81ba43a9",
+        "evidence_212310d3-1764-4934-ae9a-e94faa3993c5",
+        "evidence_898f5fef-7dab-4605-80ec-0c705e58467c",
+        "evidence_51e6ac24-4dab-4a50-848a-2416aa29093d",
+        "evidence_26c04f79-25f3-4cfa-8dd7-192edc130f47"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

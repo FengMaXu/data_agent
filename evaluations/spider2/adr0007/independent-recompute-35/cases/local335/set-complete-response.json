@@ -1,0 +1,167 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368 revisionId=revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 未证实（发布时披露）: measure.formula, measure.countGrain, grouping, selection, selection.ties, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"Constructor-season with a season-minimum positive-points driver\"}},\"population.eligibility\":{\"status\":\"request\",\"value\":\"Positive final available season standings points only\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"For each season find minimum positive driver total, include all tied drivers; associate actual constructors driven in same season; count each constructor-season once\"]},\"population.time\":{\"status\":\"request\",\"value\":{\"expression\":\"year>=2001 inclusive through latest available standings;2024 incomplete through round12\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Latest available standings per year yields driver-season total; filter >0 and retain per-year minimum; join driver results in same year to actual constructors; count distinct seasons per constructor.\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"One constructor-year even if multiple minimum drivers or races\"},\"grouping\":{\"status\":\"assumed\",\"value\":[\"constructor_id\"]},\"selection\":{\"status\":\"assumed\",\"value\":{\"n\":5,\"orderBy\":\"seasons DESC, constructor_id ASC\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"top_n\",\"rowCount\":5,\"columns\":[\"name\",\"seasons\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+    "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+    "parentRevisionId": "revision_d19a261b-0913-4ac2-812b-d67017702867",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "Constructor-season with a season-minimum positive-points driver"
+        },
+        "evidenceIds": [
+          "evidence_20ef538b-aade-49a3-9446-769167130612"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "request",
+        "value": "Positive final available season standings points only",
+        "evidenceIds": [
+          "evidence_595cbe8e-4231-49fe-895c-e3e5f27c2008"
+        ]
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "For each season find minimum positive driver total, include all tied drivers; associate actual constructors driven in same season; count each constructor-season once"
+        ],
+        "evidenceIds": [
+          "evidence_a894eb80-1ae9-441c-bd98-d626aaeff96e"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "request",
+        "value": {
+          "expression": "year>=2001 inclusive through latest available standings;2024 incomplete through round12"
+        },
+        "evidenceIds": [
+          "evidence_9b073afe-eb65-4132-b710-90726fcb78a7"
+        ]
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Latest available standings per year yields driver-season total; filter >0 and retain per-year minimum; join driver results in same year to actual constructors; count distinct seasons per constructor."
+        }
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "One constructor-year even if multiple minimum drivers or races"
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "constructor_id"
+        ]
+      },
+      {
+        "path": "selection",
+        "status": "assumed",
+        "value": {
+          "n": 5,
+          "orderBy": "seasons DESC, constructor_id ASC"
+        }
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "strict"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "top_n",
+          "rowCount": 5,
+          "columns": [
+            "name",
+            "seasons"
+          ]
+        }
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "measure.formula",
+      "measure.countGrain",
+      "grouping",
+      "selection",
+      "selection.ties",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_9df6902f-fbc4-4bbc-9b3c-fdb3ba15a368",
+      "revisionId": "revision_1241bc50-3e55-4eb7-bebb-a3cf4326f4b0",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_20ef538b-aade-49a3-9446-769167130612",
+        "evidence_9ab2aa42-e597-4ca8-b091-80601a3e8761",
+        "evidence_6ff112a1-bc6c-4cb5-a63d-a8e28d1cc557",
+        "evidence_cf5e94dc-e6cb-4725-b579-2c790f31da9a",
+        "evidence_5e09484f-c3c5-4261-a70a-f7e4b4c5dd06",
+        "evidence_3669c03b-ec06-47f7-97a0-7519fbf85f19",
+        "evidence_595cbe8e-4231-49fe-895c-e3e5f27c2008",
+        "evidence_a894eb80-1ae9-441c-bd98-d626aaeff96e",
+        "evidence_9b073afe-eb65-4132-b710-90726fcb78a7"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

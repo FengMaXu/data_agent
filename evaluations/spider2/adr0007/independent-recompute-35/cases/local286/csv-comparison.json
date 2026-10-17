@@ -1,0 +1,268 @@
+{
+  "instance_id": "local286",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local286/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local286/publications/publication_76b4c4b8-ec4d-4738-b8c9-a5063f1b5553/result.csv",
+    "rows": 236,
+    "columns": [
+      "seller_id",
+      "total_sales",
+      "products_sold",
+      "average_item_price",
+      "average_review_score",
+      "average_packing_days",
+      "top_category_english"
+    ],
+    "head": [
+      {
+        "seller_id": "4869f7a5dfa277a7dca6462dcf3b52b2",
+        "total_sales": 229472.63,
+        "products_sold": 1156,
+        "average_item_price": 198.5057352941,
+        "average_review_score": 4.1334519573,
+        "average_packing_days": 2.377152002,
+        "top_category_english": "watches_gifts"
+      },
+      {
+        "seller_id": "53243585a1d6dc2643021fd1853d8905",
+        "total_sales": 222776.05,
+        "products_sold": 410,
+        "average_item_price": 543.3562195122,
+        "average_review_score": 4.1320224719,
+        "average_packing_days": 3.0508116648,
+        "top_category_english": "telephony"
+      },
+      {
+        "seller_id": "4a3ca9315b744ce9f8e9374361493884",
+        "total_sales": 200472.92,
+        "products_sold": 1987,
+        "average_item_price": 100.892259688,
+        "average_review_score": 3.8278734037,
+        "average_packing_days": 2.3817258957,
+        "top_category_english": "bed_bath_table"
+      },
+      {
+        "seller_id": "fa1c13f2614d7b5c4749cbc52fecda94",
+        "total_sales": 194042.03,
+        "products_sold": 586,
+        "average_item_price": 331.1297440273,
+        "average_review_score": 4.339070568,
+        "average_packing_days": 2.3643673907,
+        "top_category_english": "watches_gifts"
+      },
+      {
+        "seller_id": "7c67e1448b00f6e969d365cea6b010ab",
+        "total_sales": 187923.89,
+        "products_sold": 1364,
+        "average_item_price": 137.7741129032,
+        "average_review_score": 3.4887983707,
+        "average_packing_days": 11.3841862363,
+        "top_category_english": "office_furniture"
+      },
+      {
+        "seller_id": "7e93a43ef30c4f03f38b393420bc753a",
+        "total_sales": 176431.87,
+        "products_sold": 340,
+        "average_item_price": 518.9172647059,
+        "average_review_score": 4.2149253731,
+        "average_packing_days": 2.453834549,
+        "top_category_english": "watches_gifts"
+      },
+      {
+        "seller_id": "da8622b14eb17ae2831f4ac5b9dab84a",
+        "total_sales": 160236.57,
+        "products_sold": 1551,
+        "average_item_price": 103.3117794971,
+        "average_review_score": 4.1788679245,
+        "average_packing_days": 2.2961419813,
+        "top_category_english": "bed_bath_table"
+      },
+      {
+        "seller_id": "7a67c85e85bb2ce8582c35f2203ad736",
+        "total_sales": 141745.53,
+        "products_sold": 1171,
+        "average_item_price": 121.0465670367,
+        "average_review_score": 4.2441558442,
+        "average_packing_days": 1.6179294671,
+        "top_category_english": "cool_stuff"
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local286.csv",
+    "rows": 236,
+    "columns": [
+      "seller_id",
+      "total_sales",
+      "avg_item_price",
+      "avg_review_score",
+      "packing_time",
+      "top_category_english"
+    ],
+    "head": [
+      {
+        "seller_id": "4869f7a5dfa277a7dca6462dcf3b52b2",
+        "total_sales": 229472.63,
+        "avg_item_price": 198.51,
+        "avg_review_score": 4.13,
+        "packing_time": 2.34,
+        "top_category_english": "watches_gifts"
+      },
+      {
+        "seller_id": "53243585a1d6dc2643021fd1853d8905",
+        "total_sales": 222776.05,
+        "avg_item_price": 543.36,
+        "avg_review_score": 4.13,
+        "packing_time": 3.05,
+        "top_category_english": "telephony"
+      },
+      {
+        "seller_id": "4a3ca9315b744ce9f8e9374361493884",
+        "total_sales": 200472.92,
+        "avg_item_price": 100.89,
+        "avg_review_score": 3.83,
+        "packing_time": 2.35,
+        "top_category_english": "bed_bath_table"
+      },
+      {
+        "seller_id": "fa1c13f2614d7b5c4749cbc52fecda94",
+        "total_sales": 194042.03,
+        "avg_item_price": 331.13,
+        "avg_review_score": 4.34,
+        "packing_time": 2.34,
+        "top_category_english": "watches_gifts"
+      },
+      {
+        "seller_id": "7c67e1448b00f6e969d365cea6b010ab",
+        "total_sales": 187923.89,
+        "avg_item_price": 137.77,
+        "avg_review_score": 3.49,
+        "packing_time": 11.38,
+        "top_category_english": "office_furniture"
+      },
+      {
+        "seller_id": "7e93a43ef30c4f03f38b393420bc753a",
+        "total_sales": 176431.87,
+        "avg_item_price": 518.92,
+        "avg_review_score": 4.21,
+        "packing_time": 2.38,
+        "top_category_english": "watches_gifts"
+      },
+      {
+        "seller_id": "da8622b14eb17ae2831f4ac5b9dab84a",
+        "total_sales": 160236.57,
+        "avg_item_price": 103.31,
+        "avg_review_score": 4.17,
+        "packing_time": 2.24,
+        "top_category_english": "bed_bath_table"
+      },
+      {
+        "seller_id": "7a67c85e85bb2ce8582c35f2203ad736",
+        "total_sales": 141745.53,
+        "avg_item_price": 121.05,
+        "avg_review_score": 4.24,
+        "packing_time": 1.58,
+        "top_category_english": "cool_stuff"
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local286.csv",
+      "rows": 237,
+      "columns": [
+        "seller_id",
+        "product_cnt",
+        "avg_price",
+        "total_sales",
+        "avg_packing_time",
+        "avg_review_score",
+        "highlight_product"
+      ],
+      "head": [
+        {
+          "seller_id": "febab0275244b9a49a623f0bd613ca2f",
+          "product_cnt": 129,
+          "avg_price": 56.3753488372,
+          "total_sales": 7272.42,
+          "avg_packing_time": 1.8885301823,
+          "avg_review_score": 4.2635658915,
+          "highlight_product": "housewares"
+        },
+        {
+          "seller_id": "fe2032dab1a61af8794248c8196565c9",
+          "product_cnt": 306,
+          "avg_price": 215.5542810458,
+          "total_sales": 65959.61,
+          "avg_packing_time": 1.9214672219,
+          "avg_review_score": 4.3841059603,
+          "highlight_product": "perfumery"
+        },
+        {
+          "seller_id": "fc906263ca5083d09dce42fe02247800",
+          "product_cnt": 119,
+          "avg_price": 37.7957983193,
+          "total_sales": 4497.7,
+          "avg_packing_time": 2.1816547035,
+          "avg_review_score": 4.3583333333,
+          "highlight_product": "computers_accessories"
+        },
+        {
+          "seller_id": "fa40cc5b934574b62717c68f3d678b6d",
+          "product_cnt": 340,
+          "avg_price": 47.2231470588,
+          "total_sales": 16055.87,
+          "avg_packing_time": 2.8698073377,
+          "avg_review_score": 4.4306784661,
+          "highlight_product": "toys"
+        },
+        {
+          "seller_id": "fa1c13f2614d7b5c4749cbc52fecda94",
+          "product_cnt": 586,
+          "avg_price": 331.1297440273,
+          "total_sales": 194042.03,
+          "avg_packing_time": 2.7020541301,
+          "avg_review_score": 4.3402061856,
+          "highlight_product": "watches_gifts"
+        },
+        {
+          "seller_id": "f8db351d8c4c4c22c6835c19a46f01b0",
+          "product_cnt": 724,
+          "avg_price": 69.7867403315,
+          "total_sales": 50525.6,
+          "avg_packing_time": 1.7867020452,
+          "avg_review_score": 4.2188365651,
+          "highlight_product": "housewares"
+        },
+        {
+          "seller_id": "f84fa566034f5e8e880a07ec624c56af",
+          "product_cnt": 102,
+          "avg_price": 49.9391176471,
+          "total_sales": 5093.79,
+          "avg_packing_time": 3.7994570397,
+          "avg_review_score": 4.2745098039,
+          "highlight_product": "health_beauty"
+        },
+        {
+          "seller_id": "f80edd2c5aaa505cc4b0a3b219abf4b8",
+          "product_cnt": 128,
+          "avg_price": 71.1578125,
+          "total_sales": 9108.2,
+          "avg_packing_time": 3.435384149,
+          "avg_review_score": 4.0787401575,
+          "highlight_product": "kitchen_dining_laundry_garden_furniture"
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local286",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "173"
+  }
+}

@@ -17,7 +17,7 @@ const python = process.platform === "win32" ? "python" : "python3";
 const context = (invocationId: string, sessionId = "session-1"): BusinessContext => ({ principal: { id: "user-1" }, sessionId, lane: "main", operationId: "operation-1", invocationId });
 const invocation = (invocationId: string) => ({ operationId: "operation-1", invocationId, getMemo: async () => undefined, setMemo: async () => undefined }) as never;
 const toolContext = { sessionId: "session-1", principalId: "user-1" } as never;
-const listSpec = { entity: "industries", metric: "sum", filters: [], groupBy: [], time: { state: "not_applicable" }, ranking: { state: "not_applicable" }, output: { rowMode: "full" } };
+const listSpec = { "population.entity": "industries", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "sum", of: "sales" }, grouping: "n/a", selection: "n/a", output: { rowMode: "full" } };
 
 /** Shares computed in Python from the published sales, written as a derived dataset. */
 const SHARE_SCRIPT = `
@@ -35,7 +35,7 @@ async function setup() {
   const store = new InMemoryAnsweringStore();
   const resultStore = new InMemoryResultStore();
   const answering = new InMemoryAnswering({ store, resultStore, sqlExecutor: { run: async () => ({ columns: ["industry", "sales"], rows: [["批发业", "750.00"], ["零售业", "250.00"]], truncated: false }) } });
-  const begun = await answering.begin({ requestMessageId: "m", requestId: "b", spec: listSpec }, context("b"));
+  const begun = await answering.set({ requestMessageId: "m", requestId: "b", fields: listSpec }, context("b"));
   const execution = await answering.execute({ kind: "result", taskId: begun.taskId, revisionId: begun.revisionId, sql: "SELECT 1" }, context("e"));
   if (execution.artifact.kind !== "candidate") throw new Error("expected Result Candidate");
   const receipt = await answering.publish({ candidateId: execution.artifact.candidateId, format: "auto", requestId: "p" }, context("p"));

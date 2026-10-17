@@ -1,0 +1,125 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4d7bd722-9fba-4dec-9616-c1e40a116ce3\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nm | total_clipped_balance | total_raw_balance | clip_after_users | total_clipped_net | clip_nets_then_cumulative\n2020-01-01 | 235595 | 126091 | 126091 | 235595 | 235595\n2020-02-01 | 261508 | -13708 | 0 | 133392 | 368987\n2020-03-01 | 260971 | -184592 | 0 | 131972 | 500959\n2020-04-01 | 264857 | -240372 | 0 | 82675 | 583634"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4d7bd722-9fba-4dec-9616-c1e40a116ce3",
+      "preview": {
+        "columns": [
+          "m",
+          "total_clipped_balance",
+          "total_raw_balance",
+          "clip_after_users",
+          "total_clipped_net",
+          "clip_nets_then_cumulative"
+        ],
+        "rows": [
+          [
+            "2020-01-01",
+            235595,
+            126091,
+            126091,
+            235595,
+            235595
+          ],
+          [
+            "2020-02-01",
+            261508,
+            -13708,
+            0,
+            133392,
+            368987
+          ],
+          [
+            "2020-03-01",
+            260971,
+            -184592,
+            0,
+            131972,
+            500959
+          ],
+          [
+            "2020-04-01",
+            264857,
+            -240372,
+            0,
+            82675,
+            583634
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "m",
+        "total_clipped_balance",
+        "total_raw_balance",
+        "clip_after_users",
+        "total_clipped_net",
+        "clip_nets_then_cumulative"
+      ],
+      "rows": [
+        [
+          "2020-01-01",
+          235595,
+          126091,
+          126091,
+          235595,
+          235595
+        ],
+        [
+          "2020-02-01",
+          261508,
+          -13708,
+          0,
+          133392,
+          368987
+        ],
+        [
+          "2020-03-01",
+          260971,
+          -184592,
+          0,
+          131972,
+          500959
+        ],
+        [
+          "2020-04-01",
+          264857,
+          -240372,
+          0,
+          82675,
+          583634
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_08cd274f-0947-4511-ad97-5fb2a3e46d65"
+  }
+}

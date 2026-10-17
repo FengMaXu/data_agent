@@ -26,7 +26,7 @@ interface KnowledgeMetadata {
 }
 
 export interface KnowledgeDiagnostic {
-  readonly code: "missing_metadata";
+  readonly code: "missing_metadata" | "builtin_overridden";
   readonly path: string;
   readonly message: string;
 }
@@ -35,6 +35,19 @@ export interface KnowledgeCatalogEntry extends KnowledgeMetadata {
   readonly path: string;
   readonly lineCount: number;
   readonly revision: number;
+  /** Built-in documents ship with the application and are never written by users or the Agent. */
+  readonly readOnly: boolean;
+  /** False for a frontmatter-only placeholder that has not been filled in yet. */
+  readonly hasContent: boolean;
+}
+
+export interface KnowledgeLocation {
+  readonly root: string;
+  readonly readOnly: boolean;
+}
+
+interface KnowledgeRootOptions {
+  readonly readOnly?: boolean;
 }
 
 export interface KnowledgeSection {
@@ -122,6 +135,7 @@ interface Chunk extends KnowledgeSection {
 interface StoredDocument extends KnowledgeDocument {
   readonly chunks: readonly Chunk[];
   readonly contentStartLine: number;
+  readonly root: string;
 }
 
 interface ParsedFrontmatter {
@@ -468,6 +482,10 @@ export class KnowledgeIndex {
   private readonly docs = new Map<string, StoredDocument>();
   private readonly docsById = new Map<string, string>();
   private readonly diagnosticsByPath = new Map<string, KnowledgeDiagnostic>();
+  /** Loaded roots in load order, keyed by their real path. */
+  private readonly roots = new Map<string, { readonly readOnly: boolean }>();
+  /** Every Markdown path found under each read-only root, including ones a user copy overrides. */
+  private readonly builtinPathsByRoot = new Map<string, ReadonlySet<string>>();
   private readonly requireMetadata: boolean;
 
   constructor(options: { readonly requireMetadata?: boolean } = {}) {
@@ -489,17 +507,70 @@ export class KnowledgeIndex {
     this.docs.delete(relativePath);
   }
 
-  async loadDirectory(root: string, base?: string): Promise<number> {
-    const baseRoot = base ?? root;
+  /**
+   * Load every Markdown document under `root`. Loading the same root again
+   * rescans it: changed files are re-indexed and deleted files leave the index.
+   * A read-only root holds built-in documents; a document at the same path or
+   * with the same knowledgeId in a writable root overrides it.
+   */
+  async loadDirectory(root: string, options: KnowledgeRootOptions = {}): Promise<number> {
     if (!existsSync(root)) return 0;
+    const resolvedRoot = await realpath(root);
+    const readOnly = options.readOnly === true;
+    this.roots.set(resolvedRoot, { readOnly });
+    const seen = new Set<string>();
+    const loaded = await this.loadTree(resolvedRoot, resolvedRoot, seen);
+    for (const [relative, document] of [...this.docs]) {
+      if (document.root === resolvedRoot && !seen.has(relative)) this.removeDocument(relative);
+    }
+    for (const relative of [...this.diagnosticsByPath.keys()]) {
+      if (!this.docs.has(relative) && !seen.has(relative) && !this.isBuiltinPath(relative)) this.diagnosticsByPath.delete(relative);
+    }
+    if (readOnly) this.builtinPathsByRoot.set(resolvedRoot, seen);
+    return loaded;
+  }
+
+  /** Rescan every loaded root, registering `writableRoot` first when it is new. Writable roots go first so a deleted override restores its built-in document. */
+  async reload(writableRoot?: string): Promise<void> {
+    if (writableRoot && existsSync(writableRoot) && !this.roots.has(await realpath(writableRoot))) await this.loadDirectory(writableRoot);
+    const ordered = [...this.roots].sort(([, a], [, b]) => Number(a.readOnly) - Number(b.readOnly));
+    for (const [root, state] of ordered) await this.loadDirectory(root, state);
+  }
+
+  private async loadTree(directory: string, root: string, seen: Set<string>): Promise<number> {
     let loaded = 0;
-    for (const entry of await readdir(root, { withFileTypes: true })) {
-      const full = path.join(root, entry.name);
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const full = path.join(directory, entry.name);
       if (entry.isSymbolicLink()) continue;
-      if (entry.isDirectory()) loaded += await this.loadDirectory(full, baseRoot);
-      else if (entry.name.endsWith(".md") && await this.loadFile(baseRoot, full)) loaded += 1;
+      if (entry.isDirectory()) loaded += await this.loadTree(full, root, seen);
+      else if (entry.name.endsWith(".md")) {
+        seen.add(path.relative(root, full).split(path.sep).join("/"));
+        if (await this.loadFile(root, full)) loaded += 1;
+      }
     }
     return loaded;
+  }
+
+  /** True when a read-only root ships this path, whether or not a user copy overrides it. */
+  isBuiltinPath(relativePath: string): boolean {
+    const normalized = relativePath.replaceAll("\\", "/").replace(/^\.\//, "");
+    return [...this.builtinPathsByRoot.values()].some((paths) => paths.has(normalized));
+  }
+
+  /** Where an indexed document lives on disk. */
+  locate(relativePath: string): KnowledgeLocation | undefined {
+    const document = this.docs.get(relativePath.replaceAll("\\", "/"));
+    return document ? { root: document.root, readOnly: document.readOnly } : undefined;
+  }
+
+  /** Record that the user document at `relative` replaces a built-in one, removing the built-in document when it is still indexed. */
+  private overrideBuiltin(relative: string, builtin?: StoredDocument): void {
+    if (builtin) this.removeDocument(builtin.path);
+    this.diagnosticsByPath.set(relative, {
+      code: "builtin_overridden",
+      path: relative,
+      message: `KNOWLEDGE_BUILTIN_OVERRIDDEN:${relative} replaces a built-in document and no longer receives application updates`,
+    });
   }
 
   async loadFile(root: string, filePath: string): Promise<boolean> {
@@ -508,20 +579,39 @@ export class KnowledgeIndex {
     if (resolvedFile !== resolvedRoot && !resolvedFile.startsWith(`${resolvedRoot}${path.sep}`)) throw new Error("KNOWLEDGE_SYMLINK_ESCAPE");
     const relative = path.relative(resolvedRoot, resolvedFile).split(path.sep).join("/");
     if (!relative || relative === ".." || relative.startsWith("../")) throw new Error("KNOWLEDGE_PATH_ESCAPE");
+    const readOnly = this.roots.get(resolvedRoot)?.readOnly === true;
+    const samePath = this.docs.get(relative);
+    if (samePath && samePath.root !== resolvedRoot) {
+      // An earlier built-in root or a user override already owns this path.
+      if (readOnly) {
+        if (!samePath.readOnly) this.overrideBuiltin(relative);
+        return false;
+      }
+      if (!samePath.readOnly) throw new Error(`KNOWLEDGE_PATH_DUPLICATE:${relative}`);
+    }
     const text = await readFile(resolvedFile, "utf8");
     let parsed: ParsedFrontmatter;
     try {
       parsed = parseFrontmatter(text, relative, this.requireMetadata);
     } catch (error) {
       if (!(error instanceof MissingKnowledgeMetadataError)) throw error;
-      this.removeDocument(relative);
+      if (this.docs.get(relative)?.root === resolvedRoot) this.removeDocument(relative);
       this.diagnosticsByPath.set(relative, { code: "missing_metadata", path: relative, message: error.message });
       return false;
     }
     this.diagnosticsByPath.delete(relative);
     const metadata = parsed.metadata ?? fallbackMetadata(relative, parsed.contentLines);
     const existingPath = this.docsById.get(metadata.knowledgeId);
-    if (existingPath && existingPath !== relative) throw new Error(`KNOWLEDGE_ID_DUPLICATE:${metadata.knowledgeId}`);
+    const sameId = existingPath && existingPath !== relative ? this.docs.get(existingPath) : undefined;
+    if (sameId) {
+      if (readOnly && !sameId.readOnly) {
+        this.overrideBuiltin(sameId.path);
+        return false;
+      }
+      if (readOnly === sameId.readOnly) throw new Error(`KNOWLEDGE_ID_DUPLICATE:${metadata.knowledgeId}`);
+      this.overrideBuiltin(relative, sameId);
+    }
+    if (samePath && samePath.root !== resolvedRoot) this.overrideBuiltin(relative, samePath);
     this.removeDocument(relative);
     const revision = this.hash(text);
     const rawChunks = splitChunks(parsed.contentLines, parsed.contentStartLine, metadata);
@@ -540,6 +630,9 @@ export class KnowledgeIndex {
       sections: chunks,
       chunks,
       contentStartLine: parsed.contentStartLine,
+      root: resolvedRoot,
+      readOnly,
+      hasContent: parsed.contentLines.some((line) => line.trim().length > 0),
     };
     this.docs.set(relative, document);
     this.docsById.set(metadata.knowledgeId, relative);
@@ -549,7 +642,7 @@ export class KnowledgeIndex {
   catalog(pathFilter?: (relativePath: string, knowledgeId: string) => boolean): KnowledgeCatalogEntry[] {
     return [...this.docs.values()]
       .filter((document) => pathFilter?.(document.path, document.knowledgeId) ?? true)
-      .map(({ chunks: _chunks, content: _content, contentStartLine: _contentStartLine, ...entry }) => entry)
+      .map(({ chunks: _chunks, content: _content, contentStartLine: _contentStartLine, root: _root, ...entry }) => entry)
       .sort((a, b) => a.knowledgeId.localeCompare(b.knowledgeId));
   }
 
@@ -557,7 +650,7 @@ export class KnowledgeIndex {
     const pathName = this.docsById.get(knowledgeId);
     const document = pathName ? this.docs.get(pathName) : undefined;
     if (!document) throw new Error(`KNOWLEDGE_NOT_FOUND:${knowledgeId}`);
-    const { chunks: _chunks, contentStartLine: _contentStartLine, ...publicDocument } = document;
+    const { chunks: _chunks, contentStartLine: _contentStartLine, root: _root, ...publicDocument } = document;
     return publicDocument;
   }
 
@@ -574,10 +667,10 @@ export class KnowledgeIndex {
     return section;
   }
 
-  async isCurrent(root: string, knowledgeId: string): Promise<boolean> {
+  async isCurrent(knowledgeId: string): Promise<boolean> {
     const document = this.getStoredDocument(knowledgeId);
     try {
-      const current = await readFile(path.resolve(root, document.path), "utf8");
+      const current = await readFile(path.resolve(document.root, document.path), "utf8");
       return this.hash(current) === document.revision;
     } catch {
       return false;

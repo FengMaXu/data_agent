@@ -1,0 +1,158 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f2fd43d0-f7a7-4fd0-8505-416092ea744d\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nid_bioguide | full_name | first_start | first_snapshot | last_snapshot | observations\nS000768 | Louis St. Martin | 1851-12-01 | 1885-12-31 | 1886-12-31 | 2\nR000059 | Joseph Eugene Ransdell | 1899-12-04 | 1930-12-31 | 1930-12-31 | 1\nE000112 | Allen Joseph Ellender | 1937-01-05 | 1968-12-31 | 1971-12-31 | 4\nH000437 | Felix Edward Hébert | 1941-01-03 | 1972-12-31 | 1976-12-31 | 5\nL000428 | Russell Billiu Long | 1948-01-01 | 1979-12-31 | 1986-12-31 | 8\nB000780 | John B. Breaux | 1971-01-21 | 2002-12-31 | 2004-12-31 | 3"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f2fd43d0-f7a7-4fd0-8505-416092ea744d",
+      "preview": {
+        "columns": [
+          "id_bioguide",
+          "full_name",
+          "first_start",
+          "first_snapshot",
+          "last_snapshot",
+          "observations"
+        ],
+        "rows": [
+          [
+            "S000768",
+            "Louis St. Martin",
+            "1851-12-01",
+            "1885-12-31",
+            "1886-12-31",
+            2
+          ],
+          [
+            "R000059",
+            "Joseph Eugene Ransdell",
+            "1899-12-04",
+            "1930-12-31",
+            "1930-12-31",
+            1
+          ],
+          [
+            "E000112",
+            "Allen Joseph Ellender",
+            "1937-01-05",
+            "1968-12-31",
+            "1971-12-31",
+            4
+          ],
+          [
+            "H000437",
+            "Felix Edward Hébert",
+            "1941-01-03",
+            "1972-12-31",
+            "1976-12-31",
+            5
+          ],
+          [
+            "L000428",
+            "Russell Billiu Long",
+            "1948-01-01",
+            "1979-12-31",
+            "1986-12-31",
+            8
+          ],
+          [
+            "B000780",
+            "John B. Breaux",
+            "1971-01-21",
+            "2002-12-31",
+            "2004-12-31",
+            3
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 6,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "id_bioguide",
+        "full_name",
+        "first_start",
+        "first_snapshot",
+        "last_snapshot",
+        "observations"
+      ],
+      "rows": [
+        [
+          "S000768",
+          "Louis St. Martin",
+          "1851-12-01",
+          "1885-12-31",
+          "1886-12-31",
+          2
+        ],
+        [
+          "R000059",
+          "Joseph Eugene Ransdell",
+          "1899-12-04",
+          "1930-12-31",
+          "1930-12-31",
+          1
+        ],
+        [
+          "E000112",
+          "Allen Joseph Ellender",
+          "1937-01-05",
+          "1968-12-31",
+          "1971-12-31",
+          4
+        ],
+        [
+          "H000437",
+          "Felix Edward Hébert",
+          "1941-01-03",
+          "1972-12-31",
+          "1976-12-31",
+          5
+        ],
+        [
+          "L000428",
+          "Russell Billiu Long",
+          "1948-01-01",
+          "1979-12-31",
+          "1986-12-31",
+          8
+        ],
+        [
+          "B000780",
+          "John B. Breaux",
+          "1971-01-21",
+          "2002-12-31",
+          "2004-12-31",
+          3
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 6,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_039b03ba-c90b-4c33-af9f-893065fa390c"
+  }
+}
+

@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T10:05:11.676Z",
+  "registry": {
+    "instance_id": "local100",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 128485,
+    "tool_calls": 8,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local100/attempts/attempt-001/submissions/sql/local100.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local100.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 7,
+      "toolCalls": 8,
+      "explorationQueries": 2,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 0
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 1,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 1,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH l1 AS (\n  SELECT DISTINCT ltrim(c.PID) AS pid\n  FROM M_Cast c\n  WHERE c.MID IN (SELECT MID FROM M_Cast WHERE ltrim(PID)='nm0451321')\n    AND ltrim(c.PID) <> 'nm0451321'\n),\nl1_movies AS (\n  SELECT DISTINCT c.MID\n  FROM M_Cast c JOIN l1 ON ltrim(c.PID)=l1.pid\n),\nl2 AS (\n  SELECT DISTINCT ltrim(c2.PID) AS pid\n  FROM M_Cast c2 JOIN l1_movies m ON c2.MID=m.MID\n)\nSELECT COUNT(*) AS shahrukh_number_2_actor_count\nFROM l2\nWHERE pid NOT IN (SELECT pid FROM l1)\n  AND pid <> 'nm0451321'\n",
+  "originalCsv": "shahrukh_number_2_actor_count\n25698\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local100.csv",
+      "content": "output\r\n15911"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local100",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "107"
+  }
+}

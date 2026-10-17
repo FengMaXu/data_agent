@@ -1,0 +1,50 @@
+{
+  "instance_id": "local037",
+  "status": "ambiguous_after_recompute",
+  "summary": "独立与原答案一致；Gold三个数完全重现为credit_card DISTINCT订单数，差25/24/19来自同方式多支付事件。未确证事件与订单哪个业务口径唯一正确。",
+  "fork_node": "population.entity",
+  "error_layer": "unresolved_business_grain_vs_gold",
+  "visibility": "explicit_entity_and_measure.countGrain; order-grain alternative omitted",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "number of payments made in each category using that payment type"
+    },
+    {
+      "source": "post-grain.json",
+      "pointer": "/sql",
+      "quote": "COUNT(DISTINCT pay.order_id)"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/20/result/details/fields/7/value",
+      "quote": "按付款事件计数：每个 (order_id, payment_sequential) 计一次付款（探索已证实该组合在 olist_order_payments 中唯一）",
+      "original_projection_source": "original-spec-extract.json"
+    }
+  ],
+  "limitations": [
+    "Gold SQL缺失但数值差完整重现",
+    "无payments已审核业务定义",
+    "相关EXISTS反例探针超时；预聚合同义SQL已成功"
+  ],
+  "parent_field_review": {
+    "instance_id": "local037",
+    "relevant_node": "measure.countGrain",
+    "node_is_confirmed_original_error": false,
+    "explanation": "支付事件与支付订单数，原明确事件口径；不能仅据Gold判错",
+    "error_layer": "未唯一裁决",
+    "visibility": "不能标成假定错/决定错：原声明可见，不等于业务错误已证",
+    "qualification": "差异机制已实测，业务意图未唯一裁决",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "按付款事件计数：每个 (order_id, payment_sequential) 计一次付款（探索已证实该组合在 olist_order_payments 中唯一）",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local037/attempts/attempt-001/trace.json",
+      "pointer": "/toolCalls/20/result/details/fields/7/value",
+      "quote": "按付款事件计数：每个 (order_id, payment_sequential) 计一次付款（探索已证实该组合在 olist_order_payments 中唯一）"
+    },
+    "primary_status": "ambiguous_after_recompute"
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f3e0d720-a47c-4d2b-8e6b-80e2333d9bf4\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nname | order_id | location_id | qty\nDer Helle Kumpel | 421 | 16 | 42\nDer Helle Kumpel | 421 | 29 | 14\nDer Helle Kumpel | 421 | 77 | 20\nDer Helle Kumpel | 421 | 165 | 14\nDer Helle Kumpel | 421 | 186 | 24\nDer Helle Kumpel | 421 | 233 | 26\nDer Helle Kumpel | 422 | 29 | 14\nDer Helle Kumpel | 422 | 77 | 20\nDer Helle Kumpel | 422 | 165 | 14\nDer Helle Kumpel | 422 | 186 | 24\nDer Helle Kumpel | 422 | 233 | 8\nDer Helle Kumpel | 423 | 16 | 22\nDer Helle Kumpel | 423 | 233 | 18\nHoppy Crude Oil | 421 | 65 | 36\nHoppy Crude Oil | 421 | 114 | 39\nHoppy Crude Oil | 421 | 163 | 35\nHoppy Crude Oil | 422 | 65 | 36\nHoppy Crude Oil | 422 | 114 | 39\nHoppy Crude Oil | 422 | 163 | 5\nHoppy Crude Oil | 423 | 163 | 30\nHoppy Crude Oil | 423 | 212 | 30"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f3e0d720-a47c-4d2b-8e6b-80e2333d9bf4",
+      "preview": {
+        "columns": [
+          "name",
+          "order_id",
+          "location_id",
+          "qty"
+        ],
+        "rows": [
+          [
+            "Der Helle Kumpel",
+            421,
+            16,
+            42
+          ],
+          [
+            "Der Helle Kumpel",
+            421,
+            29,
+            14
+          ],
+          [
+            "Der Helle Kumpel",
+            421,
+            77,
+            20
+          ],
+          [
+            "Der Helle Kumpel",
+            421,
+            165,
+            14
+          ],
+          [
+            "Der Helle Kumpel",
+            421,
+            186,
+            24
+          ],
+          [
+            "Der Helle Kumpel",
+            421,
+            233,
+            26
+          ],
+          [
+            "Der Helle Kumpel",
+            422,
+            29,
+            14
+          ],
+          [
+            "Der Helle Kumpel",
+            422,
+            77,
+            20
+          ],
+          [
+            "Der Helle Kumpel",
+            422,
+            165,
+            14
+          ],
+          [
+            "Der Helle Kumpel",
+            422,
+            186,
+            24
+          ],
+          [
+            "Der Helle Kumpel",
+            422,
+            233,
+            8
+          ],
+          [
+            "Der Helle Kumpel",
+            423,
+            16,
+            22
+          ],
+          [
+            "Der Helle Kumpel",
+            423,
+            233,
+            18
+          ],
+          [
+            "Hoppy Crude Oil",
+            421,
+            65,
+            36
+          ],
+          [
+            "Hoppy Crude Oil",
+            421,
+            114,
+            39
+          ],
+          [
+            "Hoppy Crude Oil",
+            421,
+            163,
+            35
+          ],
+          [
+            "Hoppy Crude Oil",
+            422,
+            65,
+            36
+          ],
+          [
+            "Hoppy Crude Oil",
+            422,
+            114,
+            39
+          ],
+          [
+            "Hoppy Crude Oil",
+            422,
+            163,
+            5
+          ],
+          [
+            "Hoppy Crude Oil",
+            423,
+            163,
+            30
+          ],
+          [
+            "Hoppy Crude Oil",
+            423,
+            212,
+            30
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 21,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "name",
+        "order_id",
+        "location_id",
+        "qty"
+      ],
+      "rows": [
+        [
+          "Der Helle Kumpel",
+          421,
+          16,
+          42
+        ],
+        [
+          "Der Helle Kumpel",
+          421,
+          29,
+          14
+        ],
+        [
+          "Der Helle Kumpel",
+          421,
+          77,
+          20
+        ],
+        [
+          "Der Helle Kumpel",
+          421,
+          165,
+          14
+        ],
+        [
+          "Der Helle Kumpel",
+          421,
+          186,
+          24
+        ],
+        [
+          "Der Helle Kumpel",
+          421,
+          233,
+          26
+        ],
+        [
+          "Der Helle Kumpel",
+          422,
+          29,
+          14
+        ],
+        [
+          "Der Helle Kumpel",
+          422,
+          77,
+          20
+        ],
+        [
+          "Der Helle Kumpel",
+          422,
+          165,
+          14
+        ],
+        [
+          "Der Helle Kumpel",
+          422,
+          186,
+          24
+        ],
+        [
+          "Der Helle Kumpel",
+          422,
+          233,
+          8
+        ],
+        [
+          "Der Helle Kumpel",
+          423,
+          16,
+          22
+        ],
+        [
+          "Der Helle Kumpel",
+          423,
+          233,
+          18
+        ],
+        [
+          "Hoppy Crude Oil",
+          421,
+          65,
+          36
+        ],
+        [
+          "Hoppy Crude Oil",
+          421,
+          114,
+          39
+        ],
+        [
+          "Hoppy Crude Oil",
+          421,
+          163,
+          35
+        ],
+        [
+          "Hoppy Crude Oil",
+          422,
+          65,
+          36
+        ],
+        [
+          "Hoppy Crude Oil",
+          422,
+          114,
+          39
+        ],
+        [
+          "Hoppy Crude Oil",
+          422,
+          163,
+          5
+        ],
+        [
+          "Hoppy Crude Oil",
+          423,
+          163,
+          30
+        ],
+        [
+          "Hoppy Crude Oil",
+          423,
+          212,
+          30
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 21,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_54f4172d-ba76-4716-855c-898764bbf9b2"
+  }
+}

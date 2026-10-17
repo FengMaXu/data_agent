@@ -1,0 +1,61 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Only observed eligible records; no fabricated missing records",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.conditions": {
+      "value": [
+        "gender F",
+        "any term includes calendar December 31"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "population.time": {
+      "value": "All available years; term_start <= Dec31 <= term_end inclusive",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "One female id_bioguide once, attributed to earliest term state, eligible if any inclusive term contains a December 31; select state maximum distinct women"
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "grouping": {
+      "value": [
+        "first state"
+      ],
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "selection": {
+      "value": {
+        "n": 1,
+        "orderBy": "female_legislators DESC"
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "output": {
+      "value": {
+        "rowMode": "full",
+        "columns": [
+          "state",
+          "female_legislators"
+        ]
+      },
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    },
+    "selection.ties": {
+      "value": "include_ties",
+      "basis": "assumed",
+      "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+    }
+  }
+}

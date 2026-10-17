@@ -1,0 +1,209 @@
+{
+  "query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[RESULT_CANDIDATE] candidateId=candidate_e603ea1f-2bf4-4d77-bcfe-b789661ffdd3 revisionId=revision_a381a70b-5bb2-49a3-b379-78051188c218\nperiod | legislators\n31 | 5\n32 | 4\n33 | 4\n34 | 4\n35 | 3\n36 | 1\n37 | 1\n38 | 1"
+      }
+    ],
+    "details": {
+      "kind": "result",
+      "artifact": {
+        "kind": "candidate",
+        "candidateId": "candidate_e603ea1f-2bf4-4d77-bcfe-b789661ffdd3",
+        "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+        "resultRef": "result_854b2d60-7831-4ac7-aab0-0a5caa12934c"
+      },
+      "preview": {
+        "columns": [
+          "period",
+          "legislators"
+        ],
+        "rows": [
+          [
+            31,
+            5
+          ],
+          [
+            32,
+            4
+          ],
+          [
+            33,
+            4
+          ],
+          [
+            34,
+            4
+          ],
+          [
+            35,
+            3
+          ],
+          [
+            36,
+            1
+          ],
+          [
+            37,
+            1
+          ],
+          [
+            38,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 8,
+        "truncated": false
+      },
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_cfdef398-33cd-4bb3-9054-f63a373c073d"
+    }
+  },
+  "publication": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[PUBLISHED] csv [download](/api/runtime/publications/publication_7559968e-5286-4558-97ed-af22b329a52a?session_id=local171) receiptId=publication_7559968e-5286-4558-97ed-af22b329a52a\n[DISCLOSURE] 以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+      }
+    ],
+    "details": {
+      "receiptId": "publication_7559968e-5286-4558-97ed-af22b329a52a",
+      "taskId": "task_4d2f0ce8-661c-44fe-8d12-7be33e1d8c3c",
+      "principalId": "independent-analyst",
+      "sessionId": "local171",
+      "candidateId": "candidate_e603ea1f-2bf4-4d77-bcfe-b789661ffdd3",
+      "revisionId": "revision_a381a70b-5bb2-49a3-b379-78051188c218",
+      "resultRef": "result_854b2d60-7831-4ac7-aab0-0a5caa12934c",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_7559968e-5286-4558-97ed-af22b329a52a?session_id=local171",
+      "contentHash": "3012a0892a98bb31c2cafaac63ac15df9b0d02f1e07842fffc1447a452f10378",
+      "presentationContentHash": "4ef5920ba572e1f6846c22bb7ba87af77d9a7184fe5dd7bea8dd3138f6d051a0",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.conditions",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 8,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "period",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 8,
+            "min": "31",
+            "max": "38"
+          },
+          {
+            "name": "legislators",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 4,
+            "min": "1",
+            "max": "5"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "8d37121c-f2a4-4c32-8cfa-e4520728658d",
+      "requestId": "8d37121c-f2a4-4c32-8cfa-e4520728658d",
+      "createdAt": "2026-10-11T09:13:28.730Z"
+    }
+  },
+  "authorizedCsv": "D:\\data_agent\\evaluations\\spider2\\adr0007\\independent-recompute-35\\cases\\local171\\publications\\publication_7559968e-5286-4558-97ed-af22b329a52a\\result.csv"
+}
+

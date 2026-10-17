@@ -1,0 +1,4 @@
+{
+  "sql": "WITH u AS (SELECT user_id,birth_date,count(*) copies FROM mst_users GROUP BY user_id,birth_date),a AS(SELECT *,2024-cast(substr(birth_date,1,4) as int)-('04-07'<substr(birth_date,6)) age_2024,2026-cast(substr(birth_date,1,4) as int)-('10-11'<substr(birth_date,6)) age_2026 FROM u) SELECT * FROM a WHERE CASE WHEN age_2024 BETWEEN 20 AND 59 THEN cast(age_2024/10 as int) ELSE 0 END != CASE WHEN age_2026 BETWEEN 20 AND 59 THEN cast(age_2026/10 as int) ELSE 0 END ORDER BY user_id",
+  "limit": 1000
+}

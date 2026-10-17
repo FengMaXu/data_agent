@@ -1,0 +1,77 @@
+{
+  "revealedAt": "2026-10-11T10:03:09.765Z",
+  "registry": {
+    "instance_id": "local096",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "max_turns",
+    "publication_status": "published",
+    "duration_ms": 448759,
+    "tool_calls": 35,
+    "error": {
+      "name": "Error",
+      "message": "MAX_TURNS",
+      "stack": "Error: MAX_TURNS\n    at stopForLimit (file:///D:/data_agent/evaluations/spider2/lib.mjs:539:18)\n    at file:///D:/data_agent/evaluations/spider2/lib.mjs:551:58\n    at adapter.subscribeObservations.userId (file:///D:/data_agent/evaluations/spider2/run.mjs:751:30)\n    at file:///D:/data_agent/packages/runtime/dist/application/host.js:256:25\n    at PiTranscriptFacet.observe (file:///D:/data_agent/packages/runtime/dist/facets/transcript.js:473:13)\n    at file:///D:/data_agent/packages/runtime/dist/facets/transcript.js:430:18\n    at wrapped (file:///D:/data_agent/node_modules/@earendil-works/pi-agent-core/dist/harness/events.js:10:45)\n    at HarnessEventBus.deliver (file:///D:/data_agent/node_modules/@earendil-works/pi-agent-core/dist/harness/events.js:114:23)\n    at file:///D:/data_agent/node_modules/@earendil-works/pi-agent-core/dist/harness/events.js:32:28\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"
+    },
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local096/attempts/attempt-001/submissions/sql/local096.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local096.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 31,
+      "toolCalls": 35,
+      "explorationQueries": 21,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 2
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 0,
+        "unknown": 1
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 1,
+        "unavailable": 2,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH cg AS (\n  SELECT c.MID AS MID, CASE WHEN p.Gender = 'Female' THEN 1 ELSE 0 END AS is_female\n  FROM M_Cast c LEFT JOIN Person p ON p.PID = TRIM(c.PID)\n), pm AS (\n  SELECT MID, SUM(is_female) AS f, SUM(1 - is_female) AS nf FROM cg GROUP BY MID\n)\nSELECT CAST(substr(m.year,-4) AS INTEGER) AS year,\n       COUNT(*) AS total_movies,\n       ROUND(100.0*SUM(CASE WHEN COALESCE(pm.nf,0)=0 THEN 1 ELSE 0 END)/COUNT(*),2) AS pct_female_only_films\nFROM Movie m LEFT JOIN pm ON pm.MID = m.MID\nGROUP BY CAST(substr(m.year,-4) AS INTEGER)\nORDER BY 1\n",
+  "originalCsv": "year,total_movies,pct_female_only_films\n1931,1,0\n1936,3,0\n1939,2,50\n1941,1,0\n1943,1,0\n1946,2,0\n1947,2,0\n1948,3,0\n1949,3,0\n1950,2,0\n1951,6,0\n1952,6,0\n1953,8,0\n1954,6,0\n1955,9,0\n1956,6,0\n1957,13,0\n1958,9,0\n1959,6,0\n1960,14,0\n1961,7,0\n1962,12,0\n1963,10,0\n1964,15,0\n1965,14,0\n1966,18,0\n1967,19,0\n1968,21,0\n1969,18,0\n1970,24,0\n1971,24,0\n1972,29,0\n1973,29,0\n1974,26,0\n1975,24,0\n1976,22,0\n1977,28,0\n1978,23,0\n1979,25,0\n1980,31,0\n1981,33,0\n1982,36,0\n1983,37,0\n1984,33,0\n1985,31,0\n1986,33,0\n1987,32,0\n1988,37,0\n1989,47,0\n1990,42,0\n1991,41,0\n1992,58,0\n1993,63,0\n1994,60,0\n1995,56,0\n1996,60,0\n1997,55,0\n1998,55,0\n1999,66,1.52\n2000,64,1.56\n2001,73,0\n2002,87,0\n2003,103,0\n2004,103,0\n2005,129,0\n2006,101,0\n2007,109,0\n2008,107,0\n2009,110,0\n2010,125,0\n2011,116,0\n2012,111,0\n2013,136,0\n2014,126,0\n2015,119,0\n2016,129,0\n2017,126,0\n2018,104,0.96\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local096.csv",
+      "content": "\"YEAR\",\"TOTAL_NUM_OF_MOV\",\"PERCENT_OF_MOV_WITH_ONLY_F\"\r\n1939,2,50.0\r\n2018,104,1.9230769230769231\r\n2000,64,1.5625\r\n1999,66,1.5151515151515151\r\n2009,110,0.9090909090909091\r\n2012,111,0.9009009009009009\r\n1931,1,0.0\r\n1936,3,0.0\r\n1941,1,0.0\r\n1943,1,0.0\r\n1946,2,0.0\r\n1947,2,0.0\r\n1948,3,0.0\r\n1949,3,0.0\r\n1950,2,0.0\r\n1951,6,0.0\r\n1952,6,0.0\r\n1953,8,0.0\r\n1954,6,0.0\r\n1955,9,0.0\r\n1956,6,0.0\r\n1957,13,0.0\r\n1958,9,0.0\r\n1959,6,0.0\r\n1960,14,0.0\r\n1961,7,0.0\r\n1962,12,0.0\r\n1963,10,0.0\r\n1964,15,0.0\r\n1965,14,0.0\r\n1966,18,0.0\r\n1967,19,0.0\r\n1968,21,0.0\r\n1969,18,0.0\r\n1970,24,0.0\r\n1971,24,0.0\r\n1972,29,0.0\r\n1973,29,0.0\r\n1974,26,0.0\r\n1975,24,0.0\r\n1976,22,0.0\r\n1977,28,0.0\r\n1978,23,0.0\r\n1979,25,0.0\r\n1980,31,0.0\r\n1981,33,0.0\r\n1982,36,0.0\r\n1983,37,0.0\r\n1984,33,0.0\r\n1985,31,0.0\r\n1986,33,0.0\r\n1987,32,0.0\r\n1988,37,0.0\r\n1989,47,0.0\r\n1990,42,0.0\r\n1991,41,0.0\r\n1992,58,0.0\r\n1993,63,0.0\r\n1994,60,0.0\r\n1995,56,0.0\r\n1996,60,0.0\r\n1997,55,0.0\r\n1998,55,0.0\r\n2001,73,0.0\r\n2002,87,0.0\r\n2003,103,0.0\r\n2004,103,0.0\r\n2005,129,0.0\r\n2006,101,0.0\r\n2007,109,0.0\r\n2008,107,0.0\r\n2010,125,0.0\r\n2011,116,0.0\r\n2013,136,0.0\r\n2014,126,0.0\r\n2015,119,0.0\r\n2016,129,0.0\r\n2017,126,0.0\r\n"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local096",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "114"
+  }
+}

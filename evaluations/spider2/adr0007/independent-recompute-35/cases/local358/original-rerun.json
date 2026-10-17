@@ -1,0 +1,4 @@
+{
+  "sql": "WITH ages AS (\n  SELECT\n    CAST(strftime('%Y', date('now')) AS INTEGER) - CAST(substr(birth_date, 1, 4) AS INTEGER)\n      - CASE WHEN strftime('%m-%d', date('now')) < substr(birth_date, 6, 5) THEN 1 ELSE 0 END AS age\n  FROM mst_users\n)\nSELECT\n  CASE\n    WHEN age BETWEEN 20 AND 29 THEN '20s'\n    WHEN age BETWEEN 30 AND 39 THEN '30s'\n    WHEN age BETWEEN 40 AND 49 THEN '40s'\n    WHEN age BETWEEN 50 AND 59 THEN '50s'\n    ELSE 'others'\n  END AS age_category,\n  COUNT(*) AS user_count\nFROM ages\nGROUP BY age_category\nORDER BY CASE age_category\n           WHEN '20s' THEN 1 WHEN '30s' THEN 2 WHEN '40s' THEN 3 WHEN '50s' THEN 4 ELSE 5\n         END;\n",
+  "limit": 1000
+}

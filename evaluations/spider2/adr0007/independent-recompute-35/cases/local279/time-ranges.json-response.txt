@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_d5e5f364-604d-4a64-9e72-4603bf47dd1f\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nsource | start | end | n\nsales | 2016-01-01 | 2018-12-01 | 360\nbudget | 2018-01-01 | 2019-12-01 | 48\npurchase | 2016-01-01 | 2018-12-29 | 180"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_d5e5f364-604d-4a64-9e72-4603bf47dd1f",
+      "preview": {
+        "columns": [
+          "source",
+          "start",
+          "end",
+          "n"
+        ],
+        "rows": [
+          [
+            "sales",
+            "2016-01-01",
+            "2018-12-01",
+            360
+          ],
+          [
+            "budget",
+            "2018-01-01",
+            "2019-12-01",
+            48
+          ],
+          [
+            "purchase",
+            "2016-01-01",
+            "2018-12-29",
+            180
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "source",
+        "start",
+        "end",
+        "n"
+      ],
+      "rows": [
+        [
+          "sales",
+          "2016-01-01",
+          "2018-12-01",
+          360
+        ],
+        [
+          "budget",
+          "2018-01-01",
+          "2019-12-01",
+          48
+        ],
+        [
+          "purchase",
+          "2016-01-01",
+          "2018-12-29",
+          180
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_a9fc68de-4423-4681-bb74-82641ac42248"
+  }
+}

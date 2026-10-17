@@ -1,0 +1,61 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Italian customers with December2021 sales; inactive Italian customers not included",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "population.conditions": {
+      "value": [
+        "countries.country_name='Italy'"
+      ],
+      "basis": "request",
+      "quote": "Italian customers"
+    },
+    "population.time": {
+      "value": "Calendar December2021 inclusive; sales.time_id via times",
+      "basis": "request",
+      "quote": "December 2021"
+    },
+    "population.joinMultiplicity": {
+      "value": "Sales-costs join full prod_id/time_id/channel_id/promo_id; unique observed costs; sales remain once per line",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "custom",
+        "description": "Customer profit SUM(amount_sold-quantity_sold*unit_cost); NTILE10 over customer totals ascending profit,cust_id; each tier MAX and MIN customer profit; active customers only"
+      },
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.countGrain": {
+      "value": "Sales rows sum to one customer total; customers equal-count tiled",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.denominator": "n/a",
+    "grouping": {
+      "value": [
+        "equal-count customer tier 1..10"
+      ],
+      "basis": "request",
+      "quote": "ten evenly divided tiers"
+    },
+    "selection": "n/a",
+    "output": {
+      "value": {
+        "rowMode": "grouped",
+        "rowCount": 10,
+        "columns": [
+          "tier",
+          "highest_profit",
+          "lowest_profit"
+        ]
+      },
+      "basis": "request",
+      "quote": "highest and lowest profits"
+    }
+  }
+}

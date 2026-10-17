@@ -1,0 +1,113 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_3786f64d-8b4c-4822-8975-e07cbc095ff8\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nboroname | zip_count | zip_equal_mean | household_weighted_mean\nBronx | 25 | 53051.84 | 50145.23857779671\nBrooklyn | 38 | 72988.78947368421 | 72148.77909150715\nManhattan | 43 | 148516.44186046513 | 136161.28851938693\nQueens | 64 | 81328.78125 | 75938.72936262171\nStaten Island | 12 | 87952.75 | 90235.92398542682"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_3786f64d-8b4c-4822-8975-e07cbc095ff8",
+      "preview": {
+        "columns": [
+          "boroname",
+          "zip_count",
+          "zip_equal_mean",
+          "household_weighted_mean"
+        ],
+        "rows": [
+          [
+            "Bronx",
+            25,
+            53051.84,
+            50145.23857779671
+          ],
+          [
+            "Brooklyn",
+            38,
+            72988.78947368421,
+            72148.77909150715
+          ],
+          [
+            "Manhattan",
+            43,
+            148516.44186046513,
+            136161.28851938693
+          ],
+          [
+            "Queens",
+            64,
+            81328.78125,
+            75938.72936262171
+          ],
+          [
+            "Staten Island",
+            12,
+            87952.75,
+            90235.92398542682
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "boroname",
+        "zip_count",
+        "zip_equal_mean",
+        "household_weighted_mean"
+      ],
+      "rows": [
+        [
+          "Bronx",
+          25,
+          53051.84,
+          50145.23857779671
+        ],
+        [
+          "Brooklyn",
+          38,
+          72988.78947368421,
+          72148.77909150715
+        ],
+        [
+          "Manhattan",
+          43,
+          148516.44186046513,
+          136161.28851938693
+        ],
+        [
+          "Queens",
+          64,
+          81328.78125,
+          75938.72936262171
+        ],
+        [
+          "Staten Island",
+          12,
+          87952.75,
+          90235.92398542682
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d18b3e51-9b44-43d5-86a1-773fbe5daaf5"
+  }
+}

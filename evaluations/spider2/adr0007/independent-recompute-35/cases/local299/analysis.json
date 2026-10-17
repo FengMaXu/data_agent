@@ -1,0 +1,50 @@
+{
+  "instance_id": "local299",
+  "status": "gold_conflict",
+  "summary": "Gold三个月精确匹配客户末交易日截止+同日重复交易未去重+31行窗口第30行生效，违反daily/30 days；原30日窗口正确，独立与原差为未定义的历史终点。",
+  "fork_node": "population.time (independent/original unresolved); population.joinMultiplicity then measure.window (Gold signature)",
+  "error_layer": "Gold duplicate-day and off-by-one physical/window implementation; endpoint business ambiguity remains",
+  "visibility": "Original time alternatives and chosen per-customer cutoff explicitly retained; true 30-calendar-day window clearly recorded",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "30-day rolling average balance (only after having 30 days of data, and treating negative averages as zero)"
+    },
+    {
+      "source": "probe-duplicate-days-response.json",
+      "pointer": "/details/preview/rows/3",
+      "quote": "284935.45376344083"
+    },
+    {
+      "source": "probe-day-counterexample-response.json",
+      "pointer": "/details/preview/rows/0",
+      "quote": "29"
+    }
+  ],
+  "limitations": [
+    "Gold generator SQL unavailable; exact signature not unique program proof",
+    "History endpoint per customer last vs common observed cutoff unspecified",
+    "No initial balance or timezone business definition",
+    "One exploratory SQL alias error corrected through same adapter; final publication unchanged"
+  ],
+  "parent_field_review": {
+    "instance_id": "local299",
+    "relevant_node": "population.joinMultiplicity",
+    "node_is_confirmed_original_error": false,
+    "explanation": "Gold重建重复客户日行，随后31行窗口；原30日已正确",
+    "error_layer": "标准答案与本次输入/明确要求局部冲突",
+    "visibility": "不适用：未确认原Spec语义错误",
+    "qualification": "Gold差异相关节点，不冒充原系统错误节点",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "Single source table; transactions are pre-aggregated to one row per (customer_id, txn_date) before joining the generated daily calendar spine, so no fan-out or double counting.",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local299/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/22/result/details/fields/7/value",
+      "quote": "Single source table; transactions are pre-aggregated to one row per (customer_id, txn_date) before joining the generated daily calendar spine, so no fan-out or double counting."
+    },
+    "primary_status": "gold_conflict"
+  }
+}

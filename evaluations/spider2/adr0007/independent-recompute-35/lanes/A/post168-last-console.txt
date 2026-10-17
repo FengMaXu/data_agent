@@ -1,0 +1,210 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f0976f2f-8f54-4c9c-9289-8fd477d34852\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_equal_average | available_skills\n101300 | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f0976f2f-8f54-4c9c-9289-8fd477d34852",
+      "preview": {
+        "columns": [
+          "skill_equal_average",
+          "available_skills"
+        ],
+        "rows": [
+          [
+            101300,
+            2
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_equal_average",
+        "available_skills"
+      ],
+      "rows": [
+        [
+          101300,
+          2
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_245441cc-ff5d-4200-bf2f-bae9da921127"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_10040909-88f3-47ea-b775-355e2d982501\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nskill_equal_average | available_skills\n94275 | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_10040909-88f3-47ea-b775-355e2d982501",
+      "preview": {
+        "columns": [
+          "skill_equal_average",
+          "available_skills"
+        ],
+        "rows": [
+          [
+            94275,
+            2
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "skill_equal_average",
+        "available_skills"
+      ],
+      "rows": [
+        [
+          94275,
+          2
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b50b8a2c-d6f6-40cc-8970-859297468b67"
+  }
+}
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4060088e-ac52-48a0-b6bf-6721e4f67ed5\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\njob_id | salary_year_avg | salary | skill_id\n419649 | 90000 | 90000 | 1\n777802 | 135000 | 135000 | 1\n1791218 | 95700 | 95700 | 1\n1791218 | 95700 | 95700 | 187"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4060088e-ac52-48a0-b6bf-6721e4f67ed5",
+      "preview": {
+        "columns": [
+          "job_id",
+          "salary_year_avg",
+          "salary",
+          "skill_id"
+        ],
+        "rows": [
+          [
+            419649,
+            90000,
+            90000,
+            1
+          ],
+          [
+            777802,
+            135000,
+            135000,
+            1
+          ],
+          [
+            1791218,
+            95700,
+            95700,
+            1
+          ],
+          [
+            1791218,
+            95700,
+            95700,
+            187
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 4,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "job_id",
+        "salary_year_avg",
+        "salary",
+        "skill_id"
+      ],
+      "rows": [
+        [
+          419649,
+          90000,
+          90000,
+          1
+        ],
+        [
+          777802,
+          135000,
+          135000,
+          1
+        ],
+        [
+          1791218,
+          95700,
+          95700,
+          1
+        ],
+        [
+          1791218,
+          95700,
+          95700,
+          187
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 4,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_663fa637-076e-43a7-8383-6c1e7bf3be7a"
+  }
+}
+

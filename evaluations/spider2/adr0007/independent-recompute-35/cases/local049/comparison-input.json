@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:18:04.195Z",
+  "registry": {
+    "instance_id": "local049",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 144654,
+    "tool_calls": 20,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local049/attempts/attempt-001/submissions/sql/local049.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local049.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 13,
+      "toolCalls": 20,
+      "explorationQueries": 7,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 2
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 0,
+        "unavailable": 3,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH ic AS (\n    SELECT DISTINCT company_id, industry FROM companies_industries\n),\ndd AS (\n    SELECT company_id, MIN(date_joined) AS dj FROM companies_dates GROUP BY company_id\n),\ny AS (\n    SELECT ic.industry,\n           CAST(substr(dd.dj,1,4) AS INTEGER) AS yr,\n           COUNT(DISTINCT ic.company_id) AS cnt\n    FROM ic JOIN dd ON ic.company_id = dd.company_id\n    WHERE CAST(substr(dd.dj,1,4) AS INTEGER) BETWEEN 2019 AND 2021\n    GROUP BY ic.industry, yr\n),\ntop AS (\n    SELECT industry FROM (\n        SELECT industry, SUM(cnt) AS tot FROM y GROUP BY industry ORDER BY tot DESC LIMIT 1\n    )\n)\nSELECT ROUND(SUM(cnt)/3.0, 2) AS avg_new_unicorns_per_year\nFROM y WHERE industry = (SELECT industry FROM top);\n",
+  "originalCsv": "avg_new_unicorns_per_year\n57.67\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local049.csv",
+      "content": "output\r\n59.67"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local049",
+    "condition_cols": [],
+    "ignore_order": true,
+    "toks": "85"
+  }
+}

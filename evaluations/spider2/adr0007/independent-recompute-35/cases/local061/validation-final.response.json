@@ -1,0 +1,141 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4eef2c7b-707f-4f26-b494-63468d0ac3d9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmonth | average_projected_monthly_sales_usd\n1 | 4054.99\n2 | 2402.89\n3 | 2888.48\n4 | 1474.1\n5 | 2904.71\n6 | 1440.35\n7 | 1600.13\n8 | 1392.6\n9 | 2702.5\n10 | 2218.77\n11 | 3208.94\n12 | 3062.66"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4eef2c7b-707f-4f26-b494-63468d0ac3d9",
+      "preview": {
+        "columns": [
+          "month",
+          "average_projected_monthly_sales_usd"
+        ],
+        "rows": [
+          [
+            1,
+            4054.99
+          ],
+          [
+            2,
+            2402.89
+          ],
+          [
+            3,
+            2888.48
+          ],
+          [
+            4,
+            1474.1
+          ],
+          [
+            5,
+            2904.71
+          ],
+          [
+            6,
+            1440.35
+          ],
+          [
+            7,
+            1600.13
+          ],
+          [
+            8,
+            1392.6
+          ],
+          [
+            9,
+            2702.5
+          ],
+          [
+            10,
+            2218.77
+          ],
+          [
+            11,
+            3208.94
+          ],
+          [
+            12,
+            3062.66
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "REAL"
+        ],
+        "rowCount": 12,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "month",
+        "average_projected_monthly_sales_usd"
+      ],
+      "rows": [
+        [
+          1,
+          4054.99
+        ],
+        [
+          2,
+          2402.89
+        ],
+        [
+          3,
+          2888.48
+        ],
+        [
+          4,
+          1474.1
+        ],
+        [
+          5,
+          2904.71
+        ],
+        [
+          6,
+          1440.35
+        ],
+        [
+          7,
+          1600.13
+        ],
+        [
+          8,
+          1392.6
+        ],
+        [
+          9,
+          2702.5
+        ],
+        [
+          10,
+          2218.77
+        ],
+        [
+          11,
+          3208.94
+        ],
+        [
+          12,
+          3062.66
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "REAL"
+      ],
+      "rowCount": 12,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_53771d0c-478b-4651-8bc2-3f85d5c751f9"
+  }
+}

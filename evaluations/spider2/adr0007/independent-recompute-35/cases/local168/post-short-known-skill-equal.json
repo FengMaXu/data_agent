@@ -1,0 +1,4 @@
+{
+  "sql": "WITH eligible AS (SELECT job_id,salary_year_avg FROM job_postings_fact WHERE job_title_short='Data Analyst' AND salary_year_avg IS NOT NULL AND job_work_from_home=1), links AS (SELECT DISTINCT job_id,skill_id FROM skills_job_dim), frequencies AS (SELECT l.skill_id,count(distinct e.job_id) demand FROM eligible e JOIN links l USING(job_id) JOIN skills_dim s USING(skill_id) GROUP BY l.skill_id), top_skills AS (SELECT skill_id,demand FROM frequencies ORDER BY demand DESC,skill_id LIMIT 3), selected_jobs AS (SELECT e.* FROM eligible e WHERE EXISTS(SELECT 1 FROM links l JOIN top_skills t USING(skill_id) WHERE l.job_id=e.job_id)) SELECT avg(mean_salary) skill_equal_average,count(*) available_skills FROM (SELECT t.skill_id,avg(e.salary_year_avg) mean_salary FROM eligible e JOIN links l USING(job_id) JOIN top_skills t USING(skill_id) GROUP BY t.skill_id)",
+  "limit": 100
+}

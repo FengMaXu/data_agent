@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:09:48.351Z",
+  "registry": {
+    "instance_id": "local263",
+    "attempt_id": "attempt-20261010-154318Z",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-retry.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 164393,
+    "tool_calls": 24,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local263/attempts/attempt-20261010-154318Z/submissions/sql/local263.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-20261010-154318Z/csv/local263.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 16,
+      "toolCalls": 24,
+      "explorationQueries": 8,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 3
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 5,
+      "byStatus": {
+        "pending": 0,
+        "completed": 3,
+        "unavailable": 2,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH assoc AS (\n  SELECT status, L1_model, COUNT(DISTINCT name||'|'||version) AS count\n  FROM stack_ok\n  GROUP BY status, L1_model\n),\nranked AS (\n  SELECT status, L1_model, count,\n         ROW_NUMBER() OVER (PARTITION BY status ORDER BY count DESC, L1_model) AS rn\n  FROM assoc\n)\nSELECT status, L1_model, count\nFROM ranked\nWHERE rn = 1\nORDER BY status\n",
+  "originalCsv": "status,L1_model,count\nsoft,regression,21\nstrong,regression,37\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local263.csv",
+      "content": "status,L1_model,max_cnt\r\nsoft,regression,108\r\nstrong,regression,234"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local263",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "138"
+  }
+}

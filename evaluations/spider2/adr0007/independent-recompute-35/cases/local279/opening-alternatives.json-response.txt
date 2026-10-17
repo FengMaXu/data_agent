@@ -1,0 +1,109 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_f279f172-1a15-48f8-88a3-c270d877bf14\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nproduct_id | inventory | purchases_all | sales_all | purchases_2018 | sales_2018 | sales_dec | budget_dec\n6520 | 400 | 1400 | 1230 | 400 | 357 | 14 | 30\n6600 | 100 | 400 | 324 | 100 | 98 | 1 | 6"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_f279f172-1a15-48f8-88a3-c270d877bf14",
+      "preview": {
+        "columns": [
+          "product_id",
+          "inventory",
+          "purchases_all",
+          "sales_all",
+          "purchases_2018",
+          "sales_2018",
+          "sales_dec",
+          "budget_dec"
+        ],
+        "rows": [
+          [
+            6520,
+            400,
+            1400,
+            1230,
+            400,
+            357,
+            14,
+            30
+          ],
+          [
+            6600,
+            100,
+            400,
+            324,
+            100,
+            98,
+            1,
+            6
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "product_id",
+        "inventory",
+        "purchases_all",
+        "sales_all",
+        "purchases_2018",
+        "sales_2018",
+        "sales_dec",
+        "budget_dec"
+      ],
+      "rows": [
+        [
+          6520,
+          400,
+          1400,
+          1230,
+          400,
+          357,
+          14,
+          30
+        ],
+        [
+          6600,
+          100,
+          400,
+          324,
+          100,
+          98,
+          1,
+          6
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b2ca3163-11c3-480a-aa4d-e23554b821c6"
+  }
+}

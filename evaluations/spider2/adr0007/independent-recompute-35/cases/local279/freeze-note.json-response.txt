@@ -1,0 +1,239 @@
+{
+  "frozenAt": "2026-10-11T09:10:40.754Z",
+  "instance_id": "local279",
+  "independent": true,
+  "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+  "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+  "publication": {
+    "receiptId": "publication_ab8f4656-1b42-48b0-85ad-b30d0e4fc958",
+    "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+    "principalId": "independent-analyst",
+    "sessionId": "local279",
+    "candidateId": "candidate_fa4c4e41-1aa9-4f07-a7fd-67930117b6aa",
+    "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+    "resultRef": "result_5ce2bee4-c193-4066-91ab-c9d323f6690e",
+    "format": "csv",
+    "publicRef": "/api/runtime/publications/publication_ab8f4656-1b42-48b0-85ad-b30d0e4fc958?session_id=local279",
+    "contentHash": "6543d698bb9b7289a24bb50868b65197fbe0b2695ab8614886d02dcac785ec82",
+    "presentationContentHash": "7909adb37334f987a0bc813c7c73e4ec16872dd2f259f867ab17284e7cb5c303",
+    "coverage": [
+      {
+        "checkId": "result_completeness",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_shape",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "result_identity",
+        "outcome": "clear"
+      },
+      {
+        "checkId": "join_fanout",
+        "outcome": "not_applicable"
+      },
+      {
+        "checkId": "spec_feedback",
+        "ruleVersion": "spec-feedback-v2",
+        "outcome": "not_applicable",
+        "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+      }
+    ],
+    "fanout": {
+      "ruleVersion": "answering-fanout-v1",
+      "status": "not_applicable",
+      "snapshotScope": "unbound",
+      "targets": []
+    },
+    "disclosure": {
+      "required": true,
+      "unverifiedFields": [
+        {
+          "path": "population.eligibility",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.conditions",
+          "kind": "assumed"
+        },
+        {
+          "path": "population.time",
+          "kind": "assumed"
+        },
+        {
+          "path": "measure.formula",
+          "kind": "assumed"
+        },
+        {
+          "path": "grouping",
+          "kind": "assumed"
+        },
+        {
+          "path": "output",
+          "kind": "assumed"
+        }
+      ],
+      "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.conditions, population.time, measure.formula, grouping, output。"
+    },
+    "physicalProfile": {
+      "version": 1,
+      "rowCount": 2,
+      "truncated": false,
+      "columns": [
+        {
+          "name": "product_id",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 2,
+          "min": "6520",
+          "max": "6600"
+        },
+        {
+          "name": "month",
+          "kind": "text",
+          "nullCount": 0,
+          "distinctCount": 2
+        },
+        {
+          "name": "absolute_difference",
+          "kind": "integer",
+          "encodedAs": "number",
+          "nullCount": 0,
+          "distinctCount": 2,
+          "min": "0",
+          "max": "10"
+        }
+      ]
+    },
+    "policyVersion": "answering-publication-v1",
+    "createdByInvocationId": "a8165296-9067-4382-8dfa-740434f4f777",
+    "requestId": "a8165296-9067-4382-8dfa-740434f4f777",
+    "createdAt": "2026-10-11T09:10:36.962Z"
+  },
+  "currentRevision": {
+    "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+    "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+    "parentRevisionId": "revision_a81fd1ac-cfb2-4459-827f-07a060b00db5",
+    "requestId": "b0b6cd70-015f-4d5c-8637-73112016c5d6",
+    "createdAt": "2026-10-11T09:10:33.053Z",
+    "fields": {
+      "population.entity": {
+        "state": "specified",
+        "value": {
+          "name": "product monthly inventory states"
+        },
+        "basis": {
+          "kind": "evidence",
+          "evidenceIds": [
+            "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a"
+          ]
+        }
+      },
+      "population.eligibility": {
+        "state": "specified",
+        "value": "Products with configured minimum and purchase quantity",
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "population.conditions": {
+        "state": "specified",
+        "value": [
+          "2019 forecast monthly demand; absent months zero demand"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "population.time": {
+        "state": "specified",
+        "value": {
+          "expression": "Initialize December2018, simulate Jan-Dec2019"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "measure.formula": {
+        "state": "specified",
+        "value": {
+          "op": "custom",
+          "description": "Month pre_end=previous final ending-budget; strictly below minimum triggers one qty_purchase added immediately; final ending=pre_end+purchase; select minimum abs(final ending-minimum), earliest month on ties"
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "grouping": {
+        "state": "specified",
+        "value": [
+          "product_id"
+        ],
+        "basis": {
+          "kind": "assumed"
+        }
+      },
+      "selection": {
+        "state": "not_applicable"
+      },
+      "output": {
+        "state": "specified",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "product_id",
+            "month",
+            "absolute_difference"
+          ]
+        },
+        "basis": {
+          "kind": "assumed"
+        }
+      }
+    },
+    "state": {
+      "state": "ready",
+      "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+      "ready": "ready_5419f8dc-f466-413f-be4b-50c3d0da9f56"
+    },
+    "specFeedback": {
+      "taskId": "task_a98385ed-ab7f-43a4-bce2-6e9a7e38810c",
+      "revisionId": "revision_65799b49-0dd4-404f-9d9f-afd75e629981",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_f6e1ec15-b8ba-42b7-b397-3ac3e1913c6a",
+        "evidence_6b41579a-8f80-42d7-bd73-fb4acaae1260",
+        "evidence_d5e5f364-604d-4a64-9e72-4603bf47dd1f",
+        "evidence_0ff9dc5b-468f-4846-91f7-3ae870814787",
+        "evidence_2c7cfb16-d665-4806-a9f2-aef82ea5807b",
+        "evidence_7545365d-0e09-4fbf-875a-1be40af5333a"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    }
+  },
+  "analystNote": {
+    "algorithm": "same-month post-demand single-batch restock recurrence; rank post-restock ending",
+    "assumptions": [
+      "inventory is December2018 balance",
+      "budget forecast demand",
+      "restock in same month; one batch",
+      "only configured products; earliest tie"
+    ],
+    "checks": "26 state rows, monthly/final conservation; all12 forecasts per modeled product"
+  },
+  "settings": {
+    "qualification": "required",
+    "fieldProbes": true,
+    "externalAdvisor": "not_configured",
+    "specFeedback": "not_configured",
+    "fanout": "disabled_for_offline_audit",
+    "populationDecisions": "allow_disclosed_headless_audit",
+    "databaseReadOnly": true
+  }
+}

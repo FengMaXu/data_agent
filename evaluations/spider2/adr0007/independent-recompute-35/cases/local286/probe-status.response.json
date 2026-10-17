@@ -1,0 +1,119 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_3ed163aa-a4ed-4d13-ac92-dbf0efe9bc34\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\norder_status | items | orders\ndelivered | 110197 | 96478\nshipped | 1185 | 1106\ncanceled | 542 | 461\ninvoiced | 359 | 312\nprocessing | 357 | 301\nunavailable | 7 | 6\napproved | 3 | 2"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_3ed163aa-a4ed-4d13-ac92-dbf0efe9bc34",
+      "preview": {
+        "columns": [
+          "order_status",
+          "items",
+          "orders"
+        ],
+        "rows": [
+          [
+            "delivered",
+            110197,
+            96478
+          ],
+          [
+            "shipped",
+            1185,
+            1106
+          ],
+          [
+            "canceled",
+            542,
+            461
+          ],
+          [
+            "invoiced",
+            359,
+            312
+          ],
+          [
+            "processing",
+            357,
+            301
+          ],
+          [
+            "unavailable",
+            7,
+            6
+          ],
+          [
+            "approved",
+            3,
+            2
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 7,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "order_status",
+        "items",
+        "orders"
+      ],
+      "rows": [
+        [
+          "delivered",
+          110197,
+          96478
+        ],
+        [
+          "shipped",
+          1185,
+          1106
+        ],
+        [
+          "canceled",
+          542,
+          461
+        ],
+        [
+          "invoiced",
+          359,
+          312
+        ],
+        [
+          "processing",
+          357,
+          301
+        ],
+        [
+          "unavailable",
+          7,
+          6
+        ],
+        [
+          "approved",
+          3,
+          2
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 7,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_a5f654bb-549a-42f9-95ba-e122055da52a"
+  }
+}

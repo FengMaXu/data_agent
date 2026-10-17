@@ -1,0 +1,52 @@
+{
+  "instance_id": "local056",
+  "independent_freeze": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local056/independent-freeze.json",
+  "independent_official_score": 0,
+  "original_replayed_score": 0,
+  "recorded_original_score": 0,
+  "scorer_limitations": "Column-wise tolerance matching; ignore_order may ignore row associations; passing is not business proof.",
+  "independent": {
+    "path": "D:/data_agent/evaluations/spider2/adr0007/independent-recompute-35/cases/local056/publications/publication_6facfd35-d0b5-4fe5-acf8-eba442156096/result.csv",
+    "rows": 1,
+    "columns": [
+      "full_name"
+    ],
+    "head": [
+      {
+        "full_name": "HECTOR POINDEXTER"
+      }
+    ]
+  },
+  "original": {
+    "path": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local056.csv",
+    "rows": 1,
+    "columns": [
+      "full_name"
+    ],
+    "head": [
+      {
+        "full_name": "MICHEAL FORMAN"
+      }
+    ]
+  },
+  "golds": [
+    {
+      "path": "C:/data-agent-eval/Spider2/spider2-lite/evaluation_suite/gold/exec_result/local056.csv",
+      "rows": 1,
+      "columns": [
+        "fullname"
+      ],
+      "head": [
+        {
+          "fullname": "STEPHEN QUALLS"
+        }
+      ]
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local056",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "87"
+  }
+}

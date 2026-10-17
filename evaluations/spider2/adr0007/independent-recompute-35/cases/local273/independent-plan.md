@@ -1,0 +1,3 @@
+# 独立推导
+原题逐字：“Calculate the average pick percentage for each product name, using a first-in-first-out approach that selects from inventory locations based on the earliest purchase date and smallest available quantity, ensuring that the picked quantity reflects only the overlapping range between each order’s required quantity and the inventory’s available quantity, and then grouping and ordering the results by product name?”
+库存按product累计，顺序purchased、库存qty（小优先）、id；订单需求按ordered、order_id、orderline_id累计，形成半开区间。两个同产品区间重叠长度=max(0,min(ends)-max(starts))，避免库存被多个订单重复使用。百分比采用每次分配pick_qty/该库存行原qty *100，按正重叠分配事件等权平均。题面没有明定分母或订单先后；选择库存耗用百分比，因为强调inventory available quantity。必须披露替代订单满足率。检查每库存/每订单不超限，总分配=min(库存总量,需求总量)。

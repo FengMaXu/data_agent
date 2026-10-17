@@ -1,0 +1,77 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_0b0da542-8220-4689-9735-6b9f749f89d4\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nkind | n | ids | customers\npayment | 16049 | 16049 | 599\nrental | 16044 | 16044 | 599"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_0b0da542-8220-4689-9735-6b9f749f89d4",
+      "preview": {
+        "columns": [
+          "kind",
+          "n",
+          "ids",
+          "customers"
+        ],
+        "rows": [
+          [
+            "payment",
+            16049,
+            16049,
+            599
+          ],
+          [
+            "rental",
+            16044,
+            16044,
+            599
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "kind",
+        "n",
+        "ids",
+        "customers"
+      ],
+      "rows": [
+        [
+          "payment",
+          16049,
+          16049,
+          599
+        ],
+        [
+          "rental",
+          16044,
+          16044,
+          599
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_673fe4e8-93f7-49e3-a02f-7c798d041502"
+  }
+}

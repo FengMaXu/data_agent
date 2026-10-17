@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_e466f2d8-bc05-4b67-a650-acda5425fb68\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncustomer_id | rental_id | payment_events | payment_ids | dates | amounts\n"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_e466f2d8-bc05-4b67-a650-acda5425fb68",
+      "preview": {
+        "columns": [
+          "customer_id",
+          "rental_id",
+          "payment_events",
+          "payment_ids",
+          "dates",
+          "amounts"
+        ],
+        "rows": [],
+        "columnTypes": [
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL"
+        ],
+        "rowCount": 0,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "customer_id",
+        "rental_id",
+        "payment_events",
+        "payment_ids",
+        "dates",
+        "amounts"
+      ],
+      "rows": [],
+      "columnTypes": [
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL",
+        "NULL"
+      ],
+      "rowCount": 0,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_7c6248e2-c574-4150-bcaa-e4cefda5f985"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "fields": {
+    "population.eligibility": {
+      "value": "Only non-null categories represented by at least one payment",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "population.conditions": {
+      "value": [],
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "population.time": {
+      "value": "All stored dates; no time filter",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "population.joinMultiplicity": {
+      "value": "DISTINCT order_id/category before payment join; each payment once per category",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "measure.formula": {
+      "value": {
+        "op": "count",
+        "of": "payment records per category/payment_type"
+      },
+      "basis": "request",
+      "quote": "number of payments"
+    },
+    "measure.countGrain": {
+      "value": "(category,order_id,payment_sequential)",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "grouping": {
+      "value": [
+        "category",
+        "payment_type"
+      ],
+      "basis": "request",
+      "quote": "product categories"
+    },
+    "selection": {
+      "value": {
+        "n": 3,
+        "orderBy": [
+          {
+            "column": "number_of_payments",
+            "direction": "desc"
+          },
+          {
+            "column": "category",
+            "direction": "asc"
+          }
+        ]
+      },
+      "basis": "request",
+      "quote": "top three product categories"
+    },
+    "selection.ties": {
+      "value": "strict",
+      "basis": "assumed",
+      "rationale": "独立题解；题目未明确，作为假定披露"
+    },
+    "output": {
+      "value": {
+        "rowMode": "top_n",
+        "rowCount": 3,
+        "columns": [
+          "category",
+          "payment_type",
+          "number_of_payments"
+        ]
+      },
+      "basis": "request",
+      "quote": "specify the number of payments"
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT Gender,COUNT(*) n FROM Person GROUP BY Gender",
+  "limit": 100
+}

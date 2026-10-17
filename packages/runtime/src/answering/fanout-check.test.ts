@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 import { checkFanout, planFanoutTargets, type FanoutSchema } from "./fanout-check.js";
 
@@ -14,13 +14,13 @@ const schema: FanoutSchema = {
   ],
 };
 
-const databases: Database.Database[] = [];
+const databases: DatabaseSync[] = [];
 
 afterEach(() => {
   for (const database of databases.splice(0)) database.close();
 });
 
-function sqliteRunner(database: Database.Database) {
+function sqliteRunner(database: DatabaseSync) {
   return async ({ sql }: { sql: string }) => {
     const statement = database.prepare(sql);
     const columns = statement.columns().map((column) => column.name);
@@ -29,8 +29,8 @@ function sqliteRunner(database: Database.Database) {
   };
 }
 
-function database(): Database.Database {
-  const db = new Database(":memory:");
+function database(): DatabaseSync {
+  const db = new DatabaseSync(":memory:");
   databases.push(db);
   db.exec(`
     CREATE TABLE customers (customer_id INTEGER PRIMARY KEY);

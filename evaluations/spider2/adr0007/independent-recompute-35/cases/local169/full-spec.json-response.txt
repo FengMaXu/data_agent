@@ -1,0 +1,140 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822 revisionId=revision_98ebfe58-cf14-4768-96ce-fa5190c51735\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ grouping\n- ✓ selection\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, population.conditions, population.time, measure.formula, grouping, output\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_98ebfe58-cf14-4768-96ce-fa5190c51735 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"legislators by id_bioguide\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Only observed eligible records; no fabricated missing records\"},\"population.conditions\":{\"status\":\"assumed\",\"value\":[\"global first term starts 1917-01-01..1999-12-31 inclusive\"]},\"population.time\":{\"status\":\"assumed\",\"value\":{\"expression\":\"First 20 year-end observations: initial start-year Dec31 through start-year+19 Dec31; inclusive term endpoints; no 1999 follow-up truncation\"}},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"custom\",\"description\":\"Fixed cohort denominator = count distinct people whose global first term starts in 1917..1999. For period 0..19, observation is Dec31 in start year plus period; numerator people with any inclusive term covering observation; retain all periods including zero. Ratio 0..1.\"}},\"grouping\":{\"status\":\"assumed\",\"value\":[\"period 0..19\"]},\"selection\":{\"status\":\"not_applicable\"},\"output\":{\"status\":\"assumed\",\"value\":{\"rowMode\":\"full\",\"columns\":[\"period\",\"retention_rate\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+    "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+    "parentRevisionId": "revision_c8916109-1dd3-4e7e-b0fd-0a830d09c1a5",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "legislators by id_bioguide"
+        },
+        "evidenceIds": [
+          "evidence_01138453-4d94-4d78-bf40-69111688f92b"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Only observed eligible records; no fabricated missing records",
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "population.conditions",
+        "status": "assumed",
+        "value": [
+          "global first term starts 1917-01-01..1999-12-31 inclusive"
+        ],
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "population.time",
+        "status": "assumed",
+        "value": {
+          "expression": "First 20 year-end observations: initial start-year Dec31 through start-year+19 Dec31; inclusive term endpoints; no 1999 follow-up truncation"
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "custom",
+          "description": "Fixed cohort denominator = count distinct people whose global first term starts in 1917..1999. For period 0..19, observation is Dec31 in start year plus period; numerator people with any inclusive term covering observation; retain all periods including zero. Ratio 0..1."
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "grouping",
+        "status": "assumed",
+        "value": [
+          "period 0..19"
+        ],
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      },
+      {
+        "path": "selection",
+        "status": "not_applicable"
+      },
+      {
+        "path": "output",
+        "status": "assumed",
+        "value": {
+          "rowMode": "full",
+          "columns": [
+            "period",
+            "retention_rate"
+          ]
+        },
+        "rationale": "Independent interpretation; see independent-plan.md. No Gold used."
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "population.conditions",
+      "population.time",
+      "measure.formula",
+      "grouping",
+      "output"
+    ],
+    "specFeedback": {
+      "taskId": "task_fc5d100f-7fec-4d70-8aa1-2bfd230e6822",
+      "revisionId": "revision_98ebfe58-cf14-4768-96ce-fa5190c51735",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_01138453-4d94-4d78-bf40-69111688f92b",
+        "evidence_cfe7c808-5c41-4c45-80d0-68f711b04e6a",
+        "evidence_53377167-145e-4ae6-9cee-b4c2ce787d45",
+        "evidence_f0a63eca-23e7-41bb-8a23-846f06220e5e",
+        "evidence_fec18632-90ca-4eda-85f7-bec87e73d1f5",
+        "evidence_d5d2b7c4-1807-45e3-8eba-549fa9e9c41e",
+        "evidence_8d7f4ddd-9925-43e6-a830-10ae3f7514df"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}
+

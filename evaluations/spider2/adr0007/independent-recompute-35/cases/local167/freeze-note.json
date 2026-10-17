@@ -1,0 +1,12 @@
+{
+  "algorithm": "Earliest state per person; ever inclusive Dec31; count women once; top count with ties",
+  "assumptions": [
+    "Inclusive end",
+    "No date dimension truncation"
+  ],
+  "observations": [
+    "366 women",
+    "Terms 1789..2025; date dimension 1917..1999",
+    "No earliest-date state conflicts"
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "sql": "WITH combined AS (SELECT t.tree_id,t.boroname,coalesce(t.zipcode,i.zipcode) zipcode,i.Estimate_Median_income median_income,i.Estimate_Mean_income mean_income,i.Estimate_Total households FROM trees t FULL OUTER JOIN income_trees i ON t.zipcode=i.zipcode), eligible AS (SELECT * FROM combined WHERE median_income>0 AND mean_income>0 AND boroname IS NOT NULL AND trim(boroname)<>''), boroughs AS (SELECT boroname,count(tree_id) tree_count,avg(mean_income) average_mean_income FROM eligible GROUP BY boroname) SELECT * FROM boroughs ORDER BY tree_count DESC",
+  "limit": 100
+}

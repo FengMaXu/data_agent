@@ -1,0 +1,6 @@
+{
+  "all_five_frozen_published": true,
+  "artifact_checks": "passed",
+  "quote_checks": [],
+  "no_gold_before_freeze": "bridge reveal requires immutable freeze; each case completed sequentially"
+}

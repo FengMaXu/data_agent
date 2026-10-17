@@ -1,0 +1,70 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_08a6ae18-fa2e-4fc9-8213-674b8a4b5597\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ngender | n | people\nF | 366 | 366\nM | 12152 | 12152"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_08a6ae18-fa2e-4fc9-8213-674b8a4b5597",
+      "preview": {
+        "columns": [
+          "gender",
+          "n",
+          "people"
+        ],
+        "rows": [
+          [
+            "F",
+            366,
+            366
+          ],
+          [
+            "M",
+            12152,
+            12152
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 2,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "gender",
+        "n",
+        "people"
+      ],
+      "rows": [
+        [
+          "F",
+          366,
+          366
+        ],
+        [
+          "M",
+          12152,
+          12152
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 2,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6d62863e-437f-4f45-8563-236d923f8ea1"
+  }
+}
+

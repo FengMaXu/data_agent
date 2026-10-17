@@ -20,40 +20,42 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "mysql2": "3.22.3"
+  },
+  "devDependencies": {
     "@data-agent/charts": "0.1.0",
     "@data-agent/contracts": "0.1.0",
     "@data-agent/transport": "0.1.0",
+    "@eslint/js": "^9.39.1",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/josefin-sans": "^5.3.0",
     "@fontsource-variable/noto-serif-sc": "^5.3.0",
-    "@modelcontextprotocol/sdk": "1.29.0",
-    "better-sqlite3": "^12.11.1",
-    "echarts": "^6.0.0",
-    "electron-updater": "^6.8.3",
-    "js-yaml": "^4.3.1",
-    "lucide-react": "^0.577.0",
-    "mysql2": "3.22.3",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "echarts": "^6.0.0",
     "electron": "39.2.7",
     "electron-builder": "^26.0.12",
+    "electron-updater": "^6.8.3",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "js-yaml": "^4.3.1",
     "jsdom": "^26.1.0",
+    "lucide-react": "^0.577.0",
+    "qrcode": "^1.5.4",
+    "rcedit": "^5.0.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1",
@@ -62,6 +64,11 @@
   "build": {
     "appId": "com.yourdb.data-agent",
     "productName": "Data Agent",
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "afterPack": "scripts/after-pack.cjs",
     "directories": {
       "output": "C:/Temp/data-agent-release"
     },
@@ -87,6 +94,13 @@
         ]
       },
       {
+        "from": "../.agents/knowledge",
+        "to": ".agents/knowledge",
+        "filter": [
+          "**/*.md"
+        ]
+      },
+      {
         "from": "../.agents/skills",
         "to": ".agents/skills",
         "filter": [
@@ -103,15 +117,13 @@
     ],
     "win": {
       "target": "nsis",
+      "icon": "resources/icon.ico",
       "signAndEditExecutable": false,
       "forceCodeSigning": false
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    },
-    "asarUnpack": [
-      "node_modules/better-sqlite3/**/*"
-    ]
+    }
   }
 }

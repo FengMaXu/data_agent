@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_b3e4f041-761b-4a46-b325-c7368af53701\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ncategory | events | orders | additional_events\nbeleza_saude | 6898 | 6874 | 24\ncama_mesa_banho | 7565 | 7540 | 25\nesporte_lazer | 5923 | 5904 | 19"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_b3e4f041-761b-4a46-b325-c7368af53701",
+      "preview": {
+        "columns": [
+          "category",
+          "events",
+          "orders",
+          "additional_events"
+        ],
+        "rows": [
+          [
+            "beleza_saude",
+            6898,
+            6874,
+            24
+          ],
+          [
+            "cama_mesa_banho",
+            7565,
+            7540,
+            25
+          ],
+          [
+            "esporte_lazer",
+            5923,
+            5904,
+            19
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "category",
+        "events",
+        "orders",
+        "additional_events"
+      ],
+      "rows": [
+        [
+          "beleza_saude",
+          6898,
+          6874,
+          24
+        ],
+        [
+          "cama_mesa_banho",
+          7565,
+          7540,
+          25
+        ],
+        [
+          "esporte_lazer",
+          5923,
+          5904,
+          19
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_6f028678-6711-4188-b225-cca5165119a8"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "instance_id": "local358",
+  "status": "confirmed_implementation_error",
+  "summary": "原Spec以user_id为用户键但COUNT(*)实际重复320行而非30用户，局部计数实体错误确证。全部原-Gold失分另由参考日差异可复现：按raw行年龄在2024-04-07..2024-10-22全匹配Gold；题面无权威参考日，不能唯一判定日期错误。",
+  "fork_node": "measure.countGrain",
+  "error_layer": "entity_count_implementation_plus_unresolved_reference_date",
+  "visibility": "显式业务键与一行一用户假定冲突；population.time明确now，日期歧义可见但未解决",
+  "independent_score": 0,
+  "evidence": [
+    {
+      "source": "blind.json",
+      "pointer": "/question",
+      "quote": "How many users are there in each age category (20s, 30s, 40s, 50s, and others)?"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/6/result/details/fields/0/value",
+      "quote": "用户（mst_users 的一名已注册用户，业务键 user_id）",
+      "original_projection_source": "original-final-fields.json"
+    },
+    {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/6/result/details/fields/8/value",
+      "quote": "按用户实体计数：mst_users 每行代表一名用户，每个用户计 1",
+      "original_projection_source": "original-final-fields.json"
+    },
+    {
+      "source": "comparison-input.json",
+      "pointer": "/originalSql",
+      "quote": "COUNT(*) AS user_count"
+    }
+  ],
+  "limitations": [
+    "参考日未由题面/业务文档确定；Gold日期只能限于匹配区间而非唯一日",
+    "DDL没有PK，但原Spec明确user_id实体身份；计数局部实现错不等于解释失分",
+    "Gold亦计320物理行，不能视为用户人数业务事实"
+  ],
+  "parent_field_review": {
+    "instance_id": "local358",
+    "relevant_node": "measure.countGrain",
+    "node_is_confirmed_original_error": true,
+    "explanation": "已声明user_id却假定每物理行一用户；字段内部矛盾与SQL重复计数，参考日另未定",
+    "error_layer": "字段内部口径矛盾及实现重复计数",
+    "visibility": "假定错：一行一用户前提；并非纯SQL漂移",
+    "qualification": "局部错误；Gold也按320行，评分差异还来自未定参考日",
+    "original_node_declared": true,
+    "original_node_status": "assumed",
+    "original_node_value": "按用户实体计数：mst_users 每行代表一名用户，每个用户计 1",
+    "original_spec_evidence": {
+      "source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local358/attempts/attempt-20261010-154318Z/trace.json",
+      "pointer": "/toolCalls/6/result/details/fields/8/value",
+      "quote": "按用户实体计数：mst_users 每行代表一名用户，每个用户计 1"
+    },
+    "primary_status": "confirmed_implementation_error"
+  }
+}

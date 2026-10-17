@@ -1,0 +1,70 @@
+[
+  {
+    "instance_id": "local220",
+    "status": "gold_conflict",
+    "independent_score": 0,
+    "result_rows": 2,
+    "receipt_id": "publication_aae5e760-da2d-4ff7-8242-505ff3f6ce6e",
+    "analysis": "cases/local220/analysis.md",
+    "limitations": [
+      "Gold SQL absent: name-merging is experimentally sufficient, not proven to be Gold implementation.",
+      "Lineup identities are recorded participation proxy; no minute-level verification.",
+      "Extra output columns also differ from Gold, cannot attribute every grading rule failure exclusively to identity."
+    ]
+  },
+  {
+    "instance_id": "local263",
+    "status": "gold_conflict",
+    "independent_score": 0,
+    "result_rows": 2,
+    "receipt_id": "publication_749257c5-db8c-4369-b7c4-972b8253292b",
+    "analysis": "cases/local263/analysis.md",
+    "limitations": [
+      "Gold SQL absent; incomplete join experimentally sufficient, not proven true implementation.",
+      "Number of times could mean per-step association: valid alternate counts36/78, not108/234.",
+      "Same-step comparison chosen; cross-step baseline experimentally32 strong and17 soft models, not Gold."
+    ]
+  },
+  {
+    "instance_id": "local264",
+    "status": "gold_conflict",
+    "independent_score": 0,
+    "result_rows": 1,
+    "receipt_id": "publication_396d7a4a-0c4f-4576-804f-bb5e78e60af2",
+    "analysis": "cases/local264/analysis.md",
+    "limitations": [
+      "Gold SQL absent; underkeyed join is sufficient reconstruction, not proven exact code.",
+      "Question does not specify success-only comparison; alternate noninferior count114, not639.",
+      "Original omitted explicit comparison availability; all303steps happen comparable so no visible result impact."
+    ]
+  },
+  {
+    "instance_id": "local335",
+    "status": "ambiguous_after_recompute",
+    "independent_score": 0,
+    "result_rows": 5,
+    "receipt_id": "publication_55cd46c9-324d-48fb-afe9-eb06bd7cb4ee",
+    "analysis": "cases/local335/analysis.md",
+    "limitations": [
+      "Gold has names only and no SQL; two genuinely different mechanisms reproduce same names.",
+      "Gold only names vs original/independent extra season-count column can independently cause scoring failure.",
+      "2001 inclusive,2024partialround12; boundary fifth Arrows/Jordan2 for main interpretation.",
+      "All same-year constructors is disclosed interpretation, not proven business affiliation rule."
+    ]
+  },
+  {
+    "instance_id": "local354",
+    "status": "gold_conflict",
+    "independent_score": 0,
+    "result_rows": 103,
+    "receipt_id": "publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211",
+    "analysis": "cases/local354/analysis.md",
+    "limitations": [
+      "Gold SQL absent; Gold3 mechanism not uniquely reconstructed.",
+      "Gold IDs vs original two name columns/independent one name column also shape mismatch; content false negatives survive translating IDs to names.",
+      "Results zero-lap retirement retained as started proxy; Withdrew positive-lap included; not externally reviewed start definition.",
+      "Historical shared car endpoint constructor sets may require additional business disambiguation.",
+      "Python UTF8 CLI issue was reported immediately and repaired by parent; earlier GBK name displays not reliable, final/name-critical queries rerun UTF8."
+    ]
+  }
+]

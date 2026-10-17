@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT count(*) rows,count(distinct job_id) ids FROM job_postings_fact WHERE job_title_short='Data Analyst' AND salary_year_avg IS NOT NULL AND job_work_from_home=1",
+  "limit": 100
+}

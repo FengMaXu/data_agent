@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "L1_model category occurrence at name/version/step",
+      "basis": "request",
+      "quote": "across all steps and versions"
+    }
+  }
+}

@@ -1,0 +1,7009 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+      "sessionId": "local354",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "6a9ab444-615f-452e-b3ca-ea8b46cb98b8",
+      "currentRevisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:19:07.493Z",
+        "revisionCount": 1,
+        "explorationAttempts": 25,
+        "resultAttempts": 1,
+        "observedRows": 943
+      },
+      "createdAt": "2026-10-11T09:19:07.493Z",
+      "updatedAt": "2026-10-11T10:04:36.950Z",
+      "latestCandidateId": "candidate_885e9109-1a7e-43a9-8e23-c327ab23de2e",
+      "publicationId": "publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+      "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+      "requestId": "6a9ab444-615f-452e-b3ca-ea8b46cb98b8",
+      "createdAt": "2026-10-11T09:19:07.493Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "Driver satisfying within-season first/last constructor identity and >=2 distinct rounds"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_4329a8c1-3157-4343-801a-1d339e7286fc"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a"
+      },
+      "specFeedback": {
+        "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+        "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_4329a8c1-3157-4343-801a-1d339e7286fc"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+      "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+      "parentRevisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+      "requestId": "714b861f-c10e-48f5-b735-d5f46bccdef9",
+      "createdAt": "2026-10-11T10:01:32.158Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "Driver satisfying within-season first/last constructor identity and >=2 distinct rounds"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_4329a8c1-3157-4343-801a-1d339e7286fc"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "A driver has at least two distinct raced rounds in the same1950sseason; exclude explicit nonrace statuses, zero-lap Withdrew; positive-lap Withdrew and zero-lap mechanical/accident retirement retained",
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_2b9c40f5-3fec-4446-ba74-4c0efe7854c8"
+            ]
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "First and last participated round within driver-year have at least one common constructor; intermediate constructors unrestricted"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_ad125828-ae6f-46ce-ac78-d0e9f1d98ae4"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "1950<=year<=1959 inclusive"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_58f90a0a-ff59-43a8-ba1d-c9b3e39a6134"
+            ]
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Within driver-year count distinct participating round>=2; take min and max round; intersect endpoint constructor sets; retain driver if any qualifying season."
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "driver_id",
+            "year"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "not_applicable"
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "driver_name"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+        "ready": "ready_667d1401-a6ec-49e1-9575-f06b65137c3e"
+      },
+      "specFeedback": {
+        "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+        "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_4329a8c1-3157-4343-801a-1d339e7286fc",
+          "evidence_bfdbe5dc-b6b4-4f31-a616-df554370dd49",
+          "evidence_502399f0-e8e2-4004-a26e-7ea52da52217",
+          "evidence_03fc50ce-e17b-49cd-bb4f-64d59dc0ec2d",
+          "evidence_bacd5468-a0e6-477f-abd6-14875712c791",
+          "evidence_8eea4399-ef69-400a-a54d-d89eea06cda7",
+          "evidence_82647665-ab7c-42e4-b61f-a0d7700648c2",
+          "evidence_9a738178-7dcb-4b7c-892b-daccd64c0610",
+          "evidence_a59ccadf-b9ef-4766-b553-1f99102b31dc",
+          "evidence_2b9c40f5-3fec-4446-ba74-4c0efe7854c8",
+          "evidence_ad125828-ae6f-46ce-ac78-d0e9f1d98ae4",
+          "evidence_58f90a0a-ff59-43a8-ba1d-c9b3e39a6134"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:19:07.493Z"
+        },
+        {
+          "id": "evidence_4329a8c1-3157-4343-801a-1d339e7286fc",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "9f6a34334b4ac9eb0181267ec75e58610868e9e285485e447730268db4cb4baa",
+          "quote": "Among Formula 1 drivers",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "9f6a34334b4ac9eb0181267ec75e58610868e9e285485e447730268db4cb4baa"
+          },
+          "observedAt": "2026-10-11T09:19:07.493Z"
+        },
+        {
+          "id": "evidence_bfdbe5dc-b6b4-4f31-a616-df554370dd49",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "c44cb116-9b91-4b45-940f-621b70eec2ff",
+          "preview": {
+            "columns": [
+              "status_id",
+              "status",
+              "n",
+              "zero_laps"
+            ],
+            "rows": [
+              [
+                1,
+                "Finished",
+                343,
+                0
+              ],
+              [
+                5,
+                "Engine",
+                237,
+                13
+              ],
+              [
+                3,
+                "Accident",
+                131,
+                29
+              ],
+              [
+                11,
+                "+1 Lap",
+                120,
+                0
+              ],
+              [
+                12,
+                "+2 Laps",
+                100,
+                0
+              ],
+              [
+                13,
+                "+3 Laps",
+                90,
+                0
+              ],
+              [
+                7,
+                "Transmission",
+                68,
+                4
+              ],
+              [
+                14,
+                "+4 Laps",
+                60,
+                0
+              ],
+              [
+                15,
+                "+5 Laps",
+                59,
+                0
+              ],
+              [
+                6,
+                "Gearbox",
+                54,
+                1
+              ],
+              [
+                81,
+                "Did not qualify",
+                50,
+                50
+              ],
+              [
+                16,
+                "+6 Laps",
+                46,
+                0
+              ],
+              [
+                8,
+                "Clutch",
+                38,
+                1
+              ],
+              [
+                17,
+                "+7 Laps",
+                36,
+                0
+              ],
+              [
+                20,
+                "Spun off",
+                30,
+                2
+              ],
+              [
+                25,
+                "Overheating",
+                30,
+                0
+              ],
+              [
+                44,
+                "Oil leak",
+                29,
+                0
+              ],
+              [
+                18,
+                "+8 Laps",
+                28,
+                0
+              ],
+              [
+                22,
+                "Suspension",
+                27,
+                3
+              ],
+              [
+                54,
+                "Withdrew",
+                26,
+                24
+              ],
+              [
+                23,
+                "Brakes",
+                25,
+                1
+              ],
+              [
+                31,
+                "Retired",
+                25,
+                3
+              ],
+              [
+                121,
+                "Magneto",
+                22,
+                0
+              ],
+              [
+                19,
+                "+9 Laps",
+                21,
+                0
+              ],
+              [
+                88,
+                "+10 Laps",
+                20,
+                0
+              ],
+              [
+                109,
+                "Axle",
+                20,
+                0
+              ],
+              [
+                80,
+                "Ignition",
+                19,
+                0
+              ],
+              [
+                51,
+                "Oil pressure",
+                18,
+                0
+              ],
+              [
+                48,
+                "Fuel pump",
+                17,
+                2
+              ],
+              [
+                95,
+                "Fuel leak",
+                13,
+                0
+              ],
+              [
+                53,
+                "+13 Laps",
+                12,
+                0
+              ],
+              [
+                86,
+                "Halfshaft",
+                12,
+                1
+              ],
+              [
+                69,
+                "Fuel system",
+                11,
+                2
+              ],
+              [
+                36,
+                "Wheel",
+                10,
+                0
+              ],
+              [
+                38,
+                "Steering",
+                10,
+                0
+              ],
+              [
+                37,
+                "Throttle",
+                9,
+                0
+              ],
+              [
+                55,
+                "+12 Laps",
+                9,
+                0
+              ],
+              [
+                45,
+                "+11 Laps",
+                8,
+                0
+              ],
+              [
+                62,
+                "Not classified",
+                8,
+                0
+              ],
+              [
+                67,
+                "Wheel bearing",
+                7,
+                0
+              ],
+              [
+                94,
+                "Oil pump",
+                7,
+                0
+              ],
+              [
+                2,
+                "Disqualified",
+                6,
+                0
+              ],
+              [
+                21,
+                "Radiator",
+                6,
+                0
+              ],
+              [
+                24,
+                "Differential",
+                6,
+                0
+              ],
+              [
+                42,
+                "Heat shield fire",
+                6,
+                1
+              ],
+              [
+                111,
+                "+14 Laps",
+                6,
+                0
+              ],
+              [
+                112,
+                "+15 Laps",
+                6,
+                0
+              ],
+              [
+                4,
+                "Collision",
+                5,
+                1
+              ],
+              [
+                10,
+                "Electrical",
+                5,
+                0
+              ],
+              [
+                108,
+                "Oil pipe",
+                5,
+                0
+              ],
+              [
+                116,
+                "+16 Laps",
+                5,
+                0
+              ],
+              [
+                126,
+                "Supercharger",
+                5,
+                0
+              ],
+              [
+                32,
+                "Fuel pressure",
+                3,
+                0
+              ],
+              [
+                50,
+                "+17 Laps",
+                3,
+                0
+              ],
+              [
+                60,
+                "Out of fuel",
+                3,
+                0
+              ],
+              [
+                68,
+                "Physical",
+                3,
+                0
+              ],
+              [
+                114,
+                "+18 Laps",
+                3,
+                0
+              ],
+              [
+                124,
+                "+19 Laps",
+                3,
+                0
+              ],
+              [
+                27,
+                "Tyre",
+                2,
+                0
+              ],
+              [
+                43,
+                "Exhaust",
+                2,
+                0
+              ],
+              [
+                83,
+                "Chassis",
+                2,
+                0
+              ],
+              [
+                98,
+                "Injection",
+                2,
+                1
+              ],
+              [
+                101,
+                "Turbo",
+                2,
+                0
+              ],
+              [
+                115,
+                "+22 Laps",
+                2,
+                0
+              ],
+              [
+                117,
+                "+24 Laps",
+                2,
+                0
+              ],
+              [
+                47,
+                "Water leak",
+                1,
+                0
+              ],
+              [
+                64,
+                "Handling",
+                1,
+                0
+              ],
+              [
+                70,
+                "Oil line",
+                1,
+                0
+              ],
+              [
+                85,
+                "Stalled",
+                1,
+                0
+              ],
+              [
+                99,
+                "Distributor",
+                1,
+                0
+              ],
+              [
+                103,
+                "Water pump",
+                1,
+                0
+              ],
+              [
+                110,
+                "Water pipe",
+                1,
+                0
+              ],
+              [
+                125,
+                "+46 Laps",
+                1,
+                0
+              ],
+              [
+                127,
+                "+20 Laps",
+                1,
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 74,
+            "truncated": false
+          },
+          "queryHash": "d8564e0bde57ff0e654598c39f581442500ea467741f88fc9335ef24d6bed1aa",
+          "contentHash": "d929bd841167f54f0eca7fbc690eaf77bf952f9aac75e4d3dd2d88acd9b0135b",
+          "observedAt": "2026-10-11T09:19:11.376Z"
+        },
+        {
+          "id": "evidence_502399f0-e8e2-4004-a26e-7ea52da52217",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "db2dd977-5c22-475d-ac41-af37bf32773e",
+          "preview": {
+            "columns": [
+              "year",
+              "round",
+              "driver_id",
+              "forename",
+              "surname",
+              "rows",
+              "constructors"
+            ],
+            "rows": [
+              [
+                1954,
+                2,
+                612,
+                "Andy",
+                "Linden",
+                3,
+                3
+              ],
+              [
+                1950,
+                3,
+                529,
+                "Tony",
+                "Bettenhausen",
+                2,
+                2
+              ],
+              [
+                1953,
+                2,
+                512,
+                "Johnny",
+                "Thomson",
+                2,
+                2
+              ],
+              [
+                1953,
+                2,
+                518,
+                "Duane",
+                "Carter",
+                2,
+                2
+              ],
+              [
+                1953,
+                2,
+                520,
+                "Gene",
+                "Hartley",
+                2,
+                2
+              ],
+              [
+                1953,
+                2,
+                521,
+                "Chuck",
+                "Stevenson",
+                3,
+                2
+              ],
+              [
+                1953,
+                2,
+                612,
+                "Andy",
+                "Linden",
+                3,
+                2
+              ],
+              [
+                1953,
+                2,
+                702,
+                "Bob",
+                "Scott",
+                2,
+                2
+              ],
+              [
+                1954,
+                2,
+                556,
+                "Jimmy",
+                "Daywalt",
+                2,
+                2
+              ],
+              [
+                1954,
+                2,
+                702,
+                "Bob",
+                "Scott",
+                2,
+                2
+              ],
+              [
+                1954,
+                2,
+                730,
+                "George",
+                "Fonder",
+                2,
+                2
+              ],
+              [
+                1956,
+                5,
+                624,
+                "Hernando",
+                "da Silva Ramos",
+                2,
+                2
+              ],
+              [
+                1958,
+                2,
+                541,
+                "Ron",
+                "Flockhart",
+                2,
+                2
+              ],
+              [
+                1950,
+                6,
+                627,
+                "Louis",
+                "Rosier",
+                2,
+                1
+              ],
+              [
+                1950,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                2,
+                1
+              ],
+              [
+                1950,
+                7,
+                647,
+                "Alberto",
+                "Ascari",
+                2,
+                1
+              ],
+              [
+                1951,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                2,
+                1
+              ],
+              [
+                1951,
+                4,
+                647,
+                "Alberto",
+                "Ascari",
+                2,
+                1
+              ],
+              [
+                1951,
+                4,
+                786,
+                "Luigi",
+                "Fagioli",
+                2,
+                1
+              ],
+              [
+                1951,
+                7,
+                642,
+                "Nino",
+                "Farina",
+                2,
+                1
+              ],
+              [
+                1952,
+                1,
+                642,
+                "Nino",
+                "Farina",
+                2,
+                1
+              ],
+              [
+                1952,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                2,
+                1
+              ],
+              [
+                1952,
+                7,
+                759,
+                "Jan",
+                "Flinterman",
+                2,
+                1
+              ],
+              [
+                1953,
+                2,
+                509,
+                "Jim",
+                "Rathmann",
+                2,
+                1
+              ],
+              [
+                1953,
+                2,
+                555,
+                "Paul",
+                "Russo",
+                2,
+                1
+              ],
+              [
+                1953,
+                3,
+                498,
+                "Jos�� Froil��n",
+                "Gonz��lez",
+                2,
+                1
+              ],
+              [
+                1953,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                2,
+                1
+              ],
+              [
+                1953,
+                7,
+                633,
+                "Luigi",
+                "Villoresi",
+                2,
+                1
+              ],
+              [
+                1953,
+                7,
+                647,
+                "Alberto",
+                "Ascari",
+                2,
+                1
+              ],
+              [
+                1953,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                2,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 30,
+            "truncated": false
+          },
+          "queryHash": "d95247fc4b27832fa156639c59549ee688435cc75842cecfa7006a91449534c4",
+          "contentHash": "aedd122eaffbf14db0e4e8abbd5c3ae29a1a6d9256e6063dc2ad24bb60d4fea2",
+          "observedAt": "2026-10-11T09:19:15.172Z"
+        },
+        {
+          "id": "evidence_03fc50ce-e17b-49cd-bb4f-64d59dc0ec2d",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a6fe35b7-54df-4fee-87f2-72ccd2f08b04",
+          "preview": {
+            "columns": [
+              "year",
+              "rounds",
+              "lo",
+              "hi",
+              "entries",
+              "drivers"
+            ],
+            "rows": [
+              [
+                1950,
+                7,
+                1,
+                7,
+                160,
+                81
+              ],
+              [
+                1951,
+                8,
+                1,
+                8,
+                179,
+                84
+              ],
+              [
+                1952,
+                8,
+                1,
+                8,
+                215,
+                105
+              ],
+              [
+                1953,
+                9,
+                1,
+                9,
+                246,
+                108
+              ],
+              [
+                1954,
+                9,
+                1,
+                9,
+                230,
+                97
+              ],
+              [
+                1955,
+                7,
+                1,
+                7,
+                180,
+                84
+              ],
+              [
+                1956,
+                8,
+                1,
+                8,
+                190,
+                85
+              ],
+              [
+                1957,
+                8,
+                1,
+                8,
+                171,
+                76
+              ],
+              [
+                1958,
+                11,
+                1,
+                11,
+                241,
+                87
+              ],
+              [
+                1959,
+                9,
+                1,
+                9,
+                195,
+                88
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 10,
+            "truncated": false
+          },
+          "queryHash": "2ecc5a2afc793d997dd71e27ddba1f1f20e61d42452f118256f466b405e7fe8f",
+          "contentHash": "538ec56a73bb357abb4d5775503593eaf65185f2cc0ac853f31be08ed0f310ce",
+          "observedAt": "2026-10-11T09:19:17.794Z"
+        },
+        {
+          "id": "evidence_bacd5468-a0e6-477f-abd6-14875712c791",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e3b3cb0a-a115-4219-9ec9-af05c1920c79",
+          "preview": {
+            "columns": [
+              "year",
+              "qualifying_driver_seasons"
+            ],
+            "rows": [
+              [
+                1950,
+                27
+              ],
+              [
+                1951,
+                22
+              ],
+              [
+                1952,
+                29
+              ],
+              [
+                1953,
+                28
+              ],
+              [
+                1954,
+                27
+              ],
+              [
+                1955,
+                22
+              ],
+              [
+                1956,
+                25
+              ],
+              [
+                1957,
+                19
+              ],
+              [
+                1958,
+                24
+              ],
+              [
+                1959,
+                20
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 10,
+            "truncated": false
+          },
+          "queryHash": "648863e5a075392dbf590d35a751003d22e4bdfc2cb4f1517b721fea542dfa27",
+          "contentHash": "7cb5e2aa6cf33051e7e34b182787c3cd8647ab1847b87d8979c5d7e6852a1b42",
+          "observedAt": "2026-10-11T09:19:53.573Z"
+        },
+        {
+          "id": "evidence_8eea4399-ef69-400a-a54d-d89eea06cda7",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "9109fdcc-7c8d-429b-b52e-fe935a2f51d1",
+          "preview": {
+            "columns": [
+              "year",
+              "forename",
+              "surname",
+              "first_round",
+              "last_round",
+              "rounds",
+              "endpoint_constructor",
+              "all_constructors"
+            ],
+            "rows": [
+              [
+                1951,
+                "Toulo",
+                "de Graffenried",
+                1,
+                8,
+                5,
+                "Alfa Romeo",
+                "51,105"
+              ],
+              [
+                1953,
+                "Johnny",
+                "Claes",
+                3,
+                9,
+                5,
+                "Connaught",
+                "105,125"
+              ],
+              [
+                1956,
+                "Maurice",
+                "Trintignant",
+                2,
+                8,
+                5,
+                "Vanwall",
+                "118,130"
+              ],
+              [
+                1956,
+                "Andr��",
+                "Pilette",
+                2,
+                5,
+                3,
+                "Gordini",
+                "6,128"
+              ],
+              [
+                1956,
+                "Harry",
+                "Schell",
+                2,
+                8,
+                6,
+                "Vanwall",
+                "105,118"
+              ],
+              [
+                1956,
+                "Hernando",
+                "da Silva Ramos",
+                2,
+                8,
+                4,
+                "Gordini",
+                "105,128"
+              ],
+              [
+                1958,
+                "Maurice",
+                "Trintignant",
+                2,
+                11,
+                9,
+                "Cooper",
+                "66,87,105"
+              ],
+              [
+                1958,
+                "Cliff",
+                "Allison",
+                2,
+                11,
+                9,
+                "Team Lotus",
+                "32,105"
+              ],
+              [
+                1959,
+                "Roy",
+                "Salvadori",
+                1,
+                9,
+                7,
+                "Cooper-Maserati",
+                "117,167"
+              ],
+              [
+                1959,
+                "Stirling",
+                "Moss",
+                1,
+                9,
+                8,
+                "Cooper-Climax",
+                "66,170"
+              ],
+              [
+                1959,
+                "Tony",
+                "Brooks",
+                1,
+                9,
+                8,
+                "Ferrari",
+                "6,118"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 11,
+            "truncated": false
+          },
+          "queryHash": "21ca993896958f805f6a07cf4809a96bb8a2339f8b2cb011b6bb4ce030c49eec",
+          "contentHash": "da4a9aea92bae2a5d872985ba9e752de2243ff5504bfffdd774b5b389138439b",
+          "observedAt": "2026-10-11T09:19:56.415Z"
+        },
+        {
+          "id": "evidence_82647665-ab7c-42e4-b61f-a0d7700648c2",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "38399bb5-a30b-4988-8748-70cd9363d074",
+          "preview": {
+            "columns": [
+              "year",
+              "driver_id",
+              "forename",
+              "surname",
+              "result_rows",
+              "rounds"
+            ],
+            "rows": [
+              [
+                1950,
+                529,
+                "Tony",
+                "Bettenhausen",
+                2,
+                1
+              ],
+              [
+                1951,
+                786,
+                "Luigi",
+                "Fagioli",
+                2,
+                1
+              ],
+              [
+                1952,
+                759,
+                "Jan",
+                "Flinterman",
+                2,
+                1
+              ],
+              [
+                1953,
+                509,
+                "Jim",
+                "Rathmann",
+                2,
+                1
+              ],
+              [
+                1953,
+                512,
+                "Johnny",
+                "Thomson",
+                2,
+                1
+              ],
+              [
+                1953,
+                518,
+                "Duane",
+                "Carter",
+                2,
+                1
+              ],
+              [
+                1953,
+                520,
+                "Gene",
+                "Hartley",
+                2,
+                1
+              ],
+              [
+                1953,
+                521,
+                "Chuck",
+                "Stevenson",
+                3,
+                1
+              ],
+              [
+                1953,
+                555,
+                "Paul",
+                "Russo",
+                2,
+                1
+              ],
+              [
+                1953,
+                612,
+                "Andy",
+                "Linden",
+                3,
+                1
+              ],
+              [
+                1953,
+                702,
+                "Bob",
+                "Scott",
+                2,
+                1
+              ],
+              [
+                1954,
+                509,
+                "Jim",
+                "Rathmann",
+                2,
+                1
+              ],
+              [
+                1954,
+                518,
+                "Duane",
+                "Carter",
+                2,
+                1
+              ],
+              [
+                1954,
+                529,
+                "Tony",
+                "Bettenhausen",
+                2,
+                1
+              ],
+              [
+                1954,
+                556,
+                "Jimmy",
+                "Daywalt",
+                2,
+                1
+              ],
+              [
+                1954,
+                593,
+                "Johnnie",
+                "Parsons",
+                2,
+                1
+              ],
+              [
+                1954,
+                611,
+                "Sam",
+                "Hanks",
+                2,
+                1
+              ],
+              [
+                1954,
+                612,
+                "Andy",
+                "Linden",
+                3,
+                1
+              ],
+              [
+                1954,
+                613,
+                "Marshall",
+                "Teague",
+                2,
+                1
+              ],
+              [
+                1954,
+                653,
+                "Jimmy",
+                "Davies",
+                2,
+                1
+              ],
+              [
+                1954,
+                659,
+                "Jerry",
+                "Hoyt",
+                2,
+                1
+              ],
+              [
+                1954,
+                702,
+                "Bob",
+                "Scott",
+                2,
+                1
+              ],
+              [
+                1954,
+                730,
+                "George",
+                "Fonder",
+                2,
+                1
+              ],
+              [
+                1955,
+                644,
+                "Sergio",
+                "Mantovani",
+                2,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 24,
+            "truncated": false
+          },
+          "queryHash": "37e910da9de8bfcbd8b54a77a6514d259ff2d5d51a43f906a2da5f97b7d4af85",
+          "contentHash": "69b9a88b7be948344592a60ea305b0364ae8091b981e225bbcdb5a9a9354de4c",
+          "observedAt": "2026-10-11T09:19:59.541Z"
+        },
+        {
+          "id": "evidence_9a738178-7dcb-4b7c-892b-daccd64c0610",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "c6d394b0-9e4b-457a-bf0d-ba63a2ab9ef8",
+          "preview": {
+            "columns": [
+              "driver_name"
+            ],
+            "rows": [
+              [
+                "Graham Hill"
+              ],
+              [
+                "Jo Bonnier"
+              ],
+              [
+                "Jack Brabham"
+              ],
+              [
+                "Bruce McLaren"
+              ],
+              [
+                "Dan Gurney"
+              ],
+              [
+                "Phil Hill"
+              ],
+              [
+                "Innes Ireland"
+              ],
+              [
+                "Masten Gregory"
+              ],
+              [
+                "Maurice Trintignant"
+              ],
+              [
+                "André Pilette"
+              ],
+              [
+                "Carel Godin de Beaufort"
+              ],
+              [
+                "Ian Burgess"
+              ],
+              [
+                "Roy Salvadori"
+              ],
+              [
+                "Colin Davis"
+              ],
+              [
+                "Stirling Moss"
+              ],
+              [
+                "Wolfgang von Trips"
+              ],
+              [
+                "Cliff Allison"
+              ],
+              [
+                "Hans Herrmann"
+              ],
+              [
+                "Tony Brooks"
+              ],
+              [
+                "Olivier Gendebien"
+              ],
+              [
+                "Giorgio Scarlatti"
+              ],
+              [
+                "Jack Fairman"
+              ],
+              [
+                "Carlos Menditeguy"
+              ],
+              [
+                "José Froilán González"
+              ],
+              [
+                "Harry Schell"
+              ],
+              [
+                "Alan Stacey"
+              ],
+              [
+                "Bruce Halford"
+              ],
+              [
+                "Troy Ruttman"
+              ],
+              [
+                "Ron Flockhart"
+              ],
+              [
+                "Horace Gould"
+              ],
+              [
+                "Maria de Filippis"
+              ],
+              [
+                "Jean Behra"
+              ],
+              [
+                "Carroll Shelby"
+              ],
+              [
+                "Luigi Musso"
+              ],
+              [
+                "Mike Hawthorn"
+              ],
+              [
+                "Juan Fangio"
+              ],
+              [
+                "Paco Godia"
+              ],
+              [
+                "Peter Collins"
+              ],
+              [
+                "Gerino Gerini"
+              ],
+              [
+                "Luigi Piotti"
+              ],
+              [
+                "Louis Chiron"
+              ],
+              [
+                "Stuart Lewis-Evans"
+              ],
+              [
+                "Alfonso de Portago"
+              ],
+              [
+                "Cesare Perdisa"
+              ],
+              [
+                "Eugenio Castellotti"
+              ],
+              [
+                "André Simon"
+              ],
+              [
+                "Bob Gerard"
+              ],
+              [
+                "Umberto Maglioli"
+              ],
+              [
+                "Chico Landi"
+              ],
+              [
+                "Hernando da Silva Ramos"
+              ],
+              [
+                "Élie Bayol"
+              ],
+              [
+                "Robert Manzon"
+              ],
+              [
+                "Louis Rosier"
+              ],
+              [
+                "Paul Frère"
+              ],
+              [
+                "Luigi Villoresi"
+              ],
+              [
+                "Toulo de Graffenried"
+              ],
+              [
+                "Piero Taruffi"
+              ],
+              [
+                "Nino Farina"
+              ],
+              [
+                "Roberto Mieres"
+              ],
+              [
+                "Sergio Mantovani"
+              ],
+              [
+                "Clemar Bucci"
+              ],
+              [
+                "Alberto Ascari"
+              ],
+              [
+                "Karl Kling"
+              ],
+              [
+                "Jacques Pollet"
+              ],
+              [
+                "Lance Macklin"
+              ],
+              [
+                "Johnny Claes"
+              ],
+              [
+                "Ken Wharton"
+              ],
+              [
+                "Kenneth McAlpine"
+              ],
+              [
+                "Prince Bira"
+              ],
+              [
+                "Onofre Marimón"
+              ],
+              [
+                "Jorge Daponte"
+              ],
+              [
+                "Jacques Swaters"
+              ],
+              [
+                "Peter Whitehead"
+              ],
+              [
+                "Eric Brandon"
+              ],
+              [
+                "Alan Brown"
+              ],
+              [
+                "Fred Wacker"
+              ],
+              [
+                "Felice Bonetto"
+              ],
+              [
+                "Yves Cabantous"
+              ],
+              [
+                "Duncan Hamilton"
+              ],
+              [
+                "Hans von Stuck"
+              ],
+              [
+                "Peter Hirt"
+              ],
+              [
+                "Piero Carini"
+              ],
+              [
+                "Rudi Fischer"
+              ],
+              [
+                "Toni Ulmen"
+              ],
+              [
+                "Charles de Tornaco"
+              ],
+              [
+                "Tony Gaze"
+              ],
+              [
+                "Philippe Étancelin"
+              ],
+              [
+                "Dennis Poore"
+              ],
+              [
+                "Ken Downing"
+              ],
+              [
+                "Gino Bianco"
+              ],
+              [
+                "David Murray"
+              ],
+              [
+                "Eitel Cantoni"
+              ],
+              [
+                "Franco Rol"
+              ],
+              [
+                "Consalvo Sanesi"
+              ],
+              [
+                "Guy Mairesse"
+              ],
+              [
+                "Pierre Levegh"
+              ],
+              [
+                "Eugène Chaboud"
+              ],
+              [
+                "Toni Branca"
+              ],
+              [
+                "David Hampshire"
+              ],
+              [
+                "Geoff Crossley"
+              ],
+              [
+                "Luigi Fagioli"
+              ],
+              [
+                "Cuth Harrison"
+              ],
+              [
+                "Eugène Martin"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT"
+            ],
+            "rowCount": 103,
+            "truncated": false
+          },
+          "queryHash": "4a18610ab4d58c2f958c71f2222e3a9ac972fea5134dea8c54389544fbb2a09c",
+          "contentHash": "236c190be2c7c602336e7a7bb93cecf52d1400856714857682acdc6d3a2310d6",
+          "observedAt": "2026-10-11T10:01:05.906Z"
+        },
+        {
+          "id": "evidence_a59ccadf-b9ef-4766-b553-1f99102b31dc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "52f3c2cb-db8c-4b97-9377-b30dc3a267b0",
+          "preview": {
+            "columns": [
+              "year",
+              "forename",
+              "surname",
+              "first_round",
+              "last_round",
+              "rounds",
+              "endpoint_constructor",
+              "all_constructors"
+            ],
+            "rows": [
+              [
+                1951,
+                "Toulo",
+                "de Graffenried",
+                1,
+                8,
+                5,
+                "Alfa Romeo",
+                "51,105"
+              ],
+              [
+                1953,
+                "Johnny",
+                "Claes",
+                3,
+                9,
+                5,
+                "Connaught",
+                "105,125"
+              ],
+              [
+                1956,
+                "Maurice",
+                "Trintignant",
+                2,
+                8,
+                5,
+                "Vanwall",
+                "118,130"
+              ],
+              [
+                1956,
+                "André",
+                "Pilette",
+                2,
+                5,
+                3,
+                "Gordini",
+                "6,128"
+              ],
+              [
+                1956,
+                "Harry",
+                "Schell",
+                2,
+                8,
+                6,
+                "Vanwall",
+                "105,118"
+              ],
+              [
+                1956,
+                "Hernando",
+                "da Silva Ramos",
+                2,
+                8,
+                4,
+                "Gordini",
+                "105,128"
+              ],
+              [
+                1958,
+                "Maurice",
+                "Trintignant",
+                2,
+                11,
+                9,
+                "Cooper",
+                "66,87,105"
+              ],
+              [
+                1958,
+                "Cliff",
+                "Allison",
+                2,
+                11,
+                9,
+                "Team Lotus",
+                "32,105"
+              ],
+              [
+                1959,
+                "Roy",
+                "Salvadori",
+                1,
+                9,
+                7,
+                "Cooper-Maserati",
+                "117,167"
+              ],
+              [
+                1959,
+                "Stirling",
+                "Moss",
+                1,
+                9,
+                8,
+                "Cooper-Climax",
+                "66,170"
+              ],
+              [
+                1959,
+                "Tony",
+                "Brooks",
+                1,
+                9,
+                8,
+                "Ferrari",
+                "6,118"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 11,
+            "truncated": false
+          },
+          "queryHash": "21ca993896958f805f6a07cf4809a96bb8a2339f8b2cb011b6bb4ce030c49eec",
+          "contentHash": "7fea710de202ea29baeb6c15273a78becdae9ba72823f8d4e64b5e7681c65173",
+          "observedAt": "2026-10-11T10:01:08.427Z"
+        },
+        {
+          "id": "evidence_2b9c40f5-3fec-4446-ba74-4c0efe7854c8",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "9f6a34334b4ac9eb0181267ec75e58610868e9e285485e447730268db4cb4baa",
+          "quote": "while also taking part in at least two distinct race rounds during that season",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "9f6a34334b4ac9eb0181267ec75e58610868e9e285485e447730268db4cb4baa"
+          },
+          "observedAt": "2026-10-11T10:01:32.158Z"
+        },
+        {
+          "id": "evidence_ad125828-ae6f-46ce-ac78-d0e9f1d98ae4",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "9f6a34334b4ac9eb0181267ec75e58610868e9e285485e447730268db4cb4baa",
+          "quote": "the same constructor in both the first and the last race they participated in",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "9f6a34334b4ac9eb0181267ec75e58610868e9e285485e447730268db4cb4baa"
+          },
+          "observedAt": "2026-10-11T10:01:32.158Z"
+        },
+        {
+          "id": "evidence_58f90a0a-ff59-43a8-ba1d-c9b3e39a6134",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "9f6a34334b4ac9eb0181267ec75e58610868e9e285485e447730268db4cb4baa",
+          "quote": "during the 1950s",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "9f6a34334b4ac9eb0181267ec75e58610868e9e285485e447730268db4cb4baa"
+          },
+          "observedAt": "2026-10-11T10:01:32.158Z"
+        },
+        {
+          "id": "evidence_49b43558-73fb-49a3-9512-a662e3ff2922",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "59171a27-a1b4-4acf-b66c-2a63a90a28ed",
+          "preview": {
+            "columns": [
+              "year",
+              "driver_id",
+              "first_round",
+              "last_round",
+              "rounds",
+              "constructor_id",
+              "forename",
+              "surname",
+              "name"
+            ],
+            "rows": [
+              [
+                1951,
+                501,
+                1,
+                4,
+                2,
+                105,
+                "Harry",
+                "Schell",
+                "Maserati"
+              ],
+              [
+                1952,
+                501,
+                1,
+                5,
+                3,
+                105,
+                "Harry",
+                "Schell",
+                "Maserati"
+              ],
+              [
+                1953,
+                501,
+                1,
+                9,
+                7,
+                128,
+                "Harry",
+                "Schell",
+                "Gordini"
+              ],
+              [
+                1954,
+                501,
+                1,
+                9,
+                6,
+                105,
+                "Harry",
+                "Schell",
+                "Maserati"
+              ],
+              [
+                1956,
+                501,
+                2,
+                8,
+                6,
+                118,
+                "Harry",
+                "Schell",
+                "Vanwall"
+              ],
+              [
+                1957,
+                501,
+                1,
+                8,
+                7,
+                105,
+                "Harry",
+                "Schell",
+                "Maserati"
+              ],
+              [
+                1952,
+                554,
+                1,
+                8,
+                6,
+                128,
+                "Jean",
+                "Behra",
+                "Gordini"
+              ],
+              [
+                1953,
+                554,
+                1,
+                8,
+                6,
+                128,
+                "Jean",
+                "Behra",
+                "Gordini"
+              ],
+              [
+                1954,
+                554,
+                1,
+                9,
+                8,
+                128,
+                "Jean",
+                "Behra",
+                "Gordini"
+              ],
+              [
+                1955,
+                554,
+                1,
+                7,
+                6,
+                105,
+                "Jean",
+                "Behra",
+                "Maserati"
+              ],
+              [
+                1956,
+                554,
+                1,
+                8,
+                7,
+                105,
+                "Jean",
+                "Behra",
+                "Maserati"
+              ],
+              [
+                1957,
+                554,
+                1,
+                8,
+                6,
+                105,
+                "Jean",
+                "Behra",
+                "Maserati"
+              ],
+              [
+                1959,
+                554,
+                1,
+                4,
+                3,
+                6,
+                "Jean",
+                "Behra",
+                "Ferrari"
+              ],
+              [
+                1950,
+                579,
+                1,
+                7,
+                6,
+                51,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo"
+              ],
+              [
+                1951,
+                579,
+                1,
+                8,
+                7,
+                51,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo"
+              ],
+              [
+                1953,
+                579,
+                1,
+                9,
+                8,
+                105,
+                "Juan",
+                "Fangio",
+                "Maserati"
+              ],
+              [
+                1955,
+                579,
+                1,
+                7,
+                6,
+                131,
+                "Juan",
+                "Fangio",
+                "Mercedes"
+              ],
+              [
+                1956,
+                579,
+                1,
+                8,
+                7,
+                6,
+                "Juan",
+                "Fangio",
+                "Ferrari"
+              ],
+              [
+                1957,
+                579,
+                1,
+                8,
+                7,
+                105,
+                "Juan",
+                "Fangio",
+                "Maserati"
+              ],
+              [
+                1958,
+                579,
+                1,
+                6,
+                2,
+                105,
+                "Juan",
+                "Fangio",
+                "Maserati"
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 20,
+            "truncated": false
+          },
+          "queryHash": "8ac96d4fb76d4a4008a85d8b35c72dcf6063b2b198237876bd5b3b38a640ce47",
+          "contentHash": "bcb204894c565997a711bd7c9bc1fd83690a7337209faa4b833f49cebc0b9717",
+          "observedAt": "2026-10-11T10:02:05.830Z"
+        },
+        {
+          "id": "evidence_122bb1b5-f4e8-49d6-b16a-82b8a8aa5d31",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "52ceb9d5-6e48-46d0-a953-2ed00b8709f9",
+          "preview": {
+            "columns": [
+              "name",
+              "type",
+              "sql"
+            ],
+            "rows": [
+              [
+                "drives",
+                "table",
+                "CREATE TABLE drives(\n  year INT,\n  driver_id INT,\n  drive_id,\n  constructor_id INT,\n  first_round INT,\n  last_round INT,\n  is_first_drive_of_season,\n  is_final_drive_of_season\n)"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 1,
+            "truncated": false
+          },
+          "queryHash": "ed2906f79ff16183ffb7a8df096d5d48c98d60999776df9e5232390dfe1316c9",
+          "contentHash": "350e1ab4f85ceea88dd577157196403c5d45de08e958cc8d5e93241ef9d8338e",
+          "observedAt": "2026-10-11T10:02:07.722Z"
+        },
+        {
+          "id": "evidence_358e7c51-a158-40f1-988c-ca8b277e2c00",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a89b587f-ee81-4e54-83f9-3ed6c94a87ed",
+          "preview": {
+            "columns": [
+              "year",
+              "round",
+              "driver_id",
+              "forename",
+              "surname",
+              "name",
+              "status",
+              "laps"
+            ],
+            "rows": [
+              [
+                1950,
+                2,
+                501,
+                "Harry",
+                "Schell",
+                "Cooper",
+                "Collision",
+                0
+              ],
+              [
+                1950,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Talbot-Lago",
+                "+3 Laps",
+                39
+              ],
+              [
+                1951,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+4 Laps",
+                38
+              ],
+              [
+                1951,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Overheating",
+                23
+              ],
+              [
+                1952,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Engine",
+                31
+              ],
+              [
+                1952,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Gearbox",
+                7
+              ],
+              [
+                1952,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Brakes",
+                34
+              ],
+              [
+                1952,
+                5,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+7 Laps",
+                78
+              ],
+              [
+                1953,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Gordini",
+                "+6 Laps",
+                91
+              ],
+              [
+                1953,
+                3,
+                501,
+                "Harry",
+                "Schell",
+                "Gordini",
+                "Transmission",
+                59
+              ],
+              [
+                1953,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Gordini",
+                "+3 Laps",
+                33
+              ],
+              [
+                1953,
+                5,
+                501,
+                "Harry",
+                "Schell",
+                "Gordini",
+                "Engine",
+                4
+              ],
+              [
+                1953,
+                6,
+                501,
+                "Harry",
+                "Schell",
+                "Gordini",
+                "Electrical",
+                5
+              ],
+              [
+                1953,
+                7,
+                501,
+                "Harry",
+                "Schell",
+                "Gordini",
+                "Engine",
+                6
+              ],
+              [
+                1953,
+                9,
+                501,
+                "Harry",
+                "Schell",
+                "Gordini",
+                "+5 Laps",
+                75
+              ],
+              [
+                1954,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+3 Laps",
+                84
+              ],
+              [
+                1954,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Fuel pump",
+                19
+              ],
+              [
+                1954,
+                5,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+7 Laps",
+                83
+              ],
+              [
+                1954,
+                6,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+1 Lap",
+                21
+              ],
+              [
+                1954,
+                7,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Oil pump",
+                23
+              ],
+              [
+                1954,
+                9,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Transmission",
+                29
+              ],
+              [
+                1955,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+8 Laps",
+                88
+              ],
+              [
+                1955,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+13 Laps",
+                83
+              ],
+              [
+                1955,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Fuel pressure",
+                54
+              ],
+              [
+                1955,
+                2,
+                501,
+                "Harry",
+                "Schell",
+                "Ferrari",
+                "Engine",
+                68
+              ],
+              [
+                1955,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Ferrari",
+                "Withdrew",
+                0
+              ],
+              [
+                1955,
+                6,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "Throttle",
+                20
+              ],
+              [
+                1955,
+                6,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "+18 Laps",
+                72
+              ],
+              [
+                1955,
+                7,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "Suspension",
+                7
+              ],
+              [
+                1956,
+                2,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "Accident",
+                2
+              ],
+              [
+                1956,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "+1 Lap",
+                35
+              ],
+              [
+                1956,
+                5,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "Engine",
+                5
+              ],
+              [
+                1956,
+                5,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "+5 Laps",
+                56
+              ],
+              [
+                1956,
+                6,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "Fuel system",
+                87
+              ],
+              [
+                1956,
+                7,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Overheating",
+                13
+              ],
+              [
+                1956,
+                8,
+                501,
+                "Harry",
+                "Schell",
+                "Vanwall",
+                "Transmission",
+                32
+              ],
+              [
+                1957,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+2 Laps",
+                98
+              ],
+              [
+                1957,
+                2,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Suspension",
+                23
+              ],
+              [
+                1957,
+                2,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Oil leak",
+                64
+              ],
+              [
+                1957,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+7 Laps",
+                70
+              ],
+              [
+                1957,
+                5,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Water pump",
+                39
+              ],
+              [
+                1957,
+                6,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Finished",
+                22
+              ],
+              [
+                1957,
+                7,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Finished",
+                18
+              ],
+              [
+                1957,
+                8,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "Oil leak",
+                34
+              ],
+              [
+                1957,
+                8,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+3 Laps",
+                84
+              ],
+              [
+                1958,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "Maserati",
+                "+3 Laps",
+                77
+              ],
+              [
+                1958,
+                2,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "+9 Laps",
+                91
+              ],
+              [
+                1958,
+                3,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "Finished",
+                75
+              ],
+              [
+                1958,
+                5,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "+1 Lap",
+                23
+              ],
+              [
+                1958,
+                6,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "Overheating",
+                41
+              ],
+              [
+                1958,
+                7,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "Finished",
+                75
+              ],
+              [
+                1958,
+                8,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "Brakes",
+                9
+              ],
+              [
+                1958,
+                9,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "+1 Lap",
+                49
+              ],
+              [
+                1958,
+                10,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "Accident",
+                0
+              ],
+              [
+                1958,
+                11,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "Finished",
+                53
+              ],
+              [
+                1959,
+                1,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "Accident",
+                48
+              ],
+              [
+                1959,
+                3,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "Gearbox",
+                46
+              ],
+              [
+                1959,
+                4,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "+3 Laps",
+                47
+              ],
+              [
+                1959,
+                5,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "+1 Lap",
+                74
+              ],
+              [
+                1959,
+                6,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "+11 Laps",
+                49
+              ],
+              [
+                1959,
+                7,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "+3 Laps",
+                59
+              ],
+              [
+                1959,
+                8,
+                501,
+                "Harry",
+                "Schell",
+                "BRM",
+                "+2 Laps",
+                70
+              ],
+              [
+                1959,
+                9,
+                501,
+                "Harry",
+                "Schell",
+                "Cooper-Climax",
+                "Clutch",
+                5
+              ],
+              [
+                1952,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "+1 Lap",
+                61
+              ],
+              [
+                1952,
+                3,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Accident",
+                13
+              ],
+              [
+                1952,
+                4,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "+7 Laps",
+                70
+              ],
+              [
+                1952,
+                6,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "+1 Lap",
+                17
+              ],
+              [
+                1952,
+                7,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Electrical",
+                10
+              ],
+              [
+                1952,
+                8,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Engine",
+                42
+              ],
+              [
+                1953,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "+3 Laps",
+                94
+              ],
+              [
+                1953,
+                4,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Engine",
+                9
+              ],
+              [
+                1953,
+                5,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "+5 Laps",
+                55
+              ],
+              [
+                1953,
+                6,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Fuel pump",
+                30
+              ],
+              [
+                1953,
+                7,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Gearbox",
+                7
+              ],
+              [
+                1953,
+                8,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Oil pressure",
+                37
+              ],
+              [
+                1954,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Disqualified",
+                61
+              ],
+              [
+                1954,
+                3,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Suspension",
+                12
+              ],
+              [
+                1954,
+                4,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "+5 Laps",
+                56
+              ],
+              [
+                1954,
+                5,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Suspension",
+                54
+              ],
+              [
+                1954,
+                6,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "+2 Laps",
+                20
+              ],
+              [
+                1954,
+                7,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Clutch",
+                8
+              ],
+              [
+                1954,
+                8,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Engine",
+                2
+              ],
+              [
+                1954,
+                9,
+                554,
+                "Jean",
+                "Behra",
+                "Gordini",
+                "Brakes",
+                17
+              ],
+              [
+                1955,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Accident",
+                2
+              ],
+              [
+                1955,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+8 Laps",
+                88
+              ],
+              [
+                1955,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Engine",
+                54
+              ],
+              [
+                1955,
+                2,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+1 Lap",
+                99
+              ],
+              [
+                1955,
+                2,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Spun off",
+                86
+              ],
+              [
+                1955,
+                4,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Spun off",
+                3
+              ],
+              [
+                1955,
+                4,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+1 Lap",
+                35
+              ],
+              [
+                1955,
+                5,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+3 Laps",
+                97
+              ],
+              [
+                1955,
+                6,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Oil leak",
+                9
+              ],
+              [
+                1955,
+                7,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Finished",
+                50
+              ],
+              [
+                1956,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Finished",
+                98
+              ],
+              [
+                1956,
+                2,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+1 Lap",
+                99
+              ],
+              [
+                1956,
+                4,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+3 Laps",
+                33
+              ],
+              [
+                1956,
+                5,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Finished",
+                61
+              ],
+              [
+                1956,
+                6,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+2 Laps",
+                99
+              ],
+              [
+                1956,
+                7,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Finished",
+                22
+              ],
+              [
+                1956,
+                8,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Magneto",
+                23
+              ],
+              [
+                1956,
+                8,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Steering",
+                42
+              ],
+              [
+                1957,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Finished",
+                100
+              ],
+              [
+                1957,
+                4,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+8 Laps",
+                69
+              ],
+              [
+                1957,
+                5,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Clutch",
+                69
+              ],
+              [
+                1957,
+                6,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Finished",
+                22
+              ],
+              [
+                1957,
+                7,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Oil leak",
+                3
+              ],
+              [
+                1957,
+                8,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "Overheating",
+                49
+              ],
+              [
+                1958,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Maserati",
+                "+2 Laps",
+                78
+              ],
+              [
+                1958,
+                2,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "Brakes",
+                29
+              ],
+              [
+                1958,
+                3,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "Finished",
+                75
+              ],
+              [
+                1958,
+                5,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "Oil pressure",
+                5
+              ],
+              [
+                1958,
+                6,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "Fuel pump",
+                41
+              ],
+              [
+                1958,
+                7,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "Suspension",
+                19
+              ],
+              [
+                1958,
+                8,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "Suspension",
+                4
+              ],
+              [
+                1958,
+                9,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "+1 Lap",
+                49
+              ],
+              [
+                1958,
+                10,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "Clutch",
+                42
+              ],
+              [
+                1958,
+                11,
+                554,
+                "Jean",
+                "Behra",
+                "BRM",
+                "Engine",
+                26
+              ],
+              [
+                1959,
+                1,
+                554,
+                "Jean",
+                "Behra",
+                "Ferrari",
+                "Engine",
+                24
+              ],
+              [
+                1959,
+                3,
+                554,
+                "Jean",
+                "Behra",
+                "Ferrari",
+                "+1 Lap",
+                74
+              ],
+              [
+                1959,
+                4,
+                554,
+                "Jean",
+                "Behra",
+                "Ferrari",
+                "Engine",
+                31
+              ],
+              [
+                1950,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Oil leak",
+                62
+              ],
+              [
+                1950,
+                2,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Finished",
+                100
+              ],
+              [
+                1950,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Engine",
+                32
+              ],
+              [
+                1950,
+                5,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Finished",
+                35
+              ],
+              [
+                1950,
+                6,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Finished",
+                64
+              ],
+              [
+                1950,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Gearbox",
+                23
+              ],
+              [
+                1950,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Engine",
+                34
+              ],
+              [
+                1951,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Finished",
+                42
+              ],
+              [
+                1951,
+                3,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "+4 Laps",
+                32
+              ],
+              [
+                1951,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "+22 Laps",
+                55
+              ],
+              [
+                1951,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Finished",
+                77
+              ],
+              [
+                1951,
+                5,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Finished",
+                90
+              ],
+              [
+                1951,
+                6,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Finished",
+                20
+              ],
+              [
+                1951,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Engine",
+                39
+              ],
+              [
+                1951,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                "Alfa Romeo",
+                "Finished",
+                70
+              ],
+              [
+                1953,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Transmission",
+                36
+              ],
+              [
+                1953,
+                3,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Axle",
+                36
+              ],
+              [
+                1953,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Engine",
+                13
+              ],
+              [
+                1953,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Accident",
+                35
+              ],
+              [
+                1953,
+                5,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                60
+              ],
+              [
+                1953,
+                6,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                90
+              ],
+              [
+                1953,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                18
+              ],
+              [
+                1953,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "+1 Lap",
+                64
+              ],
+              [
+                1953,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Engine",
+                29
+              ],
+              [
+                1953,
+                9,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                80
+              ],
+              [
+                1954,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                87
+              ],
+              [
+                1954,
+                3,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                36
+              ],
+              [
+                1954,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                61
+              ],
+              [
+                1954,
+                5,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "+1 Lap",
+                89
+              ],
+              [
+                1954,
+                6,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                22
+              ],
+              [
+                1954,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                66
+              ],
+              [
+                1954,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                80
+              ],
+              [
+                1954,
+                9,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "+1 Lap",
+                79
+              ],
+              [
+                1955,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                96
+              ],
+              [
+                1955,
+                2,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Transmission",
+                49
+              ],
+              [
+                1955,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                36
+              ],
+              [
+                1955,
+                5,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                100
+              ],
+              [
+                1955,
+                6,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                90
+              ],
+              [
+                1955,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                "Mercedes",
+                "Finished",
+                50
+              ],
+              [
+                1956,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "Fuel pump",
+                22
+              ],
+              [
+                1956,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "Finished",
+                98
+              ],
+              [
+                1956,
+                2,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "+1 Lap",
+                99
+              ],
+              [
+                1956,
+                2,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "Finished",
+                100
+              ],
+              [
+                1956,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "Transmission",
+                23
+              ],
+              [
+                1956,
+                5,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "Finished",
+                61
+              ],
+              [
+                1956,
+                6,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "Finished",
+                101
+              ],
+              [
+                1956,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "Finished",
+                22
+              ],
+              [
+                1956,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "+4 Laps",
+                46
+              ],
+              [
+                1956,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                "Ferrari",
+                "Finished",
+                50
+              ],
+              [
+                1957,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                100
+              ],
+              [
+                1957,
+                2,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                105
+              ],
+              [
+                1957,
+                4,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                77
+              ],
+              [
+                1957,
+                5,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Engine",
+                49
+              ],
+              [
+                1957,
+                6,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                22
+              ],
+              [
+                1957,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                18
+              ],
+              [
+                1957,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                87
+              ],
+              [
+                1958,
+                1,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                80
+              ],
+              [
+                1958,
+                6,
+                579,
+                "Juan",
+                "Fangio",
+                "Maserati",
+                "Finished",
+                50
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 178,
+            "truncated": false
+          },
+          "queryHash": "958f67d43b9f2fe88c896662a9677eada20a4ea15f142264207dbe3023e1b2d5",
+          "contentHash": "0f2c316ff4a6babf1a866b5a60f361b4ac3ab696d913c971b34a82d987294478",
+          "observedAt": "2026-10-11T10:02:09.767Z"
+        },
+        {
+          "id": "evidence_4efce196-2586-489e-8d45-1aa15c3a524f",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "209de9e7-3b41-439d-a7aa-030ac38002a7",
+          "preview": {
+            "columns": [
+              "variant",
+              "drivers"
+            ],
+            "rows": [
+              [
+                "without_status_filter",
+                104
+              ],
+              [
+                "status_filtered",
+                103
+              ],
+              [
+                "calendar_endpoints",
+                43
+              ],
+              [
+                "all_steps_same_team",
+                103
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "06f7d5641b4c7a0cdef4a89ddc42f3e64cd837b6798b0fe45b912054ae2781d6",
+          "contentHash": "d8104c43cf055a08fd99aa809b5a5ba6eb86e047c8f72e563d9a181008b6a029",
+          "observedAt": "2026-10-11T10:02:11.740Z"
+        },
+        {
+          "id": "evidence_adf1cee7-fa10-49a2-a3fc-6d409b14bacc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "de91d295-c7a3-48e4-97ba-622de5f24f8f",
+          "preview": {
+            "columns": [
+              "year",
+              "driver_id",
+              "drive_id",
+              "constructor_id",
+              "first_round",
+              "last_round",
+              "is_first_drive_of_season",
+              "is_final_drive_of_season"
+            ],
+            "rows": [
+              [
+                1950,
+                501,
+                -1,
+                -1,
+                3,
+                3,
+                0,
+                0
+              ],
+              [
+                1950,
+                501,
+                1,
+                87,
+                2,
+                2,
+                1,
+                0
+              ],
+              [
+                1950,
+                501,
+                2,
+                154,
+                4,
+                4,
+                0,
+                1
+              ],
+              [
+                1951,
+                501,
+                1,
+                105,
+                1,
+                4,
+                1,
+                1
+              ],
+              [
+                1952,
+                501,
+                1,
+                105,
+                1,
+                5,
+                1,
+                1
+              ],
+              [
+                1953,
+                501,
+                1,
+                128,
+                1,
+                9,
+                1,
+                1
+              ],
+              [
+                1954,
+                501,
+                1,
+                105,
+                1,
+                9,
+                1,
+                1
+              ],
+              [
+                1955,
+                501,
+                -1,
+                -1,
+                5,
+                5,
+                0,
+                0
+              ],
+              [
+                1955,
+                501,
+                1,
+                105,
+                1,
+                1,
+                1,
+                0
+              ],
+              [
+                1955,
+                501,
+                2,
+                6,
+                2,
+                4,
+                0,
+                0
+              ],
+              [
+                1955,
+                501,
+                3,
+                118,
+                6,
+                7,
+                0,
+                1
+              ],
+              [
+                1956,
+                501,
+                1,
+                118,
+                2,
+                6,
+                1,
+                0
+              ],
+              [
+                1956,
+                501,
+                2,
+                105,
+                7,
+                7,
+                0,
+                0
+              ],
+              [
+                1956,
+                501,
+                3,
+                118,
+                8,
+                8,
+                0,
+                1
+              ],
+              [
+                1957,
+                501,
+                1,
+                105,
+                1,
+                8,
+                1,
+                1
+              ],
+              [
+                1958,
+                501,
+                1,
+                105,
+                1,
+                1,
+                1,
+                0
+              ],
+              [
+                1958,
+                501,
+                2,
+                66,
+                2,
+                11,
+                0,
+                1
+              ],
+              [
+                1959,
+                501,
+                1,
+                66,
+                1,
+                8,
+                1,
+                0
+              ],
+              [
+                1959,
+                501,
+                2,
+                170,
+                9,
+                9,
+                0,
+                1
+              ],
+              [
+                1952,
+                554,
+                1,
+                128,
+                1,
+                8,
+                1,
+                1
+              ],
+              [
+                1953,
+                554,
+                1,
+                128,
+                1,
+                8,
+                1,
+                1
+              ],
+              [
+                1954,
+                554,
+                1,
+                128,
+                1,
+                9,
+                1,
+                1
+              ],
+              [
+                1955,
+                554,
+                1,
+                105,
+                1,
+                7,
+                1,
+                1
+              ],
+              [
+                1956,
+                554,
+                1,
+                105,
+                1,
+                8,
+                1,
+                1
+              ],
+              [
+                1957,
+                554,
+                1,
+                105,
+                1,
+                8,
+                1,
+                1
+              ],
+              [
+                1958,
+                554,
+                1,
+                105,
+                1,
+                1,
+                1,
+                0
+              ],
+              [
+                1958,
+                554,
+                2,
+                66,
+                2,
+                11,
+                0,
+                1
+              ],
+              [
+                1959,
+                554,
+                1,
+                6,
+                1,
+                4,
+                1,
+                1
+              ],
+              [
+                1950,
+                579,
+                1,
+                51,
+                1,
+                7,
+                1,
+                1
+              ],
+              [
+                1951,
+                579,
+                1,
+                51,
+                1,
+                8,
+                1,
+                1
+              ],
+              [
+                1953,
+                579,
+                1,
+                105,
+                1,
+                9,
+                1,
+                1
+              ],
+              [
+                1954,
+                579,
+                1,
+                105,
+                1,
+                3,
+                1,
+                0
+              ],
+              [
+                1954,
+                579,
+                2,
+                131,
+                4,
+                9,
+                0,
+                1
+              ],
+              [
+                1955,
+                579,
+                1,
+                131,
+                1,
+                7,
+                1,
+                1
+              ],
+              [
+                1956,
+                579,
+                1,
+                6,
+                1,
+                8,
+                1,
+                1
+              ],
+              [
+                1957,
+                579,
+                1,
+                105,
+                1,
+                8,
+                1,
+                1
+              ],
+              [
+                1958,
+                579,
+                1,
+                105,
+                1,
+                6,
+                1,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 37,
+            "truncated": false
+          },
+          "queryHash": "e3d3250968f67e5547ed9b8cdfd6583f276e28b23e97b642c58e98a7c8524a53",
+          "contentHash": "54f6ac55ae11710279e2b7aab746ab9dfc6ba037f6e389d3e90f09ac20fc2ec2",
+          "observedAt": "2026-10-11T10:02:33.822Z"
+        },
+        {
+          "id": "evidence_0d166c1a-bf67-4e48-9aba-4f7bb4711bbc",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "5b936657-0d30-4c46-a872-0c1689b2099f",
+          "preview": {
+            "columns": [
+              "year",
+              "drive_rows",
+              "drivers",
+              "first_flags",
+              "last_flags",
+              "single_round_drives"
+            ],
+            "rows": [
+              [
+                1950,
+                88,
+                81,
+                82,
+                82,
+                58
+              ],
+              [
+                1951,
+                92,
+                84,
+                84,
+                84,
+                64
+              ],
+              [
+                1952,
+                121,
+                105,
+                105,
+                105,
+                81
+              ],
+              [
+                1953,
+                122,
+                108,
+                114,
+                114,
+                91
+              ],
+              [
+                1954,
+                109,
+                97,
+                102,
+                102,
+                75
+              ],
+              [
+                1955,
+                97,
+                84,
+                84,
+                84,
+                63
+              ],
+              [
+                1956,
+                104,
+                85,
+                85,
+                85,
+                72
+              ],
+              [
+                1957,
+                86,
+                76,
+                76,
+                76,
+                60
+              ],
+              [
+                1958,
+                108,
+                87,
+                88,
+                86,
+                70
+              ],
+              [
+                1959,
+                112,
+                88,
+                88,
+                88,
+                80
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 10,
+            "truncated": false
+          },
+          "queryHash": "5650c84ec80c4a542647d150aa6d9e80605a3b10267c249e4d7b9445e66d720c",
+          "contentHash": "e571a403fe0a7042036f8abe59ad0c18a9e0080499a3bd2a10ae8ce801944b4b",
+          "observedAt": "2026-10-11T10:02:35.943Z"
+        },
+        {
+          "id": "evidence_25f94fec-e94f-4ded-8f6a-e36c2f703bf6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "f1b64c4d-2c58-46f1-8252-0bba25d753ce",
+          "preview": {
+            "columns": [
+              "driver_id"
+            ],
+            "rows": [
+              [
+                289
+              ],
+              [
+                347
+              ],
+              [
+                356
+              ],
+              [
+                360
+              ],
+              [
+                364
+              ],
+              [
+                403
+              ],
+              [
+                404
+              ],
+              [
+                418
+              ],
+              [
+                427
+              ],
+              [
+                429
+              ],
+              [
+                430
+              ],
+              [
+                437
+              ],
+              [
+                456
+              ],
+              [
+                462
+              ],
+              [
+                475
+              ],
+              [
+                476
+              ],
+              [
+                477
+              ],
+              [
+                478
+              ],
+              [
+                479
+              ],
+              [
+                482
+              ],
+              [
+                483
+              ],
+              [
+                486
+              ],
+              [
+                496
+              ],
+              [
+                498
+              ],
+              [
+                501
+              ],
+              [
+                502
+              ],
+              [
+                506
+              ],
+              [
+                526
+              ],
+              [
+                541
+              ],
+              [
+                547
+              ],
+              [
+                551
+              ],
+              [
+                554
+              ],
+              [
+                566
+              ],
+              [
+                577
+              ],
+              [
+                578
+              ],
+              [
+                579
+              ],
+              [
+                580
+              ],
+              [
+                581
+              ],
+              [
+                583
+              ],
+              [
+                586
+              ],
+              [
+                589
+              ],
+              [
+                590
+              ],
+              [
+                606
+              ],
+              [
+                607
+              ],
+              [
+                608
+              ],
+              [
+                609
+              ],
+              [
+                619
+              ],
+              [
+                620
+              ],
+              [
+                622
+              ],
+              [
+                624
+              ],
+              [
+                625
+              ],
+              [
+                626
+              ],
+              [
+                627
+              ],
+              [
+                632
+              ],
+              [
+                633
+              ],
+              [
+                640
+              ],
+              [
+                641
+              ],
+              [
+                642
+              ],
+              [
+                643
+              ],
+              [
+                644
+              ],
+              [
+                645
+              ],
+              [
+                647
+              ],
+              [
+                648
+              ],
+              [
+                650
+              ],
+              [
+                651
+              ],
+              [
+                660
+              ],
+              [
+                663
+              ],
+              [
+                664
+              ],
+              [
+                669
+              ],
+              [
+                670
+              ],
+              [
+                672
+              ],
+              [
+                680
+              ],
+              [
+                687
+              ],
+              [
+                688
+              ],
+              [
+                689
+              ],
+              [
+                693
+              ],
+              [
+                697
+              ],
+              [
+                704
+              ],
+              [
+                708
+              ],
+              [
+                717
+              ],
+              [
+                721
+              ],
+              [
+                722
+              ],
+              [
+                723
+              ],
+              [
+                724
+              ],
+              [
+                735
+              ],
+              [
+                738
+              ],
+              [
+                741
+              ],
+              [
+                742
+              ],
+              [
+                744
+              ],
+              [
+                746
+              ],
+              [
+                747
+              ],
+              [
+                748
+              ],
+              [
+                749
+              ],
+              [
+                762
+              ],
+              [
+                763
+              ],
+              [
+                764
+              ],
+              [
+                773
+              ],
+              [
+                774
+              ],
+              [
+                780
+              ],
+              [
+                784
+              ],
+              [
+                785
+              ],
+              [
+                786
+              ],
+              [
+                787
+              ],
+              [
+                789
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER"
+            ],
+            "rowCount": 104,
+            "truncated": false
+          },
+          "queryHash": "dfbf071c51c4e614c01fb17725c40d68c7427f636b7e1e104a0a03174ccb9c80",
+          "contentHash": "f512a34c9f6cda85855ab24f91daa58bd6e04c8f0a500a59c1113a982f12b5e9",
+          "observedAt": "2026-10-11T10:02:37.433Z"
+        },
+        {
+          "id": "evidence_b4fd0aa1-740a-4091-8eba-099d1c11580e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "002303d1-905d-4fa4-859d-8332d9ecd285",
+          "preview": {
+            "columns": [
+              "driver_id",
+              "year",
+              "constructor_id",
+              "first_drive",
+              "last_drive",
+              "first_round",
+              "last_round"
+            ],
+            "rows": [
+              [
+                427,
+                1956,
+                118,
+                1,
+                3,
+                2,
+                8
+              ],
+              [
+                427,
+                1958,
+                87,
+                1,
+                4,
+                2,
+                11
+              ],
+              [
+                429,
+                1956,
+                128,
+                1,
+                3,
+                2,
+                7
+              ],
+              [
+                456,
+                1959,
+                167,
+                1,
+                5,
+                1,
+                9
+              ],
+              [
+                475,
+                1959,
+                170,
+                1,
+                3,
+                1,
+                9
+              ],
+              [
+                477,
+                1958,
+                32,
+                1,
+                3,
+                2,
+                11
+              ],
+              [
+                479,
+                1959,
+                6,
+                1,
+                3,
+                1,
+                9
+              ],
+              [
+                501,
+                1956,
+                118,
+                1,
+                3,
+                2,
+                8
+              ],
+              [
+                624,
+                1956,
+                128,
+                1,
+                3,
+                2,
+                8
+              ],
+              [
+                640,
+                1951,
+                51,
+                1,
+                3,
+                1,
+                8
+              ],
+              [
+                660,
+                1953,
+                125,
+                1,
+                3,
+                3,
+                9
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 11,
+            "truncated": false
+          },
+          "queryHash": "97828015d504af00db9979a229d9759c208dd962a2e134ebe0faeb076967e347",
+          "contentHash": "aef8998f1e45629f8a14e1ea575e665deca9d641eb6338077a15f03a4ea5d8b5",
+          "observedAt": "2026-10-11T10:02:39.280Z"
+        },
+        {
+          "id": "evidence_63712f78-bbee-4a9c-8188-fc681e7d1ddd",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "b6777f9e-c004-4850-80bc-6184d41751f9",
+          "preview": {
+            "columns": [
+              "driver_id",
+              "forename",
+              "surname",
+              "seasons"
+            ],
+            "rows": [
+              [
+                427,
+                "Maurice",
+                "Trintignant",
+                9
+              ],
+              [
+                554,
+                "Jean",
+                "Behra",
+                7
+              ],
+              [
+                579,
+                "Juan",
+                "Fangio",
+                7
+              ],
+              [
+                581,
+                "Peter",
+                "Collins",
+                7
+              ],
+              [
+                501,
+                "Harry",
+                "Schell",
+                6
+              ],
+              [
+                626,
+                "Robert",
+                "Manzon",
+                6
+              ],
+              [
+                627,
+                "Louis",
+                "Rosier",
+                6
+              ],
+              [
+                633,
+                "Luigi",
+                "Villoresi",
+                6
+              ],
+              [
+                642,
+                "Nino",
+                "Farina",
+                6
+              ],
+              [
+                456,
+                "Roy",
+                "Salvadori",
+                5
+              ],
+              [
+                577,
+                "Luigi",
+                "Musso",
+                5
+              ],
+              [
+                578,
+                "Mike",
+                "Hawthorn",
+                5
+              ],
+              [
+                640,
+                "Toulo",
+                "de Graffenried",
+                5
+              ],
+              [
+                647,
+                "Alberto",
+                "Ascari",
+                5
+              ],
+              [
+                475,
+                "Stirling",
+                "Moss",
+                4
+              ],
+              [
+                479,
+                "Tony",
+                "Brooks",
+                4
+              ],
+              [
+                697,
+                "Felice",
+                "Bonetto",
+                4
+              ],
+              [
+                356,
+                "Jack",
+                "Brabham",
+                3
+              ],
+              [
+                418,
+                "Masten",
+                "Gregory",
+                3
+              ],
+              [
+                482,
+                "Olivier",
+                "Gendebien",
+                3
+              ],
+              [
+                498,
+                "José Froilán",
+                "González",
+                3
+              ],
+              [
+                547,
+                "Horace",
+                "Gould",
+                3
+              ],
+              [
+                580,
+                "Paco",
+                "Godia",
+                3
+              ],
+              [
+                620,
+                "Umberto",
+                "Maglioli",
+                3
+              ],
+              [
+                632,
+                "Paul",
+                "Frère",
+                3
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 25,
+            "truncated": false
+          },
+          "queryHash": "9084a180d0062a9fc44ca4566a9fd1ea093cbbae53d50719b2489c665ce98cc9",
+          "contentHash": "a2f7b9e0b464ee5526d711fa63983fabe313da7984295ca7882e5bb9e337baa6",
+          "observedAt": "2026-10-11T10:03:08.128Z"
+        },
+        {
+          "id": "evidence_24e10bf8-9624-47e3-a91e-19382c7186a6",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "0f722377-0e99-4fc3-8ef9-41aaa20b1d7b",
+          "preview": {
+            "columns": [
+              "driver_id",
+              "year",
+              "f",
+              "l",
+              "pairs",
+              "first_rows",
+              "last_rows"
+            ],
+            "rows": [
+              [
+                427,
+                1955,
+                1,
+                7,
+                3,
+                3,
+                1
+              ],
+              [
+                475,
+                1955,
+                1,
+                7,
+                2,
+                2,
+                1
+              ],
+              [
+                496,
+                1955,
+                1,
+                7,
+                2,
+                2,
+                1
+              ],
+              [
+                498,
+                1954,
+                1,
+                8,
+                2,
+                1,
+                2
+              ],
+              [
+                501,
+                1957,
+                1,
+                8,
+                2,
+                1,
+                2
+              ],
+              [
+                554,
+                1955,
+                1,
+                7,
+                3,
+                3,
+                1
+              ],
+              [
+                554,
+                1956,
+                1,
+                8,
+                2,
+                1,
+                2
+              ],
+              [
+                566,
+                1958,
+                6,
+                10,
+                2,
+                1,
+                2
+              ],
+              [
+                577,
+                1955,
+                1,
+                7,
+                2,
+                2,
+                1
+              ],
+              [
+                579,
+                1950,
+                1,
+                7,
+                2,
+                1,
+                2
+              ],
+              [
+                579,
+                1956,
+                1,
+                8,
+                4,
+                2,
+                2
+              ],
+              [
+                581,
+                1957,
+                1,
+                8,
+                2,
+                2,
+                1
+              ],
+              [
+                607,
+                1955,
+                2,
+                4,
+                2,
+                2,
+                1
+              ],
+              [
+                608,
+                1956,
+                1,
+                8,
+                2,
+                1,
+                2
+              ],
+              [
+                642,
+                1952,
+                1,
+                8,
+                2,
+                2,
+                1
+              ],
+              [
+                642,
+                1955,
+                1,
+                7,
+                2,
+                2,
+                1
+              ],
+              [
+                647,
+                1950,
+                2,
+                7,
+                2,
+                1,
+                2
+              ],
+              [
+                648,
+                1955,
+                1,
+                7,
+                2,
+                2,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 18,
+            "truncated": false
+          },
+          "queryHash": "46f89407a37d7a41ae29a2a539b2f29ae11cb45e7ae8047864de8511b68848a0",
+          "contentHash": "f80fad13043701966a7cd819bd051be0181d15dbc6081a5ec322cdd3d92cb37c",
+          "observedAt": "2026-10-11T10:03:10.037Z"
+        },
+        {
+          "id": "evidence_6d862b70-53c7-44a1-92b2-75d7dd4ac263",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "a9dae147-fb08-48af-bcf0-11ece4e08911",
+          "preview": {
+            "columns": [
+              "year",
+              "round",
+              "driver_id",
+              "forename",
+              "surname",
+              "rows",
+              "teams"
+            ],
+            "rows": [
+              [
+                1954,
+                8,
+                498,
+                "José Froilán",
+                "González",
+                2,
+                1
+              ],
+              [
+                1957,
+                8,
+                501,
+                "Harry",
+                "Schell",
+                2,
+                1
+              ],
+              [
+                1953,
+                2,
+                509,
+                "Jim",
+                "Rathmann",
+                2,
+                1
+              ],
+              [
+                1954,
+                2,
+                509,
+                "Jim",
+                "Rathmann",
+                2,
+                1
+              ],
+              [
+                1953,
+                2,
+                512,
+                "Johnny",
+                "Thomson",
+                2,
+                2
+              ],
+              [
+                1953,
+                2,
+                518,
+                "Duane",
+                "Carter",
+                2,
+                2
+              ],
+              [
+                1954,
+                2,
+                518,
+                "Duane",
+                "Carter",
+                2,
+                1
+              ],
+              [
+                1953,
+                2,
+                520,
+                "Gene",
+                "Hartley",
+                2,
+                2
+              ],
+              [
+                1953,
+                2,
+                521,
+                "Chuck",
+                "Stevenson",
+                3,
+                2
+              ],
+              [
+                1950,
+                3,
+                529,
+                "Tony",
+                "Bettenhausen",
+                2,
+                2
+              ],
+              [
+                1954,
+                2,
+                529,
+                "Tony",
+                "Bettenhausen",
+                2,
+                1
+              ],
+              [
+                1956,
+                8,
+                554,
+                "Jean",
+                "Behra",
+                2,
+                1
+              ],
+              [
+                1953,
+                2,
+                555,
+                "Paul",
+                "Russo",
+                2,
+                1
+              ],
+              [
+                1954,
+                2,
+                556,
+                "Jimmy",
+                "Daywalt",
+                2,
+                2
+              ],
+              [
+                1958,
+                10,
+                566,
+                "Carroll",
+                "Shelby",
+                2,
+                1
+              ],
+              [
+                1950,
+                7,
+                579,
+                "Juan",
+                "Fangio",
+                2,
+                1
+              ],
+              [
+                1956,
+                8,
+                579,
+                "Juan",
+                "Fangio",
+                2,
+                1
+              ],
+              [
+                1954,
+                2,
+                593,
+                "Johnnie",
+                "Parsons",
+                2,
+                1
+              ],
+              [
+                1956,
+                8,
+                608,
+                "Eugenio",
+                "Castellotti",
+                2,
+                1
+              ],
+              [
+                1954,
+                2,
+                611,
+                "Sam",
+                "Hanks",
+                2,
+                1
+              ],
+              [
+                1953,
+                2,
+                612,
+                "Andy",
+                "Linden",
+                3,
+                2
+              ],
+              [
+                1954,
+                2,
+                612,
+                "Andy",
+                "Linden",
+                3,
+                3
+              ],
+              [
+                1954,
+                2,
+                613,
+                "Marshall",
+                "Teague",
+                2,
+                1
+              ],
+              [
+                1955,
+                1,
+                644,
+                "Sergio",
+                "Mantovani",
+                2,
+                1
+              ],
+              [
+                1950,
+                7,
+                647,
+                "Alberto",
+                "Ascari",
+                2,
+                1
+              ],
+              [
+                1954,
+                2,
+                653,
+                "Jimmy",
+                "Davies",
+                2,
+                1
+              ],
+              [
+                1954,
+                2,
+                659,
+                "Jerry",
+                "Hoyt",
+                2,
+                1
+              ],
+              [
+                1953,
+                2,
+                702,
+                "Bob",
+                "Scott",
+                2,
+                2
+              ],
+              [
+                1954,
+                2,
+                702,
+                "Bob",
+                "Scott",
+                2,
+                2
+              ],
+              [
+                1954,
+                2,
+                730,
+                "George",
+                "Fonder",
+                2,
+                2
+              ],
+              [
+                1952,
+                7,
+                759,
+                "Jan",
+                "Flinterman",
+                2,
+                1
+              ],
+              [
+                1951,
+                4,
+                786,
+                "Luigi",
+                "Fagioli",
+                2,
+                1
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 32,
+            "truncated": false
+          },
+          "queryHash": "182a5fc349afbe6ee22078edb0fbee881f308790d1ef2e2352872aff2e8d712d",
+          "contentHash": "4607641698617bb81fa1d2be4233296e8aa46ce3869f123f0f403abbdee8a164",
+          "observedAt": "2026-10-11T10:03:14.161Z"
+        },
+        {
+          "id": "evidence_07e176ec-9fce-4552-807d-f9b7ff245339",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "881eaba7-3e3c-4c05-96cd-ddfbbdd7c0ec",
+          "preview": {
+            "columns": [
+              "year",
+              "round",
+              "driver_id",
+              "forename",
+              "surname",
+              "name",
+              "status",
+              "laps"
+            ],
+            "rows": [
+              [
+                1959,
+                1,
+                403,
+                "Phil",
+                "Hill",
+                "Ferrari",
+                "+3 Laps",
+                97
+              ],
+              [
+                1959,
+                3,
+                403,
+                "Phil",
+                "Hill",
+                "Ferrari",
+                "+2 Laps",
+                73
+              ],
+              [
+                1959,
+                4,
+                403,
+                "Phil",
+                "Hill",
+                "Ferrari",
+                "Finished",
+                50
+              ],
+              [
+                1959,
+                6,
+                403,
+                "Phil",
+                "Hill",
+                "Ferrari",
+                "Finished",
+                60
+              ],
+              [
+                1959,
+                7,
+                403,
+                "Phil",
+                "Hill",
+                "Ferrari",
+                "Accident",
+                5
+              ],
+              [
+                1959,
+                8,
+                403,
+                "Phil",
+                "Hill",
+                "Ferrari",
+                "Finished",
+                72
+              ],
+              [
+                1959,
+                9,
+                403,
+                "Phil",
+                "Hill",
+                "Ferrari",
+                "Clutch",
+                8
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 7,
+            "truncated": false
+          },
+          "queryHash": "a76edd78d4a3e580e0e73e293aac6bc57dd394444822ff51e4393a2056260c61",
+          "contentHash": "4293bd9627eba85c6f6712be8e0cc7c8c0cc9d57484865613236dc7ccf017bb1",
+          "observedAt": "2026-10-11T10:04:01.515Z"
+        },
+        {
+          "id": "evidence_b3f37d00-ce2a-4ce9-9c1a-b5318634b6ee",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "80f51e7b-44e5-42d4-a09a-041aa54c56aa",
+          "preview": {
+            "columns": [
+              "method",
+              "drivers",
+              "driver_ids"
+            ],
+            "rows": [
+              [
+                "calendar_first_last_finished",
+                6,
+                "642,786,579,578,356,479"
+              ],
+              [
+                "endpoint_positive_laps",
+                99,
+                "498,579,589,619,627,633,640,642,647,660,669,697,704,741,747,773,774,780,784,785,786,787,789,427,501,609,626,641,680,687,708,723,763,764,554,578,581,622,651,664,688,689,721,722,724,735,738,742,744,746,456,625,632,643,663,670,475,478,577,620,644,645,648,650,672,693,496,547,607,624,429,482,486,506,583,586,606,608,347,356,418,476,479,483,541,580,289,360,430,437,477,551,566,590,364,403,404,462,502"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "TEXT"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "88537e8e4ace991fb5cb6d02a5693f134d3890c923920daeb9405e688d061e86",
+          "contentHash": "df0568f35ba6f94ae4e42c1336ec1ae1f7e69ae333d4f873f7d4a852327a00c9",
+          "observedAt": "2026-10-11T10:04:04.248Z"
+        },
+        {
+          "id": "evidence_b1950293-9f5d-49bb-ace0-836d417c30f7",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "76750c1c-3e54-4a38-bbcb-c2e9de0cd239",
+          "preview": {
+            "columns": [
+              "year",
+              "round",
+              "name",
+              "status",
+              "laps"
+            ],
+            "rows": [
+              [
+                1952,
+                5,
+                "Aston Butterworth",
+                "Withdrew",
+                0
+              ],
+              [
+                1952,
+                6,
+                "Aston Butterworth",
+                "Oil pressure",
+                2
+              ],
+              [
+                1952,
+                8,
+                "Aston Butterworth",
+                "Did not qualify",
+                0
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "866c1cc30bdf4654491954ff554a380e3f6c36233118338c45ab1c79af8854f6",
+          "contentHash": "77d29771e0ecec71dbbd6a44924f5845460ee5dd77e2485f3083799f16376475",
+          "observedAt": "2026-10-11T10:04:06.459Z"
+        },
+        {
+          "id": "evidence_d769cf1e-10e3-4255-b0c6-54a96b800636",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "1e5eaa48-883d-4e85-8b09-2691b84d66a3",
+          "preview": {
+            "columns": [
+              "year",
+              "round",
+              "driver_id",
+              "name",
+              "status",
+              "laps"
+            ],
+            "rows": [
+              [
+                1950,
+                1,
+                642,
+                "Alfa Romeo",
+                "Finished",
+                70
+              ],
+              [
+                1950,
+                2,
+                642,
+                "Alfa Romeo",
+                "Accident",
+                0
+              ],
+              [
+                1950,
+                4,
+                642,
+                "Alfa Romeo",
+                "Finished",
+                42
+              ],
+              [
+                1950,
+                5,
+                642,
+                "Alfa Romeo",
+                "Finished",
+                35
+              ],
+              [
+                1950,
+                6,
+                642,
+                "Alfa Romeo",
+                "Fuel pump",
+                55
+              ],
+              [
+                1950,
+                7,
+                642,
+                "Alfa Romeo",
+                "Finished",
+                80
+              ],
+              [
+                1951,
+                1,
+                642,
+                "Alfa Romeo",
+                "Finished",
+                42
+              ],
+              [
+                1951,
+                3,
+                642,
+                "Alfa Romeo",
+                "Finished",
+                36
+              ],
+              [
+                1951,
+                4,
+                642,
+                "Alfa Romeo",
+                "+4 Laps",
+                73
+              ],
+              [
+                1951,
+                5,
+                642,
+                "Alfa Romeo",
+                "Clutch",
+                75
+              ],
+              [
+                1951,
+                6,
+                642,
+                "Alfa Romeo",
+                "Overheating",
+                8
+              ],
+              [
+                1951,
+                7,
+                642,
+                "Alfa Romeo",
+                "Engine",
+                6
+              ],
+              [
+                1951,
+                7,
+                642,
+                "Alfa Romeo",
+                "+1 Lap",
+                79
+              ],
+              [
+                1951,
+                8,
+                642,
+                "Alfa Romeo",
+                "Finished",
+                70
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER",
+              "INTEGER",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 14,
+            "truncated": false
+          },
+          "queryHash": "fab1cbf719e56b7c73003ceba6b04edeb002494e509d79c70f54b2f85f9b732b",
+          "contentHash": "7ecc94d392bbcdb9ab08eca58156c9966197a85818cf32abbd4c536a830fb33e",
+          "observedAt": "2026-10-11T10:04:34.012Z"
+        },
+        {
+          "id": "evidence_918efe87-f2cb-4fc1-a7f4-026e0bf376f2",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "844113da-c149-4a4e-af19-af4fcefa5dc1",
+          "preview": {
+            "columns": [
+              "driver_id"
+            ],
+            "rows": [
+              [
+                289
+              ],
+              [
+                347
+              ],
+              [
+                356
+              ],
+              [
+                360
+              ],
+              [
+                364
+              ],
+              [
+                403
+              ],
+              [
+                404
+              ],
+              [
+                418
+              ],
+              [
+                427
+              ],
+              [
+                429
+              ],
+              [
+                430
+              ],
+              [
+                437
+              ],
+              [
+                456
+              ],
+              [
+                462
+              ],
+              [
+                475
+              ],
+              [
+                476
+              ],
+              [
+                477
+              ],
+              [
+                478
+              ],
+              [
+                479
+              ],
+              [
+                482
+              ],
+              [
+                483
+              ],
+              [
+                486
+              ],
+              [
+                496
+              ],
+              [
+                498
+              ],
+              [
+                502
+              ],
+              [
+                506
+              ],
+              [
+                526
+              ],
+              [
+                541
+              ],
+              [
+                547
+              ],
+              [
+                551
+              ],
+              [
+                566
+              ],
+              [
+                577
+              ],
+              [
+                578
+              ],
+              [
+                580
+              ],
+              [
+                581
+              ],
+              [
+                583
+              ],
+              [
+                586
+              ],
+              [
+                589
+              ],
+              [
+                590
+              ],
+              [
+                606
+              ],
+              [
+                607
+              ],
+              [
+                608
+              ],
+              [
+                609
+              ],
+              [
+                619
+              ],
+              [
+                620
+              ],
+              [
+                622
+              ],
+              [
+                624
+              ],
+              [
+                625
+              ],
+              [
+                626
+              ],
+              [
+                627
+              ],
+              [
+                632
+              ],
+              [
+                633
+              ],
+              [
+                640
+              ],
+              [
+                641
+              ],
+              [
+                642
+              ],
+              [
+                643
+              ],
+              [
+                644
+              ],
+              [
+                645
+              ],
+              [
+                647
+              ],
+              [
+                648
+              ],
+              [
+                650
+              ],
+              [
+                651
+              ],
+              [
+                660
+              ],
+              [
+                663
+              ],
+              [
+                664
+              ],
+              [
+                669
+              ],
+              [
+                670
+              ],
+              [
+                672
+              ],
+              [
+                680
+              ],
+              [
+                687
+              ],
+              [
+                688
+              ],
+              [
+                689
+              ],
+              [
+                693
+              ],
+              [
+                697
+              ],
+              [
+                704
+              ],
+              [
+                708
+              ],
+              [
+                717
+              ],
+              [
+                721
+              ],
+              [
+                722
+              ],
+              [
+                723
+              ],
+              [
+                724
+              ],
+              [
+                735
+              ],
+              [
+                738
+              ],
+              [
+                741
+              ],
+              [
+                742
+              ],
+              [
+                744
+              ],
+              [
+                746
+              ],
+              [
+                747
+              ],
+              [
+                748
+              ],
+              [
+                749
+              ],
+              [
+                762
+              ],
+              [
+                763
+              ],
+              [
+                764
+              ],
+              [
+                773
+              ],
+              [
+                774
+              ],
+              [
+                780
+              ],
+              [
+                784
+              ],
+              [
+                785
+              ],
+              [
+                786
+              ],
+              [
+                787
+              ],
+              [
+                789
+              ]
+            ],
+            "columnTypes": [
+              "INTEGER"
+            ],
+            "rowCount": 101,
+            "truncated": false
+          },
+          "queryHash": "7f0735b51f075567337736ac87493046b6b05d3ea273da0f7bb08589928c0552",
+          "contentHash": "8d9ce93f0f1131e9c1cb0c70baa39da71fafb2b4f60b0ca1d71796ed774f34c1",
+          "observedAt": "2026-10-11T10:04:36.948Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+      "items": [
+        {
+          "attemptId": "attempt_411a907c-2970-4cbd-b12d-2437596c1961",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "c44cb116-9b91-4b45-940f-621b70eec2ff",
+          "queryHash": "d8564e0bde57ff0e654598c39f581442500ea467741f88fc9335ef24d6bed1aa",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:19:10.849Z",
+          "updatedAt": "2026-10-11T09:19:11.377Z"
+        },
+        {
+          "attemptId": "attempt_a3f51c0e-a583-4913-9705-deb3810a8aa3",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "db2dd977-5c22-475d-ac41-af37bf32773e",
+          "queryHash": "d95247fc4b27832fa156639c59549ee688435cc75842cecfa7006a91449534c4",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:19:14.743Z",
+          "updatedAt": "2026-10-11T09:19:15.173Z"
+        },
+        {
+          "attemptId": "attempt_be7f696e-204b-4a9d-b02f-49e63f620514",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "a6fe35b7-54df-4fee-87f2-72ccd2f08b04",
+          "queryHash": "2ecc5a2afc793d997dd71e27ddba1f1f20e61d42452f118256f466b405e7fe8f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:19:17.423Z",
+          "updatedAt": "2026-10-11T09:19:17.795Z"
+        },
+        {
+          "attemptId": "attempt_dca8b5d7-348d-4392-a6dc-2263410f7d67",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "7c423bb6-ce3c-41cc-af85-462e518e7c15",
+          "queryHash": "4a18610ab4d58c2f958c71f2222e3a9ac972fea5134dea8c54389544fbb2a09c",
+          "state": "failed",
+          "sqlExecuted": true,
+          "outcome": "failed",
+          "createdAt": "2026-10-11T09:19:50.368Z",
+          "updatedAt": "2026-10-11T09:19:50.803Z",
+          "obstacleKind": "technical_failure"
+        },
+        {
+          "attemptId": "attempt_b3b373bb-44d1-414c-ae4b-0200201e3ba1",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "e3b3cb0a-a115-4219-9ec9-af05c1920c79",
+          "queryHash": "648863e5a075392dbf590d35a751003d22e4bdfc2cb4f1517b721fea542dfa27",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:19:52.758Z",
+          "updatedAt": "2026-10-11T09:19:53.573Z"
+        },
+        {
+          "attemptId": "attempt_7eb70152-0831-4fb7-9376-90d842050063",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "9109fdcc-7c8d-429b-b52e-fe935a2f51d1",
+          "queryHash": "21ca993896958f805f6a07cf4809a96bb8a2339f8b2cb011b6bb4ce030c49eec",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:19:55.912Z",
+          "updatedAt": "2026-10-11T09:19:56.417Z"
+        },
+        {
+          "attemptId": "attempt_6000e2af-1acc-4a46-a404-587e95d980a0",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "38399bb5-a30b-4988-8748-70cd9363d074",
+          "queryHash": "37e910da9de8bfcbd8b54a77a6514d259ff2d5d51a43f906a2da5f97b7d4af85",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:19:59.094Z",
+          "updatedAt": "2026-10-11T09:19:59.543Z"
+        },
+        {
+          "attemptId": "attempt_22201682-24d0-4258-9834-e2d93aef036d",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "c6d394b0-9e4b-457a-bf0d-ba63a2ab9ef8",
+          "queryHash": "4a18610ab4d58c2f958c71f2222e3a9ac972fea5134dea8c54389544fbb2a09c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:01:05.541Z",
+          "updatedAt": "2026-10-11T10:01:05.908Z"
+        },
+        {
+          "attemptId": "attempt_e4466e1c-6eb9-45e2-bd1c-10c42bd5cc26",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "52f3c2cb-db8c-4b97-9377-b30dc3a267b0",
+          "queryHash": "21ca993896958f805f6a07cf4809a96bb8a2339f8b2cb011b6bb4ce030c49eec",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:01:08.148Z",
+          "updatedAt": "2026-10-11T10:01:08.430Z"
+        },
+        {
+          "attemptId": "attempt_c706f74b-f764-4534-a55d-741f5f095834",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "revision",
+          "revisionId": "revision_fc8ba537-2fe0-4406-951a-0a7a49c7293a",
+          "invocationId": "714b861f-c10e-48f5-b735-d5f46bccdef9",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:01:32.161Z",
+          "updatedAt": "2026-10-11T10:01:32.158Z"
+        },
+        {
+          "attemptId": "attempt_72522da4-c5ea-4391-8bd9-7d921bc5eafd",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "result",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "c31092fe-bc1a-4abc-87ba-d9626c9eba33",
+          "queryHash": "bdfa007ad65a741c9dd69cec01d70740f0a68f2463495b95b046bf891ebff2a3",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:01:34.504Z",
+          "updatedAt": "2026-10-11T10:01:34.920Z"
+        },
+        {
+          "attemptId": "attempt_a64a53f8-acd8-4b7e-89ad-1e5e250c5629",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "59171a27-a1b4-4acf-b66c-2a63a90a28ed",
+          "queryHash": "8ac96d4fb76d4a4008a85d8b35c72dcf6063b2b198237876bd5b3b38a640ce47",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:05.574Z",
+          "updatedAt": "2026-10-11T10:02:05.831Z"
+        },
+        {
+          "attemptId": "attempt_c69c88d6-1590-49dd-b79c-a36c699e8320",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "52ceb9d5-6e48-46d0-a953-2ed00b8709f9",
+          "queryHash": "ed2906f79ff16183ffb7a8df096d5d48c98d60999776df9e5232390dfe1316c9",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:07.375Z",
+          "updatedAt": "2026-10-11T10:02:07.723Z"
+        },
+        {
+          "attemptId": "attempt_97a8ddf6-ebb0-499d-bb68-0a15893db185",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "a89b587f-ee81-4e54-83f9-3ed6c94a87ed",
+          "queryHash": "958f67d43b9f2fe88c896662a9677eada20a4ea15f142264207dbe3023e1b2d5",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:09.337Z",
+          "updatedAt": "2026-10-11T10:02:09.769Z"
+        },
+        {
+          "attemptId": "attempt_a8d0dfa7-a52f-4986-b6b1-3ec7ef1884cd",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "209de9e7-3b41-439d-a7aa-030ac38002a7",
+          "queryHash": "06f7d5641b4c7a0cdef4a89ddc42f3e64cd837b6798b0fe45b912054ae2781d6",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:11.462Z",
+          "updatedAt": "2026-10-11T10:02:11.741Z"
+        },
+        {
+          "attemptId": "attempt_7b7774d2-0a0c-4b2c-927b-8a482714dc8e",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "de91d295-c7a3-48e4-97ba-622de5f24f8f",
+          "queryHash": "e3d3250968f67e5547ed9b8cdfd6583f276e28b23e97b642c58e98a7c8524a53",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:33.574Z",
+          "updatedAt": "2026-10-11T10:02:33.824Z"
+        },
+        {
+          "attemptId": "attempt_1abed66d-5880-4d86-905c-39d00049ee37",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "5b936657-0d30-4c46-a872-0c1689b2099f",
+          "queryHash": "5650c84ec80c4a542647d150aa6d9e80605a3b10267c249e4d7b9445e66d720c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:35.769Z",
+          "updatedAt": "2026-10-11T10:02:35.944Z"
+        },
+        {
+          "attemptId": "attempt_4567c4c7-731b-49c3-b9dc-05e2e0ded127",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "f1b64c4d-2c58-46f1-8252-0bba25d753ce",
+          "queryHash": "dfbf071c51c4e614c01fb17725c40d68c7427f636b7e1e104a0a03174ccb9c80",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:37.197Z",
+          "updatedAt": "2026-10-11T10:02:37.435Z"
+        },
+        {
+          "attemptId": "attempt_33329d38-56eb-44cc-8ffb-51f04026c35b",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "002303d1-905d-4fa4-859d-8332d9ecd285",
+          "queryHash": "97828015d504af00db9979a229d9759c208dd962a2e134ebe0faeb076967e347",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:02:39.071Z",
+          "updatedAt": "2026-10-11T10:02:39.281Z"
+        },
+        {
+          "attemptId": "attempt_76987c5f-7440-40c7-bafc-df01ca5a30a9",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "b6777f9e-c004-4850-80bc-6184d41751f9",
+          "queryHash": "9084a180d0062a9fc44ca4566a9fd1ea093cbbae53d50719b2489c665ce98cc9",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:03:07.809Z",
+          "updatedAt": "2026-10-11T10:03:08.131Z"
+        },
+        {
+          "attemptId": "attempt_023a317a-3a51-4298-9432-8c5c1bb521ff",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "0f722377-0e99-4fc3-8ef9-41aaa20b1d7b",
+          "queryHash": "46f89407a37d7a41ae29a2a539b2f29ae11cb45e7ae8047864de8511b68848a0",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:03:09.763Z",
+          "updatedAt": "2026-10-11T10:03:10.038Z"
+        },
+        {
+          "attemptId": "attempt_acb68e82-c05e-499a-995a-4eec7a449ec4",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "a9dae147-fb08-48af-bcf0-11ece4e08911",
+          "queryHash": "182a5fc349afbe6ee22078edb0fbee881f308790d1ef2e2352872aff2e8d712d",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:03:11.613Z",
+          "updatedAt": "2026-10-11T10:03:14.162Z"
+        },
+        {
+          "attemptId": "attempt_7cf837c3-6df0-4d8e-84a1-012b9001cab3",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "881eaba7-3e3c-4c05-96cd-ddfbbdd7c0ec",
+          "queryHash": "a76edd78d4a3e580e0e73e293aac6bc57dd394444822ff51e4393a2056260c61",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:01.109Z",
+          "updatedAt": "2026-10-11T10:04:01.519Z"
+        },
+        {
+          "attemptId": "attempt_8e390694-116a-4461-b4a3-f6654672aeca",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "80f51e7b-44e5-42d4-a09a-041aa54c56aa",
+          "queryHash": "88537e8e4ace991fb5cb6d02a5693f134d3890c923920daeb9405e688d061e86",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:03.314Z",
+          "updatedAt": "2026-10-11T10:04:04.250Z"
+        },
+        {
+          "attemptId": "attempt_3270cc65-0dfe-445f-832b-6be6caefb90e",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "76750c1c-3e54-4a38-bbcb-c2e9de0cd239",
+          "queryHash": "866c1cc30bdf4654491954ff554a380e3f6c36233118338c45ab1c79af8854f6",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:06.091Z",
+          "updatedAt": "2026-10-11T10:04:06.462Z"
+        },
+        {
+          "attemptId": "attempt_56fb2984-7cfc-40a0-9c0a-0da30aa42a5c",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "1e5eaa48-883d-4e85-8b09-2691b84d66a3",
+          "queryHash": "fab1cbf719e56b7c73003ceba6b04edeb002494e509d79c70f54b2f85f9b732b",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:33.644Z",
+          "updatedAt": "2026-10-11T10:04:34.014Z"
+        },
+        {
+          "attemptId": "attempt_c0db2c69-ab29-48c3-9bd6-7063e1f22f7b",
+          "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+          "kind": "exploration",
+          "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+          "invocationId": "844113da-c149-4a4e-af19-af4fcefa5dc1",
+          "queryHash": "7f0735b51f075567337736ac87493046b6b05d3ea273da0f7bb08589928c0552",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T10:04:36.647Z",
+          "updatedAt": "2026-10-11T10:04:36.950Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_885e9109-1a7e-43a9-8e23-c327ab23de2e",
+      "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+      "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+      "resultRef": "result_534d516b-6318-461b-a96f-f80fceb0fccd",
+      "resultSchema": [
+        "driver_name"
+      ],
+      "rowCount": 103,
+      "contentHash": "44d6546a10951099e10727af9950e49cc635c966cdbac014504720ca108978f5",
+      "sql": "WITH appearances AS (SELECT DISTINCT r.year,r.round,re.driver_id,re.constructor_id FROM results re JOIN races r USING(race_id) JOIN status st USING(status_id) WHERE r.year BETWEEN 1950 AND 1959 AND st.status NOT IN ('Did not qualify','Did not prequalify','Did not start','Did not race') AND NOT(st.status='Withdrew' AND COALESCE(re.laps,0)=0)), bounds AS (SELECT year,driver_id,MIN(round) first_round,MAX(round) last_round,COUNT(DISTINCT round) rounds FROM appearances GROUP BY year,driver_id HAVING COUNT(DISTINCT round)>=2), eligible AS (SELECT DISTINCT b.year,b.driver_id,b.first_round,b.last_round,b.rounds,a.constructor_id FROM bounds b JOIN appearances a ON a.year=b.year AND a.driver_id=b.driver_id AND a.round=b.first_round JOIN appearances z ON z.year=b.year AND z.driver_id=b.driver_id AND z.round=b.last_round AND z.constructor_id=a.constructor_id) SELECT d.forename||' '||d.surname driver_name FROM drivers d WHERE EXISTS(SELECT 1 FROM eligible e WHERE e.driver_id=d.driver_id) ORDER BY d.driver_id",
+      "queryHash": "bdfa007ad65a741c9dd69cec01d70740f0a68f2463495b95b046bf891ebff2a3",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_72522da4-c5ea-4391-8bd9-7d921bc5eafd",
+      "createdByInvocationId": "c31092fe-bc1a-4abc-87ba-d9626c9eba33",
+      "createdAt": "2026-10-11T10:01:34.920Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211",
+      "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+      "principalId": "independent-analyst",
+      "sessionId": "local354",
+      "candidateId": "candidate_885e9109-1a7e-43a9-8e23-c327ab23de2e",
+      "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+      "resultRef": "result_534d516b-6318-461b-a96f-f80fceb0fccd",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211?session_id=local354",
+      "contentHash": "44d6546a10951099e10727af9950e49cc635c966cdbac014504720ca108978f5",
+      "presentationContentHash": "5f8e1d94944c09213813f22c63488e85a2cfb368427a1ba8e353ae1e1bd46a69",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：measure.formula, grouping, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 103,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "driver_name",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 103
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "c31092fe-bc1a-4abc-87ba-d9626c9eba33",
+      "requestId": "c31092fe-bc1a-4abc-87ba-d9626c9eba33",
+      "createdAt": "2026-10-11T10:01:34.933Z"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "receiptId": "publication_38a25c9b-658e-4809-871f-d12c67586fb2",
+  "taskId": "task_0ba3fcf4-8dfb-4ae7-999a-7c8e7625f636",
+  "principalId": "independent-analyst",
+  "sessionId": "local061",
+  "candidateId": "candidate_aad2c9e1-58d4-4019-8217-96ca66dda686",
+  "revisionId": "revision_f549fc86-a55e-4732-a6f7-6df60f690eb4",
+  "resultRef": "result_8e819a70-051b-4862-a5b0-8241d43ead6e",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_38a25c9b-658e-4809-871f-d12c67586fb2?session_id=local061",
+  "contentHash": "b3b017f8bd5c846a14ec07123b73de2e0c0a25da9943c28b484d1091ce0066b2",
+  "presentationContentHash": "25beae1daec4dadccb9c29befaf8a8efcd9e9ffe598f6560685f69c1438e7613",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "unknown",
+      "reason": "check_disabled"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "unknown",
+    "snapshotScope": "unbound",
+    "targets": [],
+    "unsupportedReasons": [
+      "check_disabled"
+    ]
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "population.eligibility",
+        "kind": "assumed"
+      },
+      {
+        "path": "population.joinMultiplicity",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.countGrain",
+        "kind": "assumed"
+      },
+      {
+        "path": "measure.denominator",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.joinMultiplicity, measure.countGrain, measure.denominator。 JOIN fanout 检查未能完整完成：check_disabled。",
+    "fanoutStatus": "unknown"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 12,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "month",
+        "kind": "integer",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 12,
+        "min": "1",
+        "max": "12"
+      },
+      {
+        "name": "average_projected_monthly_sales_usd",
+        "kind": "decimal",
+        "encodedAs": "number",
+        "nullCount": 0,
+        "distinctCount": 12,
+        "min": "1392.6",
+        "max": "4054.99"
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "d9c05ea9-3546-40ce-965f-e7cc5e3f13f4",
+  "requestId": "d9c05ea9-3546-40ce-965f-e7cc5e3f13f4",
+  "createdAt": "2026-10-11T09:15:00.998Z"
+}

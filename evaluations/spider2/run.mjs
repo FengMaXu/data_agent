@@ -30,7 +30,7 @@ import {
   sha256Tree,
   validateOfficialEvaluatorSource,
 } from "./lib.mjs";
-import { manifestFromExperiment, resolveExperiment, resolveSemanticSpecMode, resolveSpecInterface, validateExperimentConfig } from "./experiment.mjs";
+import { manifestFromExperiment, resolveExperiment, resolveSemanticSpecMode, validateExperimentConfig } from "./experiment.mjs";
 import { buildEvaluationReport, loadEpisodeRecord, persistScoreRecord } from "./evaluation.mjs";
 import { attemptDirectory, createAttemptDescriptor, createAttemptLayout, writeAttemptStatus } from "./episode.mjs";
 import { openAttemptRecorder, publicationFromReceipt, spanIdForIdentity, summarizeUsage } from "./record.mjs";
@@ -314,10 +314,10 @@ async function prepareKnowledge(instance, config, caseRoot, KnowledgeIndex, Work
   const workspaceRoot = path.join(caseRoot, "workspace");
   const workspaceDocs = path.join(workspaceRoot, "docs");
   await Promise.all([mkdir(knowledgeDoc, { recursive: true }), mkdir(workspaceDocs, { recursive: true })]);
-  const [baseRules, baseSemanticGuide, baseLearning] = await Promise.all([
-    readFile(path.join(projectRoot, "knowledge", "doc", "rules.md"), "utf8").catch(() => ""),
-    readFile(path.join(projectRoot, "knowledge", "doc", "semantic_guide.md"), "utf8").catch(() => ""),
-    readFile(path.join(projectRoot, "knowledge", "doc", "learning.md"), "utf8").catch(() => ""),
+  // Built-in method guides only; the repository knowledge/ holds production-specific documents.
+  const [baseRules, baseSemanticGuide] = await Promise.all([
+    readFile(path.join(projectRoot, ".agents", "knowledge", "doc", "rules.md"), "utf8").catch(() => ""),
+    readFile(path.join(projectRoot, ".agents", "knowledge", "doc", "semantic_guide.md"), "utf8").catch(() => ""),
   ]);
 
   const metadataDir = await resolveMetadataDirectory(config.spider2LiteRoot, instance);
@@ -343,7 +343,7 @@ async function prepareKnowledge(instance, config, caseRoot, KnowledgeIndex, Work
   await writeFile(path.join(knowledgeDoc, "semantic_guide.md"), withKnowledgeMetadata(baseSemanticGuide || "# Semantic Guide\n\nNo semantic guide is configured.\n", { knowledgeId: "semantic-guide", usage: "method", name: "数据分析语义理解指引", description: "用于拆解问题、建立七槽位，并按专题处理总体、连接权重、多级聚合、时间、排名、事件序列和状态歧义；不提供具体业务枚举。" }), "utf8");
   await writeFile(path.join(knowledgeDoc, "rules.md"), withKnowledgeMetadata(buildEvaluationRules(baseRules, instance), { knowledgeId: "sql-rules", usage: "method", name: "SQL 生成规范", description: "用于把当前 Answer Spec 实现为安全、符合目标方言的 SQL，包括聚合、精度、NULL 和方言规则；不负责决定业务口径。" }), "utf8");
   await writeFile(path.join(knowledgeDoc, "query_patterns.md"), withKnowledgeMetadata("# Verified Query Patterns\n\nNo benchmark-specific query patterns are provided.\n", { knowledgeId: "query-patterns", name: "已验证查询模版", description: "提供可复用的查询结构和适用前提；只有当前口径与前提匹配时才能复用。" }), "utf8");
-  await writeFile(path.join(knowledgeDoc, "learning.md"), withKnowledgeMetadata(buildEvaluationLearning(baseLearning), { knowledgeId: "learning-notes", usage: "method", name: "历史纠错与经验", description: "提供历史错误、方言陷阱和可复用经验；证据等级低于用户、业务定义和正式 Schema。" }), "utf8");
+  await writeFile(path.join(knowledgeDoc, "learning.md"), withKnowledgeMetadata(buildEvaluationLearning(""), { knowledgeId: "learning-notes", usage: "method", name: "历史纠错与经验", description: "提供历史错误、方言陷阱和可复用经验；证据等级低于用户、业务定义和正式 Schema。" }), "utf8");
 
   const knowledge = new KnowledgeIndex({ requireMetadata: true });
   await knowledge.loadDirectory(knowledgeRoot);
@@ -709,7 +709,6 @@ async function createCaseRunner(config, runDir, systemPrompt, attemptId = "attem
         ...(specAlignmentAssessor ? { specAlignmentAssessor } : {}),
         ...(queryBudgetPolicy ? { answeringBudgetPolicy: queryBudgetPolicy } : {}),
         semanticSpecMode,
-        ...(resolveSpecInterface(config) === "fields" ? { specInterface: "fields" } : {}),
         enableClarificationTool: config.enableClarificationTool !== false,
         answeringFanout: { enabled: fanoutEnabled },
         // Spider2 external knowledge is task-supplied, not a reviewed business definition.
@@ -943,10 +942,10 @@ async function createCaseRunner(config, runDir, systemPrompt, attemptId = "attem
           explorationQueries: (recorder?.calls ?? []).filter((call) => call.toolName === "query_database" && (call.args?.kind ?? call.args?.mode) === "exploration").length,
           resultQueries: (recorder?.calls ?? []).filter((call) => call.toolName === "query_database" && (call.args?.kind ?? call.args?.mode) === "result").length,
           fanoutProbes: recordedFanoutMetrics.targetCount,
-          revisions: (recorder?.calls ?? []).filter((call) => call.toolName === "revise_answer_spec" || (call.toolName === "set_answer_spec" && call.args?.taskId)).length,
+          revisions: (recorder?.calls ?? []).filter((call) => call.toolName === "set_answer_spec" && call.args?.taskId).length,
         },
         capabilities: {
-          semanticSpec: { configured: true, executed: (recorder?.calls ?? []).some((call) => (semanticSpecMode === "required" ? ["begin_answer_spec", "set_answer_spec"] : ["begin_query_task"]).includes(call.toolName)), coverage: semanticSpecMode },
+          semanticSpec: { configured: true, executed: (recorder?.calls ?? []).some((call) => (semanticSpecMode === "required" ? ["set_answer_spec"] : ["begin_query_task"]).includes(call.toolName)), coverage: semanticSpecMode },
           fanout: { configured: fanoutEnabled, executed: recordedFanoutMetrics.reportCount > 0, coverage: recordedFanoutMetrics.reportCount > 0 ? "observed" : fanoutEnabled ? "not_observed" : "disabled" },
           specFeedback: { configured: specFeedbackConfigured, executed: recordedSpecFeedbackMetrics.enabled, coverage: recordedSpecFeedbackMetrics.enabled ? "observed" : specFeedbackConfigured ? "not_observed" : "disabled" },
         },
@@ -1147,7 +1146,7 @@ async function runCommand(config, options) {
         runtimeSource: path.join(projectRoot, "packages", "runtime", "src"),
         serverBuild: path.join(projectRoot, "apps", "server", "dist"),
         skills: path.join(projectRoot, ".agents", "skills"),
-        knowledge: path.join(projectRoot, "knowledge"),
+        knowledge: path.join(projectRoot, ".agents", "knowledge"),
         toolPromptCatalog: path.join(projectRoot, "packages", "runtime", "src", "agent", "tool-prompt-catalog.ts"),
         runner: fileURLToPath(import.meta.url),
         library: path.join(projectRoot, "evaluations", "spider2", "lib.mjs"),
@@ -1614,7 +1613,6 @@ function usage() {
     "Use `<command> --help` only for this usage text; it never loads credentials or starts work.",
     "`run --continue` keeps an existing attempt; `run --retry` appends a new attempt without replacing canonical evidence.",
     "Use `--semantic-spec-mode required|disabled` only for a pre-registered semantic-spec ablation; disabled keeps Query Task/Candidate/Receipt semantics.",
-    "Use `--spec-interface legacy|fields` for the ADR-0007 A/B; fields replaces begin/revise_answer_spec with set_answer_spec.",
     "Use `--disable-clarification` for both headless A/B arms to remove the blocking clarification tool without changing product defaults.",
   ].join("\n");
 }
@@ -1632,7 +1630,6 @@ async function main() {
   }
   let config = selectModelProfile(await loadConfig(options.config), options.modelProfile);
   if (options.semanticSpecMode) config = { ...config, answering: { ...(config.answering ?? {}), semanticSpecMode: String(options.semanticSpecMode) } };
-  if (options.specInterface) config = { ...config, answering: { ...(config.answering ?? {}), specInterface: String(options.specInterface) } };
   if (options.disableClarification) config = { ...config, enableClarificationTool: false };
   validateExperimentConfig(config);
   if (command === "preflight") await preflightCommand(config, options);

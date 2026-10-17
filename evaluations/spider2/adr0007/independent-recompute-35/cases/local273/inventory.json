@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT i.id,i.product_id,i.location_id,i.purchase_id,p.purchased,i.qty FROM inventory i LEFT JOIN purchases p ON i.purchase_id=p.id ORDER BY i.product_id,p.purchased,i.qty,i.id",
+  "limit": 1000
+}

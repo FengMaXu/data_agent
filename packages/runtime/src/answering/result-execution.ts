@@ -19,14 +19,17 @@ import { makeInternalId } from "./internal-ids.js";
 import { makeAttempt, obstacle, obstacleDetails, reserveAttempt, taskBudget, throwExecutionFailure, updateAttempt } from "./budget.js";
 import { sealForResult } from "./qualification.js";
 import { assertDeliverable } from "./report.js";
-import { equivalentChoiceIds } from "./choice-probe.js";
+import { equivalentPaths, realizationConflicts } from "./probes.js";
 import { candidateCheckFailure, evaluateCandidateCheckReport } from "./candidate-checks.js";
 import { evaluateFanout, fanoutCoverage, fanoutFindings } from "./fanout-execution.js";
 import { specFeedbackCoverage } from "./spec-feedback.js";
 import type { PrivateResultObject } from "./result-store.js";
 import { boundedResult } from "./sql-execution.js";
-import { realizationConflicts } from "./choice-realization.js";
 import { resultFingerprint } from "./result-fingerprint.js";
+import { evaluateSpecRealization } from "./realization-check.js";
+import { entityIdentityCoverage, entityIdentityFindings } from "./entity-identity.js";
+import { calendarCoverageCoverage, calendarCoverageFindings } from "./calendar-coverage.js";
+import { recordDataChecks } from "./data-checks-execution.js";
 import { asRecord, now } from "./support.js";
 import type { AnsweringDeps } from "./deps.js";
 
@@ -92,7 +95,7 @@ async function sealRevision(deps: AnsweringDeps, input: ResultInput, taskId: Tas
     const revision = tx.getRevision(revisionId);
     if (!revision) throw new AnsweringError("REVISION_NOT_FOUND", `Revision ${input.revisionId} was not found`);
     const result = deps.semanticQualificationMode === "required"
-      ? sealForResult(revision, equivalentChoiceIds(revision, currentTask.choiceProbes ?? []))
+      ? sealForResult(revision, equivalentPaths(revision.fields, currentTask.fieldProbes ?? []))
       : {
           ok: true as const,
           revision: {
@@ -104,23 +107,25 @@ async function sealRevision(deps: AnsweringDeps, input: ResultInput, taskId: Tas
     if (!result.ok) {
       const blocked = makeAttempt(taskId, "result", revisionId, context.invocationId, now(), "blocked", "not_started", false, "business_judgment_required", queryHash);
       tx.putAttempt(blocked);
-      const undeclared = "undeclaredDecisionPoints" in result ? result.undeclaredDecisionPoints : [];
-      const pointsText = undeclared.length > 0 ? `; declare decision points: ${undeclared.join(", ")}` : "";
-      const details = obstacle(tx, currentTask, revisionId, "business_judgment_required", `Final query is blocked until all required facets, hypotheses, choices and decision points are handled${pointsText}`, {
+      const parts = [
+        ...(result.undeclared.length > 0 ? [`declare ${result.undeclared.join(", ")}`] : []),
+        ...(result.open.length > 0 ? [`decide or probe the open fields ${result.open.join(", ")}`] : []),
+      ];
+      const details = obstacle(tx, currentTask, revisionId, "business_judgment_required", `Final query is blocked until every required field has a state and no field is left open: ${parts.join("; ")}`, {
         requiresOuterDecision: true,
         retryable: false,
         sqlExecuted: false,
         executionOutcome: "not_started",
         queryHash,
       });
-      return { obstacle: details, unresolvedFacets: result.unresolvedFacets, unresolvedHypotheses: result.unresolvedHypotheses, unresolvedChoices: result.unresolvedChoices, undeclaredDecisionPoints: undeclared } as const;
+      return { obstacle: details, undeclared: result.undeclared, open: result.open } as const;
     }
     const readyRevision: AnswerRevisionRecord = { ...revision, state: result.revision };
     tx.putRevision(readyRevision);
     return { revision: readyRevision } as const;
   }, context);
   if ("obstacle" in sealedOutcome) {
-    throw new AnsweringError("UNRESOLVED_ASSUMPTIONS", sealedOutcome.obstacle.message, obstacleDetails({ unresolvedFacets: sealedOutcome.unresolvedFacets, unresolvedHypotheses: sealedOutcome.unresolvedHypotheses, unresolvedChoices: sealedOutcome.unresolvedChoices, undeclaredDecisionPoints: sealedOutcome.undeclaredDecisionPoints }, sealedOutcome.obstacle));
+    throw new AnsweringError("UNRESOLVED_ASSUMPTIONS", sealedOutcome.obstacle.message, obstacleDetails({ undeclared: sealedOutcome.undeclared, open: sealedOutcome.open }, sealedOutcome.obstacle));
   }
   return sealedOutcome.revision;
 }
@@ -139,7 +144,29 @@ export async function executeResult(
 ): Promise<QueryExecutionView> {
   const taskId = input.taskId as TaskId;
   const queryHash = contentHash(input.sql.trim());
+  // The set call reads the data checks after its Revision commits; a result query that
+  // reaches the Revision first reads them here, so calendar coverage cannot miss the seal.
+  if (deps.semanticQualificationMode === "required") await recordDataChecks(deps, taskId, revisionId, context);
   const sealed = await sealRevision(deps, input, taskId, revisionId, queryHash, context);
+  const realization = evaluateSpecRealization(sealed.fields, input.sql);
+  const unrealized = realization.findings.filter((item) => item.blocking);
+  if (unrealized.length > 0) {
+    // The SQL cannot implement the sealed fields, so it is not run: fix the SQL, or rewrite the field with a reason.
+    const details = await deps.store.transact((tx) => {
+      const current = tx.getTask(taskId);
+      assertTaskAccess(current, context);
+      tx.putAttempt(makeAttempt(taskId, "result", revisionId, context.invocationId, now(), "blocked", "not_started", false, "technical_failure", queryHash));
+      return obstacle(tx, current, revisionId, "technical_failure", `The final SQL does not implement the sealed Answer Spec: ${unrealized.map((item) => item.message).join("; ")}`, {
+        requiresOuterDecision: false,
+        retryable: true,
+        sqlExecuted: false,
+        executionOutcome: "not_started",
+        queryHash,
+        coverage: [realization.coverage],
+      });
+    }, context);
+    throw new AnsweringError("SPEC_NOT_REALIZED", details.message, obstacleDetails({ findings: realization.findings, verdicts: realization.verdicts }, details));
+  }
 
   const memo = resultExecutionMemo(await context.memo?.get("answering.result-execution"));
   if (memo && (memo.taskId !== input.taskId || memo.revisionId !== input.revisionId || memo.queryHash !== queryHash)) {
@@ -248,7 +275,7 @@ export async function executeResult(
     return throwExecutionFailure(deps.store, taskId, revisionId, attempt, error, sqlStarted, queryHash, context);
   }
 
-  const checkReport = evaluateCandidateCheckReport({ spec: sealed.spec, result: privateResult, queryHash });
+  const checkReport = evaluateCandidateCheckReport({ fields: sealed.fields, result: privateResult, queryHash });
   const failure = candidateCheckFailure(checkReport.findings);
   if (failure) {
     await deps.resultStore.discard(privateResult.resultRef, context);
@@ -269,14 +296,14 @@ export async function executeResult(
     throw new AnsweringError("CANDIDATE_CHECK_FAILED", details.message, obstacleDetails({ findings: checkReport.findings, coverage: checkReport.coverage }, details));
   }
 
-  if (deps.choiceProbes) {
+  if (deps.fieldProbes) {
     // ADR-0005: the delivered result must not be the output of an alternative the Revision did not adopt.
     const fingerprint = resultFingerprint(privateResult.columns, privateResult.rows);
-    const probes = await deps.store.transact((tx) => tx.getTask(taskId)?.choiceProbes ?? [], context);
-    const conflicts = realizationConflicts(sealed, probes, fingerprint);
+    const probes = await deps.store.transact((tx) => tx.getTask(taskId)?.fieldProbes ?? [], context);
+    const conflicts = realizationConflicts(sealed.fields, probes, fingerprint);
     if (conflicts.length > 0) {
       await deps.resultStore.discard(privateResult.resultRef, context);
-      const explanation = conflicts.map((conflict) => `Choice ${conflict.choiceId} adopted ${conflict.adoptedAlternativeId}, but the result equals the probe output of ${conflict.realizedAlternativeId}`).join("; ");
+      const explanation = conflicts.map((conflict) => `${conflict.path} adopted ${conflict.adoptedAlternativeId}, but the result equals the probe output of ${conflict.realizedAlternativeId}`).join("; ");
       const details = await deps.store.transact((tx) => {
         const current = tx.getTask(taskId);
         assertTaskAccess(current, context);
@@ -289,13 +316,14 @@ export async function executeResult(
           queryHash,
         });
       }, context);
-      throw new AnsweringError("CHOICE_NOT_REALIZED", details.message, obstacleDetails({ conflicts }, details));
+      throw new AnsweringError("DECISION_NOT_REALIZED", details.message, obstacleDetails({ conflicts }, details));
     }
   }
 
   const fanout = await evaluateFanout(deps, taskId, revisionId, queryHash, input.sql.trim(), context);
-  const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, fanoutCoverage(fanout)];
-  const combinedFindings = [...checkReport.findings, ...fanoutFindings(fanout)];
+  // Entity identity and calendar coverage were read when the Revision committed; the sealed fields decide whether its findings still apply.
+  const combinedCoverage: readonly CheckCoverage[] = [...checkReport.coverage, realization.coverage, fanoutCoverage(fanout), entityIdentityCoverage(sealed.entityIdentity), calendarCoverageCoverage(sealed.calendarCoverage)];
+  const combinedFindings = [...checkReport.findings, ...realization.findings, ...fanoutFindings(fanout), ...entityIdentityFindings(sealed.entityIdentity), ...calendarCoverageFindings(sealed.calendarCoverage)];
 
   const budgetAfterResult = await deps.store.transact((tx) => {
     const current = tx.getTask(taskId);

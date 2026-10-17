@@ -1,0 +1,166 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_0c7b1044-a252-4109-a6fc-df88b83021e9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ninsert_date | city_name\n2021-07-12 | Gaotan\n2021-07-13 | Yaopu\n2021-07-19 | Bakeshiyingcun\n2021-07-20 | Nanyang\n2021-07-21 | Chengjiao chengguanzhen\n2021-07-22 | Hanzhong\n2021-07-23 | Lanxi\n2021-07-24 | Huichang\n2021-07-25 | Beichengqu\n2021-07-26 | Xinqing\n2021-07-27 | Dangcheng\n2021-07-28 | Bengbu\n2021-07-29 | Hushihacun\n2021-07-30 | Shuilou\n2021-07-31 | Xihuachi"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_0c7b1044-a252-4109-a6fc-df88b83021e9",
+      "preview": {
+        "columns": [
+          "insert_date",
+          "city_name"
+        ],
+        "rows": [
+          [
+            "2021-07-12",
+            "Gaotan"
+          ],
+          [
+            "2021-07-13",
+            "Yaopu"
+          ],
+          [
+            "2021-07-19",
+            "Bakeshiyingcun"
+          ],
+          [
+            "2021-07-20",
+            "Nanyang"
+          ],
+          [
+            "2021-07-21",
+            "Chengjiao chengguanzhen"
+          ],
+          [
+            "2021-07-22",
+            "Hanzhong"
+          ],
+          [
+            "2021-07-23",
+            "Lanxi"
+          ],
+          [
+            "2021-07-24",
+            "Huichang"
+          ],
+          [
+            "2021-07-25",
+            "Beichengqu"
+          ],
+          [
+            "2021-07-26",
+            "Xinqing"
+          ],
+          [
+            "2021-07-27",
+            "Dangcheng"
+          ],
+          [
+            "2021-07-28",
+            "Bengbu"
+          ],
+          [
+            "2021-07-29",
+            "Hushihacun"
+          ],
+          [
+            "2021-07-30",
+            "Shuilou"
+          ],
+          [
+            "2021-07-31",
+            "Xihuachi"
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT"
+        ],
+        "rowCount": 15,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "insert_date",
+        "city_name"
+      ],
+      "rows": [
+        [
+          "2021-07-12",
+          "Gaotan"
+        ],
+        [
+          "2021-07-13",
+          "Yaopu"
+        ],
+        [
+          "2021-07-19",
+          "Bakeshiyingcun"
+        ],
+        [
+          "2021-07-20",
+          "Nanyang"
+        ],
+        [
+          "2021-07-21",
+          "Chengjiao chengguanzhen"
+        ],
+        [
+          "2021-07-22",
+          "Hanzhong"
+        ],
+        [
+          "2021-07-23",
+          "Lanxi"
+        ],
+        [
+          "2021-07-24",
+          "Huichang"
+        ],
+        [
+          "2021-07-25",
+          "Beichengqu"
+        ],
+        [
+          "2021-07-26",
+          "Xinqing"
+        ],
+        [
+          "2021-07-27",
+          "Dangcheng"
+        ],
+        [
+          "2021-07-28",
+          "Bengbu"
+        ],
+        [
+          "2021-07-29",
+          "Hushihacun"
+        ],
+        [
+          "2021-07-30",
+          "Shuilou"
+        ],
+        [
+          "2021-07-31",
+          "Xihuachi"
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT"
+      ],
+      "rowCount": 15,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_941806fc-9b81-4320-bf14-7352ceb0548e"
+  }
+}
+

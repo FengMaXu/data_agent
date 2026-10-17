@@ -1,0 +1,141 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_0af94b97-407e-4bcb-ae3e-8af81e439b38\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmonth | payments | customers | total | min_amount | max_amount\n2005-05 | 1157 | 520 | 4824.43 | 0.99 | 11.99\n2005-06 | 2312 | 590 | 9631.880000000001 | 0.99 | 11.99\n2005-07 | 6711 | 599 | 28373.89 | 0.99 | 11.99\n2005-08 | 5687 | 599 | 24072.13 | 0.99 | 11.99\n2006-02 | 182 | 158 | 514.1800000000001 | 0 | 9.98"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_0af94b97-407e-4bcb-ae3e-8af81e439b38",
+      "preview": {
+        "columns": [
+          "month",
+          "payments",
+          "customers",
+          "total",
+          "min_amount",
+          "max_amount"
+        ],
+        "rows": [
+          [
+            "2005-05",
+            1157,
+            520,
+            4824.43,
+            0.99,
+            11.99
+          ],
+          [
+            "2005-06",
+            2312,
+            590,
+            9631.880000000001,
+            0.99,
+            11.99
+          ],
+          [
+            "2005-07",
+            6711,
+            599,
+            28373.89,
+            0.99,
+            11.99
+          ],
+          [
+            "2005-08",
+            5687,
+            599,
+            24072.13,
+            0.99,
+            11.99
+          ],
+          [
+            "2006-02",
+            182,
+            158,
+            514.1800000000001,
+            0,
+            9.98
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "REAL",
+          "REAL",
+          "REAL"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "month",
+        "payments",
+        "customers",
+        "total",
+        "min_amount",
+        "max_amount"
+      ],
+      "rows": [
+        [
+          "2005-05",
+          1157,
+          520,
+          4824.43,
+          0.99,
+          11.99
+        ],
+        [
+          "2005-06",
+          2312,
+          590,
+          9631.880000000001,
+          0.99,
+          11.99
+        ],
+        [
+          "2005-07",
+          6711,
+          599,
+          28373.89,
+          0.99,
+          11.99
+        ],
+        [
+          "2005-08",
+          5687,
+          599,
+          24072.13,
+          0.99,
+          11.99
+        ],
+        [
+          "2006-02",
+          182,
+          158,
+          514.1800000000001,
+          0,
+          9.98
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "REAL",
+        "REAL",
+        "REAL"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_d7973a9c-34bc-4b36-a844-b869ae4ed2d3"
+  }
+}

@@ -13,11 +13,11 @@ One database-answering request with its own identity, Answer Spec version chain,
 _Avoid_: Session, tool call
 
 **Report Task**:
-A Query Task that holds the fields every chart query of one report or dashboard shares — entity, population, time, source and named metric definitions — and never runs a result query or publishes itself (ADR-0009).
+A Query Task that holds the fields every chart query of one report or dashboard shares — the population fields and named measure definitions — and never runs a result query or publishes itself (ADR-0009).
 _Avoid_: Parent spec, dashboard task
 
 **Chart Query**:
-A Query Task bound to one Revision of a Report Task. It inherits the shared fields, declares only its own (metric reference, grouping, ranking, output shape), and delivers only while that Revision is current and handled. A change to an inherited field is a recorded, disclosed deviation.
+A Query Task bound to one Revision of a Report Task. It inherits the shared fields, declares only its own (measure reference, grouping, selection, output), and delivers only while that Revision is current and handled. A change to an inherited field is a recorded, disclosed deviation.
 _Avoid_: Child spec, sub-query
 
 **Query Assurance**:
@@ -25,7 +25,7 @@ The process that prepares semantic evidence, detects and informs about candidate
 _Avoid_: SQL validation, export gate
 
 **Answer Spec**:
-A versioned interpretation of the requested answer containing Hard Constraints, Hypotheses, and Ambiguities. It is evidence-scoped rather than an assertion of absolute correctness.
+A versioned interpretation of the requested answer, written as fields on one tree in calculation order: population, measure, grouping, selection and output (ADR-0007). It is evidence-scoped rather than an assertion of absolute correctness.
 _Avoid_: Frozen contract, planner answer
 
 **Hard Constraint**:
@@ -36,13 +36,17 @@ _Avoid_: Assumption, guess
 An unambiguous property established by formal schema evidence or the observed result shape, without requiring a business interpretation.
 _Avoid_: Business rule, inferred grain
 
-**Hypothesis**:
-A provisional semantic interpretation with stated evidence and confidence that requires validation before it can become a Hard Constraint.
-_Avoid_: Rule, fact
+**Answer Spec Field**:
+One node of the Answer Spec tree, addressed by path (such as `population.eligibility` or `measure.formula`). A field is not applicable, holds a value with a basis, or is open between alternatives until it is decided. A field changes only with a recorded reason, except when an open field is decided.
+_Avoid_: Slot, facet, decision point
 
-**Hypothesis Handling Status**:
-A Runtime-derived binary lifecycle label. `unhandled` means the hypothesis has no qualifying Verification, rejection, user confirmation, or qualifying selected provisional Decision, and it stays `unhandled` across Revisions until a Disposition or Supersession handles it; every other disposition is `handled`. A material population tie ordered only for reproducibility is not a qualifying selection. The label is not model-writable and does not assert semantic correctness.
-_Avoid_: Solver acknowledgment, verified flag
+**Field Basis**:
+What a field value rests on, decided by the Runtime: evidence when cited evidence qualifies for the field's layer, otherwise an assumption that is disclosed at publication. Semantic fields accept request wording, business documents and user confirmation; physical fields accept schema facts, business documents and observations.
+_Avoid_: Confidence, source label
+
+**Hypothesis**:
+A provisional semantic interpretation with stated evidence and confidence that requires validation before it can become a Hard Constraint. In the Answer Spec it is an assumed field value or one alternative of an open field.
+_Avoid_: Rule, fact
 
 **Observation Evidence Handle**:
 An opaque, task-scoped identifier returned for a Runtime-registered exploration Query Artifact. It can bind an observed phenomenon to a Claim or Decision, but observed data alone cannot establish the intended business interpretation.
@@ -53,7 +57,7 @@ A normalized per-alternative inventory of stable assumption identifiers grouped 
 _Avoid_: Confidence score, model rationale
 
 **Material Population Decision**:
-A material interpretation choice that changes entity eligibility or a downstream denominator. If substantive selection stages remain tied, stable ordering may order alternatives but cannot select one or mark its Hypothesis handled.
+A material interpretation choice that changes who is counted (`population.entity`, `population.eligibility`, `population.conditions`). While the user can still be asked, it is not settled by an unverified decision, and eligibility is not settled by an assumption.
 _Avoid_: Filter warning, row-count anomaly
 
 **Ambiguity**:
@@ -116,53 +120,65 @@ _Avoid_: Validation error, SQL error
 The Runtime role that versions an Answer Spec, applies every state transition to a copy of the current Revision, and admits evidence. A solver drafts the initial Spec and proposes deltas, but never replaces the Revision state or decides evidence authority (ADR-0004).
 _Avoid_: Planner, spec editor
 
-**Spec Change Proposal**:
-A solver-submitted revision delta: a facet patch, new Hypotheses or Choices, Dispositions of existing items, and evidence to admit. Anything it omits carries forward unchanged.
+**Field Write**:
+A solver-submitted write of fields by path. The Runtime checks and applies each path on its own; the applied paths land as one Revision and anything not written carries forward unchanged.
 _Avoid_: Spec update, contract rewrite, full proposal
 
-**Disposition**:
-An explicit Runtime-applied handling of an existing Hypothesis or Choice: support or refute a Hypothesis with qualifying evidence, decide a Choice, mark a Choice equivalent, or Supersession. Omission is never a Disposition.
-_Avoid_: Dropping, resubmission
-
-**Supersession**:
-The only way an item leaves an Answer Spec Revision: named replacements that together cover every facet the item affected, with a recorded reason. Replacements carry the obligation forward.
-_Avoid_: Deletion, cleanup
+**Field Rewrite**:
+The only way a field that already has a state changes, other than deciding an open field: a new state with a recorded reason. Nothing leaves a Revision by omission.
+_Avoid_: Deletion, cleanup, supersession
 
 **Evidence Admission**:
 The Runtime check that binds text evidence to a trusted source and verifies its quote verbatim before registration. Request wording binds to the task's request, a user confirmation to a later user message supplied by the Host, and documents only to composition-authorized knowledge ids whose authority the composition root configures. Admission proves the text exists, not that it supports a proposition.
 _Avoid_: Citation, self-reported source
 
-**Inferred Facet**:
-A specified Answer Spec facet whose basis is model inference rather than a Hypothesis or admitted evidence. It does not block a result query and is disclosed at publication.
-_Avoid_: Request-backed facet, assumption-free facet
+**Assumed Field**:
+A field whose value no qualifying evidence settles. It does not block a result query and is disclosed at publication.
+_Avoid_: Inferred facet, guess
 
-**Choice Decision**:
-The single model-facing way to settle a Choice: an alternative plus a rationale and optional evidence. The Runtime records it as verified (selected) when the cited evidence qualifies the alternative, otherwise as unverified (provisional) and disclosed. An unverified decision on the material population is accepted only when the session has no clarification path.
+**Field Decision**:
+The single model-facing way to settle an open field: one of its alternatives plus a rationale and optional evidence. The Runtime records it as verified when the cited evidence qualifies, otherwise as unverified and disclosed. An unverified decision on the material population is accepted only when the session has no clarification path.
 _Avoid_: Select vs provisional choice, tentative selection
 
-**Choice Probe**:
-One exploration run as a Choice alternative, computing the final output under that alternative. The Runtime records its Result Fingerprint on the Query Task; a Choice is decided only after every alternative has a probe or a declared waiver.
+**Probe**:
+One exploration run as an alternative of an open field, computing the final output under that alternative. The Runtime records its Result Fingerprint on the Query Task; an open field is decided only after every alternative has a probe or a declared waiver. A probe counts only while every other field holds the state it ran under; changing another field makes it stale.
 _Avoid_: Sample query, alternative preview
 
 **Result Fingerprint**:
 Output identity that ignores column names, column order and row order and compares numbers at two decimals. Equal fingerprints mean two queries give the same answer.
 _Avoid_: Result hash, content hash
 
-**Equivalent Choice**:
-A Choice whose every alternative produced the same Result Fingerprint. It is resolved as equivalent without rationale, advice or disclosure.
+**Equivalent Field**:
+An open field whose every alternative produced the same Result Fingerprint. It counts as handled without a decision, advice or disclosure.
 _Avoid_: Trivial choice, ignored ambiguity
 
-**Advisory Ledger**:
-The Runtime's record of the latest compare_hypotheses advice per Choice. A decision that departs from the advice's clear lean must carry an override reason and evidence; the advice itself is never evidence.
+**Field Advice**:
+The Runtime's record, on the Query Task, of the comparison advisor's latest advice per open field. The Runtime asks for it once every alternative's output is known under the current other fields and the outputs differ; it applies only to the alternatives and probe outputs it compared. A decision that departs from the advice's clear lean must carry an override reason and evidence that qualifies for the field (observations never outweigh a lean on a semantic field); the advice itself is never evidence. When the advisor fails, the outage is recorded and asked again after a minute; the field may then be decided without advice, and the publication discloses it. When the advisor answers but favours no alternative, the request does not settle the field: while the user can be asked, the decision must cite the user's answer or a business document (request wording is not enough, the advisor already read it); without a clarification path the decision is recorded as undecided and disclosed. An open field that needs advice cannot be replaced by an assumption, only decided, settled by qualifying evidence, or reopened.
 _Avoid_: Advice cache, recommendation store
 
-**Choice Realization**:
-The requirement that a result does not reproduce the probe output of an alternative the Revision did not adopt. A result that does is rejected as CHOICE_NOT_REALIZED.
+**Decision Realization**:
+The requirement that a result does not reproduce the probe output of an alternative the Revision did not adopt. A result that does is rejected as DECISION_NOT_REALIZED.
 _Avoid_: Choice consistency check
 
-**Decision Point**:
-One of eight fixed decisions every query makes (population, join multiplicity, time field, count grain, denominator, window, ties, output shape). Each is declared as fixed by the request, not applicable, decided by a Choice or assumed by a Hypothesis before a result query.
-_Avoid_: Checklist item, ambiguity category
+**Spec Realization**:
+The check that the final SQL implements the sealed fields, read from the fields and the SQL text only. A conflict no correct implementation can have (a row cap that differs from `selection.n`, a cap that drops ties the Spec keeps, a percentage or percentage-point difference never multiplied by 100) rejects the SQL before it runs as SPEC_NOT_REALIZED; a likely conflict is disclosed with the result. It judges implementation, never whether the meaning is right.
+_Avoid_: SQL review, query digest
+
+**Entity Identity Check**:
+The Runtime's count of rows, distinct rows and distinct declared keys of each source in `population.source`, taken when a Revision with a settled entity and source commits. It reports a counted key that is not unique and exact duplicate rows; whether a duplicate is one entity or a separate one stays a Spec decision. Exact duplicate rows are a data-quality fact (ADR-0007 待定 5): rows are counted as stored unless the request or a business document says a repeated row is the same entity. Findings are shown with the Revision and disclosed with the result, never blocking.
+_Avoid_: Deduplication rule, data quality verdict
+
+**Calendar Coverage**:
+The Runtime's list of the periods the time field actually has inside `population.time`, at the answer's year, quarter, month or day grain, read when a Revision commits. Periods without data make `population.missing` a required field and are disclosed with the result; how an absent period counts stays a Spec decision.
+_Avoid_: Gap filling, zero-fill rule
+
+**Requirement Phrase**:
+A phrase of the original request, copied verbatim, that constrains the answer, with its role (population, scope, computation, selection or time). A model that reads only the request lists them; the Runtime keeps only phrases found verbatim; the Spec feedback assessor, a decision model, judges each as expressed, contradicted or missing in the Spec's field claims. The judgment is advisory and disclosed, never evidence.
+_Avoid_: Reviewer finding, requirement checklist
+
+**Necessity Rule**:
+The rule that says which fields must have a state before a result query: eight always, and the measure sub-fields, `selection.ties` and `population.joinMultiplicity` when the formula, selection or source call for them, and `population.missing` when Calendar Coverage finds periods without data (ADR-0007). Not applicable is a state.
+_Avoid_: Checklist item, decision point
 
 **Business Definition Proposal**:
 A candidate cross-task business rule produced from user correction or task evidence that requires business review before becoming authoritative.
@@ -267,3 +283,19 @@ _Avoid_: Metadata override, field config
 **Presentation Notice**:
 A record of how a chart presents its data: a layout adjustment, a viewport, or a declared data selection. It is delivered with the chart and recomputed on refresh, export or resize. It is distinct from Disclosure, which records unresolved observations about the published result; both are shown together at delivery.
 _Avoid_: Disclosure, chart warning
+
+**Channel**:
+An adapter for one external platform or trigger source (an IM, a scheduler, an MCP Events server) that turns its inbound events into Submissions and renders Deliverables back. It speaks only the versioned protocol and never reaches Answering, tools or the agent harness (ADR-0011).
+_Avoid_: Gateway, bot, integration
+
+**Submission**:
+The single inbound shape a Channel hands the Runtime: a deduplicated request id, a Conversation Address, a verified actor and a body: an input, a clarification answer, a new-conversation request or an access decision (ADR-0011 decision 2).
+_Avoid_: Message, webhook payload
+
+**Conversation Address**:
+Where a conversation lives on a Channel (tenant, chat, optional thread) and who can see it there (direct or group). One Address holds one Session per speaking user; Sessions keep a single owner.
+_Avoid_: Chat id, channel session
+
+**Deliverable**:
+What may leave the system through a Channel: a Question, a Publication delivery (by Receipt), a Dashboard delivery, an Access Request or a Notice (ADR-0011 decision 3). Deliverables are persisted before delivery and keyed for idempotency; run progress is not a Deliverable and may be dropped.
+_Avoid_: Outbound message, notification

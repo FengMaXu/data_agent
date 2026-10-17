@@ -1,0 +1,85 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_6978894b-617b-4cea-bcbe-988eab270e9b\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nmetric | n\nproduct_rows | 32951\nproduct_keys | 32951\ntranslation_rows | 71\ntranslation_keys | 71\nreview_duplicate_order | 547"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_6978894b-617b-4cea-bcbe-988eab270e9b",
+      "preview": {
+        "columns": [
+          "metric",
+          "n"
+        ],
+        "rows": [
+          [
+            "product_rows",
+            32951
+          ],
+          [
+            "product_keys",
+            32951
+          ],
+          [
+            "translation_rows",
+            71
+          ],
+          [
+            "translation_keys",
+            71
+          ],
+          [
+            "review_duplicate_order",
+            547
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER"
+        ],
+        "rowCount": 5,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "metric",
+        "n"
+      ],
+      "rows": [
+        [
+          "product_rows",
+          32951
+        ],
+        [
+          "product_keys",
+          32951
+        ],
+        [
+          "translation_rows",
+          71
+        ],
+        [
+          "translation_keys",
+          71
+        ],
+        [
+          "review_duplicate_order",
+          547
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER"
+      ],
+      "rowCount": 5,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_64c3fe47-6cdd-4f1e-a198-86968eda126c"
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_8173ae4f-ffc7-4733-ac83-ea4c73822760\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\ntree_id | n | zips | boroughs\n722568 | 2 | 1 | 1\n722516 | 2 | 1 | 1\n722222 | 2 | 1 | 1\n722026 | 2 | 1 | 1\n721992 | 2 | 1 | 1\n721447 | 2 | 1 | 1\n721309 | 2 | 1 | 1\n721245 | 2 | 1 | 1\n720785 | 2 | 1 | 1\n720739 | 2 | 1 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_8173ae4f-ffc7-4733-ac83-ea4c73822760",
+      "preview": {
+        "columns": [
+          "tree_id",
+          "n",
+          "zips",
+          "boroughs"
+        ],
+        "rows": [
+          [
+            722568,
+            2,
+            1,
+            1
+          ],
+          [
+            722516,
+            2,
+            1,
+            1
+          ],
+          [
+            722222,
+            2,
+            1,
+            1
+          ],
+          [
+            722026,
+            2,
+            1,
+            1
+          ],
+          [
+            721992,
+            2,
+            1,
+            1
+          ],
+          [
+            721447,
+            2,
+            1,
+            1
+          ],
+          [
+            721309,
+            2,
+            1,
+            1
+          ],
+          [
+            721245,
+            2,
+            1,
+            1
+          ],
+          [
+            720785,
+            2,
+            1,
+            1
+          ],
+          [
+            720739,
+            2,
+            1,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 10,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "tree_id",
+        "n",
+        "zips",
+        "boroughs"
+      ],
+      "rows": [
+        [
+          722568,
+          2,
+          1,
+          1
+        ],
+        [
+          722516,
+          2,
+          1,
+          1
+        ],
+        [
+          722222,
+          2,
+          1,
+          1
+        ],
+        [
+          722026,
+          2,
+          1,
+          1
+        ],
+        [
+          721992,
+          2,
+          1,
+          1
+        ],
+        [
+          721447,
+          2,
+          1,
+          1
+        ],
+        [
+          721309,
+          2,
+          1,
+          1
+        ],
+        [
+          721245,
+          2,
+          1,
+          1
+        ],
+        [
+          720785,
+          2,
+          1,
+          1
+        ],
+        [
+          720739,
+          2,
+          1,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 10,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_81a32b88-f543-44cd-996d-be1a374482dc"
+  }
+}

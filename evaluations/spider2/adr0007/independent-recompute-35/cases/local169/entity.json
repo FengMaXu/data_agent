@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "legislators by id_bioguide",
+      "basis": "request",
+      "quote": "legislators"
+    }
+  }
+}

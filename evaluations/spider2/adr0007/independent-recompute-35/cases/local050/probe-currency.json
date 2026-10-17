@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT country,year,month,to_us FROM currency WHERE lower(country)='france' ORDER BY year,month",
+  "limit": 100
+}

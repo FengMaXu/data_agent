@@ -1,0 +1,174 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[ANSWER_SPEC_SET] taskId=task_53526653-c12b-4beb-b91e-4b7ca4b90a74 revisionId=revision_3d451437-31f3-4d1c-ac2e-4797f43872e1\n- ✓ population.eligibility\n- ✓ population.conditions\n- ✓ population.time\n- ✓ measure.formula\n- ✓ measure.countGrain\n- ✓ measure.denominator\n- ✓ grouping\n- ✓ selection\n- ✓ selection.ties\n- ✓ output\n状态：\n- 未证实（发布时披露）: population.eligibility, measure.formula, measure.countGrain, measure.denominator, selection.ties\n- 没有待处理的字段，可以执行结果查询\n[SPEC_FEEDBACK] revisionId=revision_3d451437-31f3-4d1c-ac2e-4797f43872e1 status=disabled advisory_only=true\nreason: spec_alignment_assessor_not_configured\n以上是模型建议，不是证据或修订授权；请结合原题和已有依据处理。\n{\"population.entity\":{\"status\":\"request\",\"value\":{\"name\":\"远程Data Analyst职位发布，job_id\"}},\"population.eligibility\":{\"status\":\"assumed\",\"value\":\"Distinct postings with exact Data Analyst short title, non-null salary_year_avg, remote=1; then require at least one of top3 skills\"},\"population.conditions\":{\"status\":\"request\",\"value\":[\"job_title_short='Data Analyst'\",\"salary_year_avg IS NOT NULL\",\"job_work_from_home=1\"]},\"population.time\":{\"status\":\"not_applicable\"},\"measure.formula\":{\"status\":\"assumed\",\"value\":{\"op\":\"avg\",\"of\":\"salary_year_avg\"}},\"measure.countGrain\":{\"status\":\"assumed\",\"value\":\"each distinct job_id exactly once\"},\"measure.denominator\":{\"status\":\"assumed\",\"value\":\"number of distinct eligible jobs requiring at least one selected top3 skill; empty set gives NULL\"},\"grouping\":{\"status\":\"not_applicable\"},\"selection\":{\"status\":\"request\",\"value\":{\"n\":3,\"orderBy\":\"skill demand DESC, skill_id ASC\"}},\"selection.ties\":{\"status\":\"assumed\",\"value\":\"strict\"},\"output\":{\"status\":\"request\",\"value\":{\"rowMode\":\"scalar\",\"columns\":[\"overall_average_salary\"]}}}"
+    }
+  ],
+  "details": {
+    "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+    "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+    "parentRevisionId": "revision_65a7c6d9-3acc-4263-9140-59d3921d74b6",
+    "fields": [
+      {
+        "path": "population.entity",
+        "status": "request",
+        "value": {
+          "name": "远程Data Analyst职位发布，job_id"
+        },
+        "evidenceIds": [
+          "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d"
+        ]
+      },
+      {
+        "path": "population.eligibility",
+        "status": "assumed",
+        "value": "Distinct postings with exact Data Analyst short title, non-null salary_year_avg, remote=1; then require at least one of top3 skills",
+        "rationale": "Salary is per posting, OR of selected skills; ranking within same eligible cohort"
+      },
+      {
+        "path": "population.conditions",
+        "status": "request",
+        "value": [
+          "job_title_short='Data Analyst'",
+          "salary_year_avg IS NOT NULL",
+          "job_work_from_home=1"
+        ],
+        "evidenceIds": [
+          "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2"
+        ]
+      },
+      {
+        "path": "population.time",
+        "status": "not_applicable"
+      },
+      {
+        "path": "measure.formula",
+        "status": "assumed",
+        "value": {
+          "op": "avg",
+          "of": "salary_year_avg"
+        },
+        "rationale": "Overall average of distinct jobs requesting any selected skill"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "assumed",
+        "value": "each distinct job_id exactly once"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "assumed",
+        "value": "number of distinct eligible jobs requiring at least one selected top3 skill; empty set gives NULL"
+      },
+      {
+        "path": "grouping",
+        "status": "not_applicable"
+      },
+      {
+        "path": "selection",
+        "status": "request",
+        "value": {
+          "n": 3,
+          "orderBy": "skill demand DESC, skill_id ASC"
+        },
+        "evidenceIds": [
+          "evidence_f7981831-035f-4e25-b5da-543b6ce6f393"
+        ]
+      },
+      {
+        "path": "selection.ties",
+        "status": "assumed",
+        "value": "strict"
+      },
+      {
+        "path": "output",
+        "status": "request",
+        "value": {
+          "rowMode": "scalar",
+          "columns": [
+            "overall_average_salary"
+          ]
+        },
+        "evidenceIds": [
+          "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+        ]
+      }
+    ],
+    "undeclared": [],
+    "open": [],
+    "unverified": [
+      "population.eligibility",
+      "measure.formula",
+      "measure.countGrain",
+      "measure.denominator",
+      "selection.ties"
+    ],
+    "specFeedback": {
+      "taskId": "task_53526653-c12b-4beb-b91e-4b7ca4b90a74",
+      "revisionId": "revision_3d451437-31f3-4d1c-ac2e-4797f43872e1",
+      "ruleVersion": "spec-feedback-v2",
+      "status": "disabled",
+      "deterministicIssues": [],
+      "evidenceIds": [
+        "request_be3e2f2bd519d830902bceb0",
+        "evidence_69cf6f90-c0f4-4da2-a2ce-f1ecb82f8f9d",
+        "evidence_3391c05d-a76f-43eb-87c8-82aaf66ac6ee",
+        "evidence_67fd3550-aff8-490e-9844-e0f2f20fa362",
+        "evidence_345b2053-dd93-4b42-aa6d-eabb60ad9106",
+        "evidence_3cf8ae5c-cfa4-4b5e-8845-7dbceb10fadc",
+        "evidence_bb7a3d63-8dcf-4f5f-8ef6-59bf4085482d",
+        "evidence_2742df99-947c-4373-be20-2b068a9fdc03",
+        "evidence_420ac883-ee01-4c6e-9853-6e30c0971326",
+        "evidence_bead62ca-7845-4112-b4fe-a3e97409f2ce",
+        "evidence_a31c84bb-85e2-40ae-8b84-ecbb25a826d2",
+        "evidence_f7981831-035f-4e25-b5da-543b6ce6f393",
+        "evidence_a61ee7db-c1be-4926-8a40-573cea1a1dce"
+      ],
+      "limitations": [],
+      "reason": "spec_alignment_assessor_not_configured"
+    },
+    "outcomes": [
+      {
+        "path": "population.eligibility",
+        "status": "applied"
+      },
+      {
+        "path": "population.conditions",
+        "status": "applied"
+      },
+      {
+        "path": "population.time",
+        "status": "applied"
+      },
+      {
+        "path": "measure.formula",
+        "status": "applied"
+      },
+      {
+        "path": "measure.countGrain",
+        "status": "applied"
+      },
+      {
+        "path": "measure.denominator",
+        "status": "applied"
+      },
+      {
+        "path": "grouping",
+        "status": "applied"
+      },
+      {
+        "path": "selection",
+        "status": "applied"
+      },
+      {
+        "path": "selection.ties",
+        "status": "applied"
+      },
+      {
+        "path": "output",
+        "status": "applied"
+      }
+    ]
+  }
+}

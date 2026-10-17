@@ -1,0 +1,90 @@
+{
+  "scope": 35,
+  "actual_query_count": 378,
+  "initial_freezes_before_reveal": 35,
+  "case_primary_quotes_checked": 135,
+  "additional_original_field_quotes_checked": 33,
+  "original_field_declarations_verified": 35,
+  "original_csv_score_replay_agreement": "35/35",
+  "independent_initial_csv_scores": {
+    "pass": 1,
+    "fail": 34
+  },
+  "published_result_objects_integrity_verified": 36,
+  "errors": [],
+  "database_access_in_final_validation": false,
+  "runner_modified": false,
+  "source_run_modified": false,
+  "validation_author": "parent agent; historical fresh reviewer covered25 then-present analyses, not claimed final35 independent review",
+  "blindness_limits": [
+    "Per-case freeze/reveal chronology verified, not a full access log.",
+    "local061 had related local050 Gold prior knowledge; parent previously read historical dossiers.",
+    "This is an independent implementation/empirical investigation, not zero-prior controlled blind A/B."
+  ],
+  "database_metadata": {
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/E_commerce.sqlite": {
+      "size_bytes": 112701440,
+      "mtime_ns": 1726598978000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/Airlines.sqlite": {
+      "size_bytes": 109531136,
+      "mtime_ns": 1726598977000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/Brazilian_E_Commerce.sqlite": {
+      "size_bytes": 114589696,
+      "mtime_ns": 1726598977000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/modern_data.sqlite": {
+      "size_bytes": 105943040,
+      "mtime_ns": 1787844679241037500
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/complex_oracle.sqlite": {
+      "size_bytes": 54472704,
+      "mtime_ns": 1726598979000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/SQLITE_SAKILA.sqlite": {
+      "size_bytes": 5828608,
+      "mtime_ns": 1787844693070524700
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/bank_sales_trading.sqlite": {
+      "size_bytes": 75350016,
+      "mtime_ns": 1787844286641315000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/city_legislation.sqlite": {
+      "size_bytes": 46985216,
+      "mtime_ns": 1789008122831844100
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/DB_IMDB.sqlite": {
+      "size_bytes": 7507968,
+      "mtime_ns": 1726598977000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/EntertainmentAgency.sqlite": {
+      "size_bytes": 245760,
+      "mtime_ns": 1726598978000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/EU_soccer.sqlite": {
+      "size_bytes": 313090048,
+      "mtime_ns": 1726598977000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/stacking.sqlite": {
+      "size_bytes": 532480,
+      "mtime_ns": 1726598980000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/oracle_sql.sqlite": {
+      "size_bytes": 339968,
+      "mtime_ns": 1726598980000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/electronic_sales.sqlite": {
+      "size_bytes": 139128832,
+      "mtime_ns": 1726598979000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/log.sqlite": {
+      "size_bytes": 122880,
+      "mtime_ns": 1726598980000000000
+    },
+    "C:/data-agent-eval/Spider2/spider2-lite/resource/databases/f1.sqlite": {
+      "size_bytes": 74940416,
+      "mtime_ns": 1726598980000000000
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_c346c1d4-d3fa-4098-b46c-4e240e8bc28b\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nperiod | legislators\n31 | 4\n32 | 3\n33 | 3\n34 | 3\n35 | 2\n36 | 1\n37 | 1\n38 | 1"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_c346c1d4-d3fa-4098-b46c-4e240e8bc28b",
+      "preview": {
+        "columns": [
+          "period",
+          "legislators"
+        ],
+        "rows": [
+          [
+            31,
+            4
+          ],
+          [
+            32,
+            3
+          ],
+          [
+            33,
+            3
+          ],
+          [
+            34,
+            3
+          ],
+          [
+            35,
+            2
+          ],
+          [
+            36,
+            1
+          ],
+          [
+            37,
+            1
+          ],
+          [
+            38,
+            1
+          ]
+        ],
+        "columnTypes": [
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 8,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "period",
+        "legislators"
+      ],
+      "rows": [
+        [
+          31,
+          4
+        ],
+        [
+          32,
+          3
+        ],
+        [
+          33,
+          3
+        ],
+        [
+          34,
+          3
+        ],
+        [
+          35,
+          2
+        ],
+        [
+          36,
+          1
+        ],
+        [
+          37,
+          1
+        ],
+        [
+          38,
+          1
+        ]
+      ],
+      "columnTypes": [
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 8,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_b84399cc-b3fc-44e0-93cc-4b33bcbdd349"
+  }
+}
+

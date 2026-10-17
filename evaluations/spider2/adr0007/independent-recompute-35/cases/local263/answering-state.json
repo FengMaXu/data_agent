@@ -1,0 +1,1176 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "sessionId": "local263",
+      "principalId": "independent-analyst",
+      "requestMessageId": "original-task",
+      "requestId": "3fabee03-bfe2-4830-8061-af7ae59e738d",
+      "currentRevisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+      "lifecycle": "published",
+      "budget": {
+        "policy": {
+          "version": "answering-dual-loop-v1",
+          "maxRevisions": 40,
+          "maxExplorationAttempts": 120,
+          "maxResultAttempts": 20,
+          "maxElapsedMs": 14400000,
+          "maxObservedRows": 2000000
+        },
+        "startedAt": "2026-10-11T09:08:20.542Z",
+        "revisionCount": 1,
+        "explorationAttempts": 11,
+        "resultAttempts": 1,
+        "observedRows": 51
+      },
+      "createdAt": "2026-10-11T09:08:20.542Z",
+      "updatedAt": "2026-10-11T09:10:37.576Z",
+      "latestCandidateId": "candidate_c787eeae-3648-417c-b60a-57dbc1da2636",
+      "publicationId": "publication_749257c5-db8c-4369-b7c4-972b8253292b"
+    }
+  ],
+  "revisions": [
+    {
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+      "requestId": "3fabee03-bfe2-4830-8061-af7ae59e738d",
+      "createdAt": "2026-10-11T09:08:20.542Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "model identified by name and version, associated L1_model"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43"
+            ]
+          }
+        }
+      },
+      "state": {
+        "state": "draft",
+        "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a"
+      },
+      "specFeedback": {
+        "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+        "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    },
+    {
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+      "parentRevisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+      "requestId": "2c32721f-bcac-48c7-8b00-28147c5fe0ec",
+      "createdAt": "2026-10-11T09:09:34.294Z",
+      "fields": {
+        "population.entity": {
+          "state": "specified",
+          "value": {
+            "name": "model identified by name and version, associated L1_model"
+          },
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43"
+            ]
+          }
+        },
+        "population.eligibility": {
+          "state": "specified",
+          "value": "Models with an L1 association and comparable non-null Stack/non-Stack scores in at least one step",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "population.conditions": {
+          "state": "specified",
+          "value": [
+            "Compare maximum non-Stack and Stack test_score within the same name/version/step; strong less-than, soft equality"
+          ],
+          "basis": {
+            "kind": "evidence",
+            "evidenceIds": [
+              "evidence_220f6964-b770-4c48-ba4f-fdc8b90b2057"
+            ]
+          }
+        },
+        "population.time": {
+          "state": "specified",
+          "value": {
+            "expression": "All models in database; no requested date restriction"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.formula": {
+          "state": "specified",
+          "value": {
+            "op": "custom",
+            "description": "Count distinct (name,version,L1_model,status) after per-step classification. Each model contributes at most once to each L1/status; argmax by status."
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "measure.countGrain": {
+          "state": "specified",
+          "value": "Distinct model name/version per L1_model per status, not steps",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "grouping": {
+          "state": "specified",
+          "value": [
+            "L1_model",
+            "status"
+          ],
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection": {
+          "state": "specified",
+          "value": {
+            "n": 1,
+            "orderBy": "occurrences DESC within status"
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "selection.ties": {
+          "state": "specified",
+          "value": "include_ties",
+          "basis": {
+            "kind": "assumed"
+          }
+        },
+        "output": {
+          "state": "specified",
+          "value": {
+            "rowMode": "full",
+            "columns": [
+              "status",
+              "L1_model",
+              "occurrences"
+            ]
+          },
+          "basis": {
+            "kind": "assumed"
+          }
+        }
+      },
+      "state": {
+        "state": "ready",
+        "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+        "ready": "ready_1e82bf42-3cf4-4595-92b8-3f0b3d19cf27"
+      },
+      "specFeedback": {
+        "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+        "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+        "ruleVersion": "spec-feedback-v2",
+        "status": "disabled",
+        "deterministicIssues": [],
+        "evidenceIds": [
+          "request_be3e2f2bd519d830902bceb0",
+          "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43",
+          "evidence_42610aec-c0d7-47b7-b4c4-327a4f9c930d",
+          "evidence_265b94cc-aa24-422f-9857-6a3a09b97e43",
+          "evidence_691ba83a-7f81-4df6-92db-6d275d4d4f4a",
+          "evidence_0ab34795-cda4-4eaf-a3ef-ec4bad81c936",
+          "evidence_2c94f880-d7d8-492a-997e-792a2c9f5aab",
+          "evidence_48ff211b-fd93-4eb0-8455-173c6b257e4e",
+          "evidence_220f6964-b770-4c48-ba4f-fdc8b90b2057"
+        ],
+        "limitations": [],
+        "reason": "spec_alignment_assessor_not_configured"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "items": [
+        {
+          "id": "request_be3e2f2bd519d830902bceb0",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "observedAt": "2026-10-11T09:08:20.542Z"
+        },
+        {
+          "id": "evidence_6a015fdb-674a-4dbb-b3e1-15f6fd50ae43",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "ecb419ac7c200dfc918c8133a215a88f5c52b1042757ddabb9654881820ada02",
+          "quote": "each model (specified by name and version)",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "ecb419ac7c200dfc918c8133a215a88f5c52b1042757ddabb9654881820ada02"
+          },
+          "observedAt": "2026-10-11T09:08:20.542Z"
+        },
+        {
+          "id": "evidence_42610aec-c0d7-47b7-b4c4-327a4f9c930d",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "62e84155-c233-46bc-b1ff-c477a871a0fa",
+          "preview": {
+            "columns": [
+              "source",
+              "rows",
+              "steps",
+              "models"
+            ],
+            "rows": [
+              [
+                "model_score",
+                2872,
+                303,
+                101
+              ],
+              [
+                "model",
+                303,
+                303,
+                101
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "eb0b5e137ba14057f3478fc7cb6118148e3f5d6a3f50a6197a8a08af360fe64f",
+          "contentHash": "29f666585a16234429dc574c80e5dbb00c11c825dbfd2e1694cce860a53857e0",
+          "observedAt": "2026-10-11T09:08:29.654Z"
+        },
+        {
+          "id": "evidence_265b94cc-aa24-422f-9857-6a3a09b97e43",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "2f60c2d5-4541-4660-bd6b-3406fc229163",
+          "preview": {
+            "columns": [
+              "name",
+              "version",
+              "L1_model",
+              "steps"
+            ],
+            "rows": [
+              [
+                "Critical Heat Flux",
+                1,
+                "regression",
+                3
+              ],
+              [
+                "Critical Heat Flux",
+                2,
+                "regression",
+                3
+              ],
+              [
+                "Critical Heat Flux",
+                3,
+                "tree",
+                3
+              ],
+              [
+                "Critical Heat Flux",
+                4,
+                "tree",
+                3
+              ],
+              [
+                "Critical Heat Flux",
+                5,
+                "regression",
+                3
+              ],
+              [
+                "Delaney solubility",
+                1,
+                "regression",
+                3
+              ],
+              [
+                "Delaney solubility",
+                2,
+                "regression",
+                3
+              ],
+              [
+                "Delaney solubility",
+                3,
+                "tree",
+                3
+              ],
+              [
+                "Delaney solubility",
+                4,
+                "tree",
+                3
+              ],
+              [
+                "Delaney solubility",
+                5,
+                "regression",
+                3
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 10,
+            "truncated": false
+          },
+          "queryHash": "a702db59b9fe7677498e419d3886255935f41ef6c9cd929a2d17b6e939fa3e3d",
+          "contentHash": "73233b83df0edb5eaaf6282b0b009a31d06460361050cb0addc62b75b5f8e367",
+          "observedAt": "2026-10-11T09:08:34.647Z"
+        },
+        {
+          "id": "evidence_691ba83a-7f81-4df6-92db-6d275d4d4f4a",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "6f9fc89c-77f6-4ab9-a5f9-af29602145d9",
+          "preview": {
+            "columns": [
+              "name",
+              "version",
+              "step",
+              "model",
+              "n",
+              "lo",
+              "hi"
+            ],
+            "rows": [],
+            "columnTypes": [
+              "NULL",
+              "NULL",
+              "NULL",
+              "NULL",
+              "NULL",
+              "NULL",
+              "NULL"
+            ],
+            "rowCount": 0,
+            "truncated": false
+          },
+          "queryHash": "b67acbe928f4f6ddede08147bcad1269514083754a8e0729459b150860d20167",
+          "contentHash": "5af4b5c9e57c6f31199355e490464c6175c9d95997df9bb54e14f576d1406709",
+          "observedAt": "2026-10-11T09:08:37.951Z"
+        },
+        {
+          "id": "evidence_0ab34795-cda4-4eaf-a3ef-ec4bad81c936",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "3e013b82-2f6a-47e9-907e-e30624d3fffe",
+          "preview": {
+            "columns": [
+              "status",
+              "L1_model",
+              "occurrences"
+            ],
+            "rows": [
+              [
+                "soft",
+                "regression",
+                21
+              ],
+              [
+                "strong",
+                "regression",
+                37
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 2,
+            "truncated": false
+          },
+          "queryHash": "21445cd685db5cf0caea03234004a2d605acd1ec0197bfc5c7cabcd0810a5453",
+          "contentHash": "c5db5488e04a7e02a829bfa73f78a0334f5edcc817b9dfa1fd3e6feb68481de4",
+          "observedAt": "2026-10-11T09:08:40.725Z"
+        },
+        {
+          "id": "evidence_2c94f880-d7d8-492a-997e-792a2c9f5aab",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "e3615226-582f-4c03-8936-d78793e2e80f",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "status",
+              "occurrences"
+            ],
+            "rows": [
+              [
+                "regression",
+                "soft",
+                21
+              ],
+              [
+                "tree",
+                "soft",
+                5
+              ],
+              [
+                "regression",
+                "strong",
+                37
+              ],
+              [
+                "tree",
+                "strong",
+                6
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "4799099244afa338ac0ab99b11bd666d8661ef8b68d4f0b5cf33645daadb145c",
+          "contentHash": "17a9d046601a7add638d50ebb2c82c9521e643b92613b06841af87defb9f2ada",
+          "observedAt": "2026-10-11T09:09:17.533Z"
+        },
+        {
+          "id": "evidence_48ff211b-fd93-4eb0-8455-173c6b257e4e",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "9ab77f97-d974-477a-bc3f-c59f1389df40",
+          "preview": {
+            "columns": [
+              "name",
+              "version",
+              "L1_model",
+              "status",
+              "qualifying_steps"
+            ],
+            "rows": [
+              [
+                "Delaney solubility",
+                1,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "Delaney solubility",
+                2,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "Delaney solubility",
+                5,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "Franck-Hertz",
+                3,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "Franck-Hertz",
+                4,
+                "tree",
+                "strong",
+                3
+              ],
+              [
+                "Franck-Hertz",
+                5,
+                "tree",
+                "strong",
+                3
+              ],
+              [
+                "PSS3E5",
+                2,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "PSS3E5",
+                3,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "PSS3E5",
+                4,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "PSS3E5",
+                5,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "Solar Power Generation",
+                3,
+                "regression",
+                "strong",
+                3
+              ],
+              [
+                "Solar Power Generation",
+                4,
+                "regression",
+                "strong",
+                3
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "INTEGER",
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 12,
+            "truncated": false
+          },
+          "queryHash": "f5bf4d11e03eeb135b170fab1dc9abe103e1bb982c858d0bbea6ffd2a26dae0f",
+          "contentHash": "ca61ecbc49fc1a0075659d8f80d96fcd47ae9351f2fc2434fb6758b7dcf8c409",
+          "observedAt": "2026-10-11T09:09:28.829Z"
+        },
+        {
+          "id": "evidence_220f6964-b770-4c48-ba4f-fdc8b90b2057",
+          "kind": "request_wording",
+          "authority": "request_wording",
+          "sourceRef": "original-task",
+          "contentHash": "ecb419ac7c200dfc918c8133a215a88f5c52b1042757ddabb9654881820ada02",
+          "quote": "A model has a 'strong' status if, for any of its steps, the maximum test score among non-'Stack' models is less than the 'Stack' model's test score.",
+          "verification": {
+            "method": "user_message_quote",
+            "sourceContentHash": "ecb419ac7c200dfc918c8133a215a88f5c52b1042757ddabb9654881820ada02"
+          },
+          "observedAt": "2026-10-11T09:09:34.294Z"
+        },
+        {
+          "id": "evidence_fb041b94-982a-44e9-ab1b-e93202c2e5ed",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "78dd4ddd-4d83-4455-b253-e13357fcb446",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "status",
+              "occurrences"
+            ],
+            "rows": [
+              [
+                "regression",
+                "soft",
+                36
+              ],
+              [
+                "tree",
+                "soft",
+                11
+              ],
+              [
+                "regression",
+                "strong",
+                78
+              ],
+              [
+                "tree",
+                "strong",
+                14
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "83b0709dfad3eb3890b2f709f11d1191f8edef8ab2a05525c1077348d6a3e880",
+          "contentHash": "e0effa35807db19609962bee083bf672663ce414fb893f31a897694f3f1ad17e",
+          "observedAt": "2026-10-11T09:10:20.616Z"
+        },
+        {
+          "id": "evidence_e7b43fda-8603-4698-a579-90c709a7bbc5",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "1ac6abc2-d8ac-42d2-8f7a-570469d50a05",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "status",
+              "step_count",
+              "model_count"
+            ],
+            "rows": [
+              [
+                "regression",
+                "soft",
+                34,
+                17
+              ],
+              [
+                "tree",
+                "soft",
+                10,
+                4
+              ],
+              [
+                "regression",
+                "strong",
+                62,
+                32
+              ],
+              [
+                "tree",
+                "strong",
+                12,
+                5
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "1568657bce8626986c7d492ee8b0d9bbce242f749d2a1506d7a0d7162746f8c5",
+          "contentHash": "3990fd3fc848a1f59edce5070741ac9fdfdbbece9697dbedd6965eb6c3a66e89",
+          "observedAt": "2026-10-11T09:10:25.636Z"
+        },
+        {
+          "id": "evidence_bc7d9986-7242-4f36-a1a4-99b881737ab3",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "07e34f5d-0c32-4606-9f29-8c16d213ce6b",
+          "preview": {
+            "columns": [
+              "name",
+              "type",
+              "sql"
+            ],
+            "rows": [
+              [
+                "stack_ok",
+                "view",
+                "CREATE VIEW stack_ok AS select A.name, A.version, A.step, C.L1_model, 'strong' as status\n        from (select name, version, step, max(test_score) as max_test_score \n              from model_score where model not in ('Stack') \n              group by name, version, step) as A\n        inner join \n             (select name, version, step, test_score as stack_score \n              from model_score \n              where model = 'Stack') as B\n        on A.name = B.name\n        and A.version = B.version\n        and A.step = B.step\n        inner join \n            model as C\n            on A.name = C.name\n            and A.version = C.version\n        where A.max_test_score < B.stack_score\n        group by A.name, A.version, A.step\nunion all\nselect A.name, A.version, A.step, C.L1_model, 'soft' as status\n        from (select name, version, step, max(test_score) as max_test_score \n              from model_score where model not in ('Stack') \n              group by name, version, step) as A\n        inner join \n             (select name, version, step, test_score as stack_score \n              from model_score \n              where model = 'Stack') as B\n        on A.name = B.name\n        and A.version = B.version\n        and A.step = B.step\n        inner join \n            model as C\n            on A.name = C.name\n            and A.version = C.version\n        where A.max_test_score = B.stack_score\n        group by A.name, A.version, A.step\norder by A.name, A.version"
+              ],
+              [
+                "solution_ext",
+                "view",
+                "CREATE VIEW solution_ext AS select name, version, L1_model\nfrom model\ngroup by name, version, L1_model\norder by name"
+              ],
+              [
+                "stack_ok_score",
+                "view",
+                "CREATE VIEW stack_ok_score AS select distinct test_score_1.name, test_score_1.version, test_score_1.score_1, test_score_2.score_2, test_score_3.score_3\nfrom\n(select A.name, A.version, A.test_score as score_1\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 1) as test_score_1\ninner join\n(select A.name, A.version, A.test_score as score_2\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 2) as test_score_2\n on test_score_1.name = test_score_2.name\n and test_score_1.version = test_score_2.version\ninner join\n(select A.name, A.version, A.test_score as score_3\n from model_score as A\n inner join stack_ok as B\n on A.name = B.name\n and A.version = B.version\n where A.model = 'Stack'\n and A.step = 3) as test_score_3\n on test_score_1.name = test_score_3.name\n and test_score_1.version = test_score_3.version"
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "TEXT"
+            ],
+            "rowCount": 3,
+            "truncated": false
+          },
+          "queryHash": "e4091510e754689fcfcd0ffa3378c8fc8894321fa8589281fa7f7c19251d7c29",
+          "contentHash": "e2bd16d8b4e5b77e8f259e1c3f5fddad86427b72bfb04a39e70737da4ed3453c",
+          "observedAt": "2026-10-11T09:10:29.640Z"
+        },
+        {
+          "id": "evidence_aa7109c7-4814-4134-acab-57bb99831b7b",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "7966706c-ba6d-41e1-98f0-eb1f46dbaf52",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "status",
+              "occurrences",
+              "score_steps"
+            ],
+            "rows": [
+              [
+                "regression",
+                "soft",
+                108,
+                36
+              ],
+              [
+                "tree",
+                "soft",
+                33,
+                11
+              ],
+              [
+                "regression",
+                "strong",
+                234,
+                78
+              ],
+              [
+                "tree",
+                "strong",
+                42,
+                14
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "4b694c51275a6d61d45bc499ac4531393d3360fa3c0ea4e287f24f1f3c209190",
+          "contentHash": "b5b6eb0e6cb346c4fd743c774b5d750c8555c261a1e8b93778122c7aa5a04591",
+          "observedAt": "2026-10-11T09:10:33.741Z"
+        },
+        {
+          "id": "evidence_46d72761-e056-46b9-aa9c-59fa452879e5",
+          "kind": "query_observation",
+          "authority": "observation",
+          "sourceRef": "aef12a70-6444-4a2d-afe1-9ea43fe3e1d8",
+          "preview": {
+            "columns": [
+              "L1_model",
+              "status",
+              "n",
+              "models"
+            ],
+            "rows": [
+              [
+                "regression",
+                "soft",
+                36,
+                21
+              ],
+              [
+                "tree",
+                "soft",
+                11,
+                5
+              ],
+              [
+                "regression",
+                "strong",
+                78,
+                37
+              ],
+              [
+                "tree",
+                "strong",
+                14,
+                6
+              ]
+            ],
+            "columnTypes": [
+              "TEXT",
+              "TEXT",
+              "INTEGER",
+              "INTEGER"
+            ],
+            "rowCount": 4,
+            "truncated": false
+          },
+          "queryHash": "2ef5889547a615e10f834524f88d5f615d90a7180519885cb8c389c5607dfe95",
+          "contentHash": "448819d2dfd16e6a61eea6b7f31af776b0d52e998e2b7e7faaadb81e4acd4831",
+          "observedAt": "2026-10-11T09:10:37.575Z"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "items": [
+        {
+          "attemptId": "attempt_9a15deb8-4742-4628-9bb5-0b2d1dc48b05",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+          "invocationId": "62e84155-c233-46bc-b1ff-c477a871a0fa",
+          "queryHash": "eb0b5e137ba14057f3478fc7cb6118148e3f5d6a3f50a6197a8a08af360fe64f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:08:28.692Z",
+          "updatedAt": "2026-10-11T09:08:29.654Z"
+        },
+        {
+          "attemptId": "attempt_bfa36344-28c5-4a27-9767-35318e668bfa",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+          "invocationId": "2f60c2d5-4541-4660-bd6b-3406fc229163",
+          "queryHash": "a702db59b9fe7677498e419d3886255935f41ef6c9cd929a2d17b6e939fa3e3d",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:08:34.195Z",
+          "updatedAt": "2026-10-11T09:08:34.648Z"
+        },
+        {
+          "attemptId": "attempt_9cec8394-2448-4268-8f4b-4f8d7c007f7b",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+          "invocationId": "6f9fc89c-77f6-4ab9-a5f9-af29602145d9",
+          "queryHash": "b67acbe928f4f6ddede08147bcad1269514083754a8e0729459b150860d20167",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:08:37.606Z",
+          "updatedAt": "2026-10-11T09:08:37.952Z"
+        },
+        {
+          "attemptId": "attempt_65d8455b-750f-47fb-a597-f799dcddefba",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+          "invocationId": "3e013b82-2f6a-47e9-907e-e30624d3fffe",
+          "queryHash": "21445cd685db5cf0caea03234004a2d605acd1ec0197bfc5c7cabcd0810a5453",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:08:40.342Z",
+          "updatedAt": "2026-10-11T09:08:40.725Z"
+        },
+        {
+          "attemptId": "attempt_eed59dd4-66e9-4498-b993-9d8bf8f94e3a",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+          "invocationId": "e3615226-582f-4c03-8936-d78793e2e80f",
+          "queryHash": "4799099244afa338ac0ab99b11bd666d8661ef8b68d4f0b5cf33645daadb145c",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:16.988Z",
+          "updatedAt": "2026-10-11T09:09:17.533Z"
+        },
+        {
+          "attemptId": "attempt_d471d71a-d820-4f69-95f4-f64d96629274",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+          "invocationId": "9ab77f97-d974-477a-bc3f-c59f1389df40",
+          "queryHash": "f5bf4d11e03eeb135b170fab1dc9abe103e1bb982c858d0bbea6ffd2a26dae0f",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:27.945Z",
+          "updatedAt": "2026-10-11T09:09:28.830Z"
+        },
+        {
+          "attemptId": "attempt_408b6246-e7ef-4c24-bfb3-c02e0c910f6e",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "revision",
+          "revisionId": "revision_78d86c0a-e907-47e8-94d0-d8fb6b9c975a",
+          "invocationId": "2c32721f-bcac-48c7-8b00-28147c5fe0ec",
+          "state": "succeeded",
+          "sqlExecuted": false,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:34.311Z",
+          "updatedAt": "2026-10-11T09:09:34.294Z"
+        },
+        {
+          "attemptId": "attempt_fbb13c7a-8eb3-44cc-9a97-5f4dfc66ced7",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "result",
+          "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+          "invocationId": "18302d8a-aa8d-4227-bc77-bc53dd796d64",
+          "queryHash": "3c0d993f8ebadaa4b43f6c2237523d905f145cc0e706de3adea0afdca4f286cd",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:09:39.781Z",
+          "updatedAt": "2026-10-11T09:09:40.702Z"
+        },
+        {
+          "attemptId": "attempt_56a7336b-ed62-4bd9-b9af-a3e247b97ac5",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+          "invocationId": "78dd4ddd-4d83-4455-b253-e13357fcb446",
+          "queryHash": "83b0709dfad3eb3890b2f709f11d1191f8edef8ab2a05525c1077348d6a3e880",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:19.880Z",
+          "updatedAt": "2026-10-11T09:10:20.617Z"
+        },
+        {
+          "attemptId": "attempt_d2486553-589a-479a-bc8b-1efa843709fa",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+          "invocationId": "1ac6abc2-d8ac-42d2-8f7a-570469d50a05",
+          "queryHash": "1568657bce8626986c7d492ee8b0d9bbce242f749d2a1506d7a0d7162746f8c5",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:25.217Z",
+          "updatedAt": "2026-10-11T09:10:25.636Z"
+        },
+        {
+          "attemptId": "attempt_99e7a67f-8bdc-4894-a8aa-9cfd61061e5c",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+          "invocationId": "07e34f5d-0c32-4606-9f29-8c16d213ce6b",
+          "queryHash": "e4091510e754689fcfcd0ffa3378c8fc8894321fa8589281fa7f7c19251d7c29",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:29.214Z",
+          "updatedAt": "2026-10-11T09:10:29.642Z"
+        },
+        {
+          "attemptId": "attempt_c61627de-7566-46f8-a2fe-3344fd0d4c1d",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+          "invocationId": "7966706c-ba6d-41e1-98f0-eb1f46dbaf52",
+          "queryHash": "4b694c51275a6d61d45bc499ac4531393d3360fa3c0ea4e287f24f1f3c209190",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:33.266Z",
+          "updatedAt": "2026-10-11T09:10:33.742Z"
+        },
+        {
+          "attemptId": "attempt_999f9b38-4c23-4405-a5b8-0f2b71d710a5",
+          "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+          "kind": "exploration",
+          "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+          "invocationId": "aef12a70-6444-4a2d-afe1-9ea43fe3e1d8",
+          "queryHash": "2ef5889547a615e10f834524f88d5f615d90a7180519885cb8c389c5607dfe95",
+          "state": "succeeded",
+          "sqlExecuted": true,
+          "outcome": "succeeded",
+          "createdAt": "2026-10-11T09:10:37.088Z",
+          "updatedAt": "2026-10-11T09:10:37.576Z"
+        }
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "candidate_c787eeae-3648-417c-b60a-57dbc1da2636",
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+      "resultRef": "result_5bf31803-4ea3-4a9a-8b59-772b7770c3d9",
+      "resultSchema": [
+        "status",
+        "L1_model",
+        "occurrences"
+      ],
+      "rowCount": 2,
+      "contentHash": "1f4af5cdaa08247f3f7babbe1702e68b6bed2c333c7bfefa54578ec9edbd6aab",
+      "sql": "WITH scores AS (SELECT name,version,step,MAX(CASE WHEN model<>'Stack' THEN test_score END) baseline,MAX(CASE WHEN model='Stack' THEN test_score END) stack_score FROM model_score GROUP BY name,version,step), step_status AS (SELECT name,version,step,CASE WHEN baseline<stack_score THEN 'strong' WHEN baseline=stack_score THEN 'soft' END status FROM scores), units AS (SELECT DISTINCT m.name,m.version,m.L1_model,s.status FROM model m JOIN step_status s ON s.name=m.name AND s.version=m.version AND s.step=m.step WHERE s.status IS NOT NULL AND m.L1_model IS NOT NULL), counts AS (SELECT L1_model,status,COUNT(*) occurrences FROM units GROUP BY L1_model,status) SELECT status,L1_model,occurrences FROM counts c WHERE occurrences=(SELECT MAX(occurrences) FROM counts x WHERE x.status=c.status) ORDER BY status,L1_model",
+      "queryHash": "3c0d993f8ebadaa4b43f6c2237523d905f145cc0e706de3adea0afdca4f286cd",
+      "findings": [],
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "attemptId": "attempt_fbb13c7a-8eb3-44cc-9a97-5f4dfc66ced7",
+      "createdByInvocationId": "18302d8a-aa8d-4227-bc77-bc53dd796d64",
+      "createdAt": "2026-10-11T09:09:40.702Z",
+      "status": "ready",
+      "publishable": true
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "publication_749257c5-db8c-4369-b7c4-972b8253292b",
+      "taskId": "task_748f795a-cb42-46f6-9b10-066d9dce255c",
+      "principalId": "independent-analyst",
+      "sessionId": "local263",
+      "candidateId": "candidate_c787eeae-3648-417c-b60a-57dbc1da2636",
+      "revisionId": "revision_db672233-51b2-4023-a248-0b635984f5af",
+      "resultRef": "result_5bf31803-4ea3-4a9a-8b59-772b7770c3d9",
+      "format": "csv",
+      "publicRef": "/api/runtime/publications/publication_749257c5-db8c-4369-b7c4-972b8253292b?session_id=local263",
+      "contentHash": "1f4af5cdaa08247f3f7babbe1702e68b6bed2c333c7bfefa54578ec9edbd6aab",
+      "presentationContentHash": "b6377b219b37f6510b27d6cc1c903fd73a5cdbbb8f7761193760a3c66324b1fd",
+      "coverage": [
+        {
+          "checkId": "result_completeness",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_shape",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "result_identity",
+          "outcome": "clear"
+        },
+        {
+          "checkId": "join_fanout",
+          "outcome": "not_applicable"
+        },
+        {
+          "checkId": "spec_feedback",
+          "ruleVersion": "spec-feedback-v2",
+          "outcome": "not_applicable",
+          "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+        }
+      ],
+      "fanout": {
+        "ruleVersion": "answering-fanout-v1",
+        "status": "not_applicable",
+        "snapshotScope": "unbound",
+        "targets": []
+      },
+      "disclosure": {
+        "required": true,
+        "unverifiedFields": [
+          {
+            "path": "population.eligibility",
+            "kind": "assumed"
+          },
+          {
+            "path": "population.time",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.formula",
+            "kind": "assumed"
+          },
+          {
+            "path": "measure.countGrain",
+            "kind": "assumed"
+          },
+          {
+            "path": "grouping",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection",
+            "kind": "assumed"
+          },
+          {
+            "path": "selection.ties",
+            "kind": "assumed"
+          },
+          {
+            "path": "output",
+            "kind": "assumed"
+          }
+        ],
+        "summary": "以下字段为假定，未被合格证据证实：population.eligibility, population.time, measure.formula, measure.countGrain, grouping, selection, selection.ties, output。"
+      },
+      "physicalProfile": {
+        "version": 1,
+        "rowCount": 2,
+        "truncated": false,
+        "columns": [
+          {
+            "name": "status",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 2
+          },
+          {
+            "name": "L1_model",
+            "kind": "text",
+            "nullCount": 0,
+            "distinctCount": 1
+          },
+          {
+            "name": "occurrences",
+            "kind": "integer",
+            "encodedAs": "number",
+            "nullCount": 0,
+            "distinctCount": 2,
+            "min": "21",
+            "max": "37"
+          }
+        ]
+      },
+      "policyVersion": "answering-publication-v1",
+      "createdByInvocationId": "18302d8a-aa8d-4227-bc77-bc53dd796d64",
+      "requestId": "18302d8a-aa8d-4227-bc77-bc53dd796d64",
+      "createdAt": "2026-10-11T09:09:40.726Z"
+    }
+  ]
+}

@@ -34,6 +34,9 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   "10.3": "f47a2cc9",
   // 11: highlight.layer; an axis shared by several measures is named by its unit. No fixture uses either.
   "11.3": "f47a2cc9",
+  // 12: donut total in the hole, sliver slices unlabelled with shares in the legend, value ticks in 万/亿 from 100,000.
+  // Theme 4: one cool grey family for chrome; context bars a solid cool grey.
+  "12.4": "b8be0250",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;

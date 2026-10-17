@@ -1,0 +1,99 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_432bffa6-ae5a-45ee-b77e-c499d5976516\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nm | full_all_users | prior_balance_current_active | dropped_inactive_balance | dropped_positive_users\n2020-02-01 | 235595 | 212579 | 23016 | 39\n2020-03-01 | 261508 | 240602 | 20906 | 26\n2020-04-01 | 260971 | 153147 | 107824 | 94"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_432bffa6-ae5a-45ee-b77e-c499d5976516",
+      "preview": {
+        "columns": [
+          "m",
+          "full_all_users",
+          "prior_balance_current_active",
+          "dropped_inactive_balance",
+          "dropped_positive_users"
+        ],
+        "rows": [
+          [
+            "2020-02-01",
+            235595,
+            212579,
+            23016,
+            39
+          ],
+          [
+            "2020-03-01",
+            261508,
+            240602,
+            20906,
+            26
+          ],
+          [
+            "2020-04-01",
+            260971,
+            153147,
+            107824,
+            94
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "m",
+        "full_all_users",
+        "prior_balance_current_active",
+        "dropped_inactive_balance",
+        "dropped_positive_users"
+      ],
+      "rows": [
+        [
+          "2020-02-01",
+          235595,
+          212579,
+          23016,
+          39
+        ],
+        [
+          "2020-03-01",
+          261508,
+          240602,
+          20906,
+          26
+        ],
+        [
+          "2020-04-01",
+          260971,
+          153147,
+          107824,
+          94
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_e1316ef1-5a20-4d10-8c26-5fb19c756731"
+  }
+}

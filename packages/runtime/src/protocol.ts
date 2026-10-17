@@ -16,6 +16,7 @@ import { formatPromptWithAttachments, type PromptAttachment } from "./attachment
 import { runPythonJob } from "./python-job.js";
 import { KnowledgeIndex } from "./knowledge.js";
 import { ClarificationManager } from "./clarification.js";
+import { AgentControllerError } from "./facets/agent-controller.js";
 import { loadSkillsFromRoots, resolveSkillRoots } from "./skills.js";
 import { LocalAuthService } from "./auth.js";
 import type { ApplicationAgentEvent } from "./application/host.js";
@@ -24,7 +25,7 @@ import type { TranscriptMessage } from "./facets/transcript.js";
 import { readBoundedFile } from "./bounded-read.js";
 
 export class DataAgentRuntimeError extends Error {
-  readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT" | "SESSION_ACCESS_DENIED";
+  readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT" | "SESSION_ACCESS_DENIED" | "SESSION_BUSY" | "CLARIFICATION_SETTLED";
   readonly details?: unknown;
 
   constructor(
@@ -100,9 +101,11 @@ export class DataAgentRuntime implements ApplicationCommandHost {
   queryExecutor?: { run(sql: string, rowLimit: number, options?: { readonly idempotencyKey?: string }): Promise<{ columns: string[]; rows: unknown[][]; truncated: boolean }> };
   dbTester?: { test(connection: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
   llmTester?: { test(profile: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
-  /** Host callback for capability controllers after onboarding/config changes. */
+  /** Host callback for capability controllers after config changes. */
   onConfigSaved?: (config: Record<string, unknown>, context: RequestContext) => void | Promise<void>;
   mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
+  /** Host-composed channel management (ADR-0011); absent where no channels are enabled. */
+  channelControl?: { list(): import("@data-agent/contracts").ChannelStatus[]; provision(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; disconnect(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; createLinkCode(userId: string): Promise<{ code: string; expiresAt: number }>; access(): Promise<import("@data-agent/contracts").ChannelAccess>; decideAccess(requestId: string, decision: "allow" | "deny", decidedBy: string): Promise<unknown>; revokeAccess(actor: import("@data-agent/contracts").ChannelActor): Promise<void> };
   ingestJob?: { getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>; retry(): Promise<{ accepted: boolean }> };
   private readonly clarifications: ClarificationManager;
   /** Host composition seam for wiring native AgentHarness tools. */
@@ -201,10 +204,14 @@ export class DataAgentRuntime implements ApplicationCommandHost {
     }
 
     if (command.command.type === "clarification.answer") {
+      // An answer counts only from the Session that asked; ids of other Sessions' questions are not a capability.
+      if (context.sessionId && this.clarifications.pendingFor(context.sessionId)?.clarificationId !== command.command.clarificationId) {
+        throw new DataAgentRuntimeError("CLARIFICATION_SETTLED", "No such clarification is pending in this session");
+      }
       const answered = this.agent?.answerClarification
         ? await this.agent.answerClarification(command.command.clarificationId, command.command.answer, { ...(context.sessionId ? { sessionId: context.sessionId } : {}), userId: context.userId })
         : this.clarifications.answer(command.command.clarificationId, command.command.answer);
-      if (!answered) throw new DataAgentRuntimeError("INVALID_COMMAND", "Unknown or already settled clarification");
+      if (!answered) throw new DataAgentRuntimeError("CLARIFICATION_SETTLED", "Unknown or already settled clarification");
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "runtime.probe.result", service: "data-agent-runtime", runtimeVersion: "0.1.0" } };
     }
 
@@ -341,6 +348,27 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       const result = await this.llmTester.test((command.command as { profile: Record<string, unknown> }).profile);
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "test.result", success: result.success, message: result.message, details: result.details } };
     }
+    if (command.command.type === "channel.access.list" || command.command.type === "channel.access.decide" || command.command.type === "channel.access.revoke") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      const c = command.command;
+      // A signed-in user decides as themselves; the transport has authenticated them.
+      if (c.type === "channel.access.decide") await this.channelControl.decideAccess(c.requestId, c.decision, context.userId);
+      if (c.type === "channel.access.revoke") await this.channelControl.revokeAccess(c.actor);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.access.result", access: await this.channelControl.access() } };
+    }
+    if (command.command.type === "channel.bind_code") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      // The code links to whoever asked for it; the transport has already authenticated them.
+      const { code, expiresAt } = await this.channelControl.createLinkCode(context.userId);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.bind_code.result", code, expiresAt } };
+    }
+    if (command.command.type === "channel.list" || command.command.type === "channel.provision" || command.command.type === "channel.disconnect") {
+      if (!this.channelControl) throw new DataAgentRuntimeError("INVALID_COMMAND", "CHANNELS_NOT_CONFIGURED");
+      const c = command.command;
+      const channels = c.type === "channel.list" ? this.channelControl.list() : c.type === "channel.provision" ? await this.channelControl.provision(c.channelId) : await this.channelControl.disconnect(c.channelId);
+      return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "channel.list.result", channels } };
+    }
+
     if (command.command.type === "mcp.servers.status") {
       if (!this.mcpSupervisor) throw new DataAgentRuntimeError("INVALID_COMMAND", "MCP_SUPERVISOR_NOT_CONFIGURED");
       const servers = await this.mcpSupervisor.status();
@@ -388,11 +416,11 @@ export class DataAgentRuntime implements ApplicationCommandHost {
       if (command.command.type === "knowledge.save" && !this.knowledgeRoot) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge root is not configured");
       if (!this.knowledgeRoot && command.command.type !== "knowledge.save") throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge index is not configured");
       const { resolve: resolvePath, join: joinPath } = await import("node:path");
-      if (this.knowledge) await this.knowledge.loadDirectory(this.knowledgeRoot as string);
+      if (this.knowledge) await this.knowledge.reload(this.knowledgeRoot as string);
       if (command.command.type === "knowledge.search") return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.search.result", hits: this.knowledge!.search(command.command.query) } };
       if (command.command.type === "knowledge.list") {
         const { readdir, stat } = await import("node:fs/promises");
-        const files: Array<{ path: string; size: number; modifiedAt: number; knowledgeId?: string; name?: string; description?: string; usage?: "method" | "fact" }> = [];
+        const files: Array<{ path: string; size: number; modifiedAt: number; knowledgeId?: string; name?: string; description?: string; usage?: "method" | "fact"; readOnly?: boolean; hasContent?: boolean }> = [];
         const catalog = new Map((this.knowledge?.catalog() ?? []).map((entry) => [entry.path.split(path.sep).join("/"), entry]));
         const walk = async (dir: string): Promise<void> => {
           for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -406,12 +434,20 @@ export class DataAgentRuntime implements ApplicationCommandHost {
                 path: relativePath,
                 size: info.size,
                 modifiedAt: info.mtimeMs,
-                ...(entry ? { knowledgeId: entry.knowledgeId, name: entry.name, description: entry.description, usage: entry.usage ?? "fact" } : {}),
+                ...(entry ? { knowledgeId: entry.knowledgeId, name: entry.name, description: entry.description, usage: entry.usage ?? "fact", hasContent: entry.hasContent } : {}),
               });
             }
           }
         };
         await walk(this.knowledgeRoot as string);
+        // Built-in documents live outside the user root and are listed read-only.
+        for (const entry of catalog.values()) {
+          if (!entry.readOnly) continue;
+          const location = this.knowledge!.locate(entry.path);
+          if (!location) continue;
+          const info = await stat(path.join(location.root, entry.path));
+          files.push({ path: entry.path, size: info.size, modifiedAt: info.mtimeMs, knowledgeId: entry.knowledgeId, name: entry.name, description: entry.description, usage: entry.usage ?? "fact", readOnly: true, hasContent: entry.hasContent });
+        }
         return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.list.result", files } };
       }
       if (command.command.type === "knowledge.save") {
@@ -419,6 +455,7 @@ export class DataAgentRuntime implements ApplicationCommandHost {
         if (requestedPath === ".pi" || requestedPath.startsWith(".pi/")) {
           throw new DataAgentRuntimeError("INVALID_COMMAND", "SYSTEM_PROMPT_IMMUTABLE");
         }
+        if (this.knowledge?.isBuiltinPath(requestedPath)) throw new DataAgentRuntimeError("INVALID_COMMAND", "KNOWLEDGE_BUILTIN_READ_ONLY");
         const { writeFile, mkdir } = await import("node:fs/promises");
         const root = resolvePath(this.knowledgeRoot as string);
         const target = resolvePath(joinPath(root, command.command.path));
@@ -429,7 +466,7 @@ export class DataAgentRuntime implements ApplicationCommandHost {
         await writeFile(target, command.command.content, "utf8");
         return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "knowledge.save.result", path: command.command.path } };
       }
-      const root = resolvePath(this.knowledgeRoot as string);
+      const root = resolvePath(this.knowledge?.locate(command.command.path)?.root ?? (this.knowledgeRoot as string));
       const target = resolvePath(joinPath(root, command.command.path));
       if (target !== root && !target.startsWith(`${root}${path.sep}`)) throw new DataAgentRuntimeError("INVALID_COMMAND", "Knowledge path escapes root");
       try {
@@ -465,7 +502,14 @@ export class DataAgentRuntime implements ApplicationCommandHost {
     if (command.command.type === "agent.prompt") {
       if (!this.agent) throw new DataAgentRuntimeError("INVALID_COMMAND", "Pi Agent is not configured");
       const attachments = await this.resolveAttachments(command.command.attachments ?? [], context);
-      const result = await this.agent.prompt(formatPromptWithAttachments(command.command.prompt, attachments), { ...(context.sessionId ? { sessionId: context.sessionId } : {}), requestId: command.requestId, userId: context.userId });
+      let result: unknown;
+      try {
+        result = await this.agent.prompt(formatPromptWithAttachments(command.command.prompt, attachments), { ...(context.sessionId ? { sessionId: context.sessionId } : {}), requestId: command.requestId, userId: context.userId });
+      } catch (error) {
+        // A queued steer or follow-up is the caller's choice, so a busy Session is reported, not queued here.
+        if (error instanceof AgentControllerError && error.busy) throw new DataAgentRuntimeError("SESSION_BUSY", "Session is already running an operation");
+        throw error;
+      }
       const operationId = asRecord(result)?.operationId;
       if (typeof operationId !== "string" || !operationId) throw new DataAgentRuntimeError("INVALID_COMMAND", "Agent did not return an operation identity");
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "agent.prompt.accepted", runId: operationId } };
@@ -597,7 +641,11 @@ export class DataAgentRuntime implements ApplicationCommandHost {
 /** Test-only entrypoint for the protocol adapter and its storage fixtures. */
 export { WorkspaceStore } from "./workspace.js";
 export { MetadataStore } from "./metadata.js";
+export { MetadataChannelStore } from "./channels/store.js";
+export { ClarificationManager } from "./clarification.js";
+export { AgentControllerError } from "./facets/agent-controller.js";
 export { KnowledgeIndex } from "./knowledge.js";
 export { DataAgentSessionApplication } from "./application/host.js";
 export { JevHypothesisChoiceAdvisor } from "./adapters/jev-hypothesis-choice-advisor.js";
 export { JevSpecAlignmentAssessor } from "./adapters/jev-spec-alignment-assessor.js";
+export { ModelRequirementExtractor, REQUIREMENT_EXTRACTION_PROMPT } from "./adapters/model-requirement-extractor.js";

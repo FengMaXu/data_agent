@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": "Italian customers",
+      "basis": "request",
+      "quote": "Italian customers"
+    }
+  }
+}

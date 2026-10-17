@@ -1,0 +1,89 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_4ff8fab3-64f5-49b2-821e-4ed4d1e38f5f\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nvariant | customer_id | name | metric\nabsolute | 332 | STEPHEN QUALLS | 58.885\nrate | 63 | ASHLEY RICHARDSON | 32.1191237070053\nmonthly_average | 63 | ASHLEY RICHARDSON | 1.8499999999999996"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_4ff8fab3-64f5-49b2-821e-4ed4d1e38f5f",
+      "preview": {
+        "columns": [
+          "variant",
+          "customer_id",
+          "name",
+          "metric"
+        ],
+        "rows": [
+          [
+            "absolute",
+            332,
+            "STEPHEN QUALLS",
+            58.885
+          ],
+          [
+            "rate",
+            63,
+            "ASHLEY RICHARDSON",
+            32.1191237070053
+          ],
+          [
+            "monthly_average",
+            63,
+            "ASHLEY RICHARDSON",
+            1.8499999999999996
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "INTEGER",
+          "TEXT",
+          "REAL"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "variant",
+        "customer_id",
+        "name",
+        "metric"
+      ],
+      "rows": [
+        [
+          "absolute",
+          332,
+          "STEPHEN QUALLS",
+          58.885
+        ],
+        [
+          "rate",
+          63,
+          "ASHLEY RICHARDSON",
+          32.1191237070053
+        ],
+        [
+          "monthly_average",
+          63,
+          "ASHLEY RICHARDSON",
+          1.8499999999999996
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "INTEGER",
+        "TEXT",
+        "REAL"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_ceb12a86-93ec-4c2d-9c83-1873bf99a6f9"
+  }
+}

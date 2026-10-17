@@ -1,0 +1,78 @@
+{
+  "receiptId": "publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211",
+  "taskId": "task_9cd0f277-79c9-4645-9feb-428b9e18a3e3",
+  "principalId": "independent-analyst",
+  "sessionId": "local354",
+  "candidateId": "candidate_885e9109-1a7e-43a9-8e23-c327ab23de2e",
+  "revisionId": "revision_a09cb96a-556f-45d3-b03b-e59cb15272f1",
+  "resultRef": "result_534d516b-6318-461b-a96f-f80fceb0fccd",
+  "format": "csv",
+  "publicRef": "/api/runtime/publications/publication_aad5b1ea-8e74-4fe1-9dca-aa3a4ad2e211?session_id=local354",
+  "contentHash": "44d6546a10951099e10727af9950e49cc635c966cdbac014504720ca108978f5",
+  "presentationContentHash": "5f8e1d94944c09213813f22c63488e85a2cfb368427a1ba8e353ae1e1bd46a69",
+  "coverage": [
+    {
+      "checkId": "result_completeness",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_shape",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "result_identity",
+      "outcome": "clear"
+    },
+    {
+      "checkId": "join_fanout",
+      "outcome": "not_applicable"
+    },
+    {
+      "checkId": "spec_feedback",
+      "ruleVersion": "spec-feedback-v2",
+      "outcome": "not_applicable",
+      "reason": "Spec feedback assessor is not configured in this deployment; limitations: reason=spec_alignment_assessor_not_configured, status=disabled."
+    }
+  ],
+  "fanout": {
+    "ruleVersion": "answering-fanout-v1",
+    "status": "not_applicable",
+    "snapshotScope": "unbound",
+    "targets": []
+  },
+  "disclosure": {
+    "required": true,
+    "unverifiedFields": [
+      {
+        "path": "measure.formula",
+        "kind": "assumed"
+      },
+      {
+        "path": "grouping",
+        "kind": "assumed"
+      },
+      {
+        "path": "output",
+        "kind": "assumed"
+      }
+    ],
+    "summary": "以下字段为假定，未被合格证据证实：measure.formula, grouping, output。"
+  },
+  "physicalProfile": {
+    "version": 1,
+    "rowCount": 103,
+    "truncated": false,
+    "columns": [
+      {
+        "name": "driver_name",
+        "kind": "text",
+        "nullCount": 0,
+        "distinctCount": 103
+      }
+    ]
+  },
+  "policyVersion": "answering-publication-v1",
+  "createdByInvocationId": "c31092fe-bc1a-4abc-87ba-d9626c9eba33",
+  "requestId": "c31092fe-bc1a-4abc-87ba-d9626c9eba33",
+  "createdAt": "2026-10-11T10:01:34.933Z"
+}

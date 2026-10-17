@@ -1,0 +1,4 @@
+{
+  "sql": "SELECT user_id,count(*) rows,count(distinct birth_date) birthdays,count(distinct register_date) registrations,min(birth_date) birth_date,min(register_date) earliest_register,max(register_date) latest_register,max(withdraw_date) withdraw_date FROM mst_users GROUP BY user_id ORDER BY user_id",
+  "limit": 1000
+}

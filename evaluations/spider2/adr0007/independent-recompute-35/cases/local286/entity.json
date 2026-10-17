@@ -1,0 +1,14 @@
+{
+  "fields": {
+    "population.entity": {
+      "value": {
+        "name": "sellers",
+        "keyColumns": [
+          "seller_id"
+        ]
+      },
+      "basis": "request",
+      "quote": "our sellers"
+    }
+  }
+}

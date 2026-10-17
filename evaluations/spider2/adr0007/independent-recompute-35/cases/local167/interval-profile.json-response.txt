@@ -1,0 +1,78 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_7c46f990-b82c-491a-9b6a-af099549d1a9\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nfirst_date | last_date | null_ends | inverted | end_dec31 | start_dec31\n1789-03-04 | 2025-01-03 | 0 | 0 | 272 | 8"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_7c46f990-b82c-491a-9b6a-af099549d1a9",
+      "preview": {
+        "columns": [
+          "first_date",
+          "last_date",
+          "null_ends",
+          "inverted",
+          "end_dec31",
+          "start_dec31"
+        ],
+        "rows": [
+          [
+            "1789-03-04",
+            "2025-01-03",
+            0,
+            0,
+            272,
+            8
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 1,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "first_date",
+        "last_date",
+        "null_ends",
+        "inverted",
+        "end_dec31",
+        "start_dec31"
+      ],
+      "rows": [
+        [
+          "1789-03-04",
+          "2025-01-03",
+          0,
+          0,
+          272,
+          8
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 1,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_04c4e93f-96f5-4613-92bc-20beaf966b92"
+  }
+}
+

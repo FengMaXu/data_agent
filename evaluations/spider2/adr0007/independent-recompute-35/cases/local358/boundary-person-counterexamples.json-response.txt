@@ -1,0 +1,100 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[EXPLORATION_EVIDENCE] evidenceId=evidence_795ea9fa-f9e8-428e-a23d-8040d76c1c96\nCite this evidenceId in a field's evidenceIds; do not resubmit the observation body.\nuser_id | birth_date | copies | age_2024 | age_2026\nU003 | 1965-01-06 | 16 | 59 | 61\nU009 | 2004-10-23 | 16 | 19 | 21\nU028 | 1976-05-26 | 8 | 47 | 50"
+    }
+  ],
+  "details": {
+    "kind": "exploration",
+    "artifact": {
+      "kind": "exploration",
+      "evidenceId": "evidence_795ea9fa-f9e8-428e-a23d-8040d76c1c96",
+      "preview": {
+        "columns": [
+          "user_id",
+          "birth_date",
+          "copies",
+          "age_2024",
+          "age_2026"
+        ],
+        "rows": [
+          [
+            "U003",
+            "1965-01-06",
+            16,
+            59,
+            61
+          ],
+          [
+            "U009",
+            "2004-10-23",
+            16,
+            19,
+            21
+          ],
+          [
+            "U028",
+            "1976-05-26",
+            8,
+            47,
+            50
+          ]
+        ],
+        "columnTypes": [
+          "TEXT",
+          "TEXT",
+          "INTEGER",
+          "INTEGER",
+          "INTEGER"
+        ],
+        "rowCount": 3,
+        "truncated": false
+      }
+    },
+    "preview": {
+      "columns": [
+        "user_id",
+        "birth_date",
+        "copies",
+        "age_2024",
+        "age_2026"
+      ],
+      "rows": [
+        [
+          "U003",
+          "1965-01-06",
+          16,
+          59,
+          61
+        ],
+        [
+          "U009",
+          "2004-10-23",
+          16,
+          19,
+          21
+        ],
+        [
+          "U028",
+          "1976-05-26",
+          8,
+          47,
+          50
+        ]
+      ],
+      "columnTypes": [
+        "TEXT",
+        "TEXT",
+        "INTEGER",
+        "INTEGER",
+        "INTEGER"
+      ],
+      "rowCount": 3,
+      "truncated": false
+    },
+    "findings": [],
+    "attemptId": "attempt_df3d3a8a-bda4-43af-be37-5696d727a922"
+  }
+}
+

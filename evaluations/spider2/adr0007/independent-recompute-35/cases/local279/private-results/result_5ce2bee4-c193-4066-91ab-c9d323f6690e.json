@@ -1,0 +1,1 @@
+{"resultRef":"result_5ce2bee4-c193-4066-91ab-c9d323f6690e","columns":["product_id","month","absolute_difference"],"columnTypes":["INTEGER","TEXT","INTEGER"],"rows":[[6520,"2019-06-01",0],[6600,"2019-03-01",10]],"rowCount":2,"truncated":false,"contentHash":"6543d698bb9b7289a24bb50868b65197fbe0b2695ab8614886d02dcac785ec82"}

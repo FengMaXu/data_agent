@@ -1,0 +1,4 @@
+{
+  "sql": "WITH base AS(SELECT DISTINCT session,stamp,CASE WHEN RTRIM(path,'/')='' THEN '/' ELSE RTRIM(path,'/') END path FROM activity_log WHERE action='view'), w AS(SELECT session,stamp,path,LEAD(path) OVER(PARTITION BY session ORDER BY stamp,path) p2,LEAD(path,2) OVER(PARTITION BY session ORDER BY stamp,path) p3 FROM base) SELECT COALESCE(p3,'END') p3,COUNT(*) n FROM w WHERE path='/detail' AND p2='/detail' GROUP BY COALESCE(p3,'END') ORDER BY n DESC,p3",
+  "limit": 1000
+}

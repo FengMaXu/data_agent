@@ -10,7 +10,7 @@ const checked = (plan) => plan.check.map((item) => item.name);
 test("a charts change checks charts and its dependents, and builds their dependencies", () => {
   const plan = planChecks(workspaces, ["packages/charts/src/compile.ts"]);
   assert.equal(plan.full, false);
-  assert.deepEqual(new Set(checked(plan)), new Set(["@data-agent/charts", "@data-agent/runtime", "@data-agent/electron-host", "@data-agent/server", "frontend"]));
+  assert.deepEqual(new Set(checked(plan)), new Set(["@data-agent/charts", "@data-agent/runtime", "@data-agent/channel-feishu", "@data-agent/electron-host", "@data-agent/server", "frontend"]));
   assert.ok(plan.build.includes("@data-agent/contracts"));
   assert.ok(plan.build.indexOf("@data-agent/contracts") < plan.build.indexOf("@data-agent/charts"));
   assert.ok(plan.build.indexOf("@data-agent/charts") < plan.build.indexOf("@data-agent/runtime"));

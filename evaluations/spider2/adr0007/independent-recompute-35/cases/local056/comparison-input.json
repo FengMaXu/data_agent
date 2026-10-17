@@ -1,0 +1,73 @@
+{
+  "revealedAt": "2026-10-11T09:02:01.759Z",
+  "registry": {
+    "instance_id": "local056",
+    "attempt_id": "attempt-001",
+    "score": 0,
+    "score_source": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/summary-attempt-001.json",
+    "replayed_csv_score": 0,
+    "group": "wrong",
+    "status": "completed",
+    "publication_status": "published",
+    "duration_ms": 191746,
+    "tool_calls": 23,
+    "error": null,
+    "result_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/result.json",
+    "trace_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/trace.json",
+    "result_exists": true,
+    "trace_exists": true,
+    "sql_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/cases/local056/attempts/attempt-001/submissions/sql/local056.sql",
+    "csv_file": "C:/data-agent-eval/runs/adr0007-fieldtree-wrong118-deepseek-flash-20261010/official_score/inputs/attempt-001/csv/local056.csv",
+    "sql_exists": true,
+    "csv_exists": true,
+    "gold_sql_file": null,
+    "process": {
+      "turns": 16,
+      "toolCalls": 23,
+      "explorationQueries": 13,
+      "resultQueries": 1,
+      "fanoutProbes": 0,
+      "revisions": 2
+    },
+    "fanout_metrics": {
+      "reportCount": 1,
+      "targetCount": 0,
+      "findingCount": 0,
+      "unknownCount": 0,
+      "byStatus": {
+        "clear": 0,
+        "finding": 0,
+        "not_applicable": 1,
+        "unknown": 0
+      },
+      "enabled": true
+    },
+    "spec_feedback_metrics": {
+      "reportCount": 3,
+      "byStatus": {
+        "pending": 0,
+        "completed": 1,
+        "unavailable": 2,
+        "disabled": 0
+      },
+      "deterministicIssueCount": 0,
+      "concernCount": 0,
+      "enabled": true
+    }
+  },
+  "originalSql": "WITH monthly AS (\n  SELECT p.customer_id AS customer_id,\n         strftime('%Y-%m', p.payment_date) AS ym,\n         SUM(p.amount) AS val\n  FROM payment p\n  GROUP BY p.customer_id, strftime('%Y-%m', p.payment_date)\n), pairs AS (\n  SELECT m1.customer_id AS customer_id,\n         m1.val - m2.val AS chg\n  FROM monthly m1\n  JOIN monthly m2\n    ON m2.customer_id = m1.customer_id\n   AND m2.ym = strftime('%Y-%m', date(m1.ym || '-01', '-1 month'))\n), avg_chg AS (\n  SELECT customer_id, AVG(chg) AS avg_monthly_change\n  FROM pairs GROUP BY customer_id\n)\nSELECT c.first_name || ' ' || c.last_name AS full_name\nFROM avg_chg a\nJOIN customer c ON c.customer_id = a.customer_id\nORDER BY a.avg_monthly_change DESC\nLIMIT 1;\n",
+  "originalCsv": "full_name\nMICHEAL FORMAN\n",
+  "goldSql": null,
+  "goldCsv": [
+    {
+      "path": "C:\\data-agent-eval\\Spider2\\spider2-lite\\evaluation_suite\\gold\\exec_result\\local056.csv",
+      "content": "fullname\r\nSTEPHEN QUALLS"
+    }
+  ],
+  "evaluationSettings": {
+    "instance_id": "local056",
+    "condition_cols": [],
+    "ignore_order": false,
+    "toks": "87"
+  }
+}
