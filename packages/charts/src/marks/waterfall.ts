@@ -1,6 +1,7 @@
 import { type WaterfallChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
 import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
+import { THEME } from "../theme.js";
 import { CompileContext, categoryAxis, valueAxis, refuseSelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -57,7 +58,7 @@ function compileWaterfall(context: CompileContext, chart: WaterfallChart): Chart
   }
   const axis = categoryAxis(context, labels, false, chart.step.field);
   if (!axis) return undefined;
-  const colorOf = (index: number) => (totals[index] ? PALETTE[0] : end.values[index]! >= start.values[index]! ? PALETTE[2] : PALETTE[4]);
+  const colorOf = (index: number) => (totals[index] ? PALETTE[0] : end.values[index]! >= start.values[index]! ? THEME.good : THEME.bad);
   const format = (value: number) => formatValue(value, end.meta);
   return {
     ...(context.options.target === "static" ? { animation: false } : {}),

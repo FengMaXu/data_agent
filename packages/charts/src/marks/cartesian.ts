@@ -2,7 +2,7 @@ import { type CartesianChart, type ChartLayer } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
 import { PALETTE, axisTitle, categoryLabel, displayScale, fieldLabel, fieldTitle, formatValue, headlineDigits, isPercentDisplay, numericCell, unitText, type QuantitativeMeta } from "../semantics.js";
 import { THEME } from "../theme.js";
-import { type Measure, CompileContext, temporalNotice, orderCategories, seriesGroups, categoryAxis, viewportZoom, valueAxis, checkPartOfWhole, applySelection } from "./shared.js";
+import { type Measure, CompileContext, LABEL_CHAR_PX, temporalNotice, orderCategories, seriesGroups, categoryAxis, horizontalLabelChars, viewportZoom, valueAxis, checkPartOfWhole, applySelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
 interface LayerPlan {
@@ -261,7 +261,9 @@ function compileCartesian(context: CompileContext, chart: CartesianChart): Chart
   } else {
     const axis = categoryAxis(context, categories, horizontal, chart.x.field);
     if (!axis) return undefined;
-    xAxis = horizontal ? { ...valueAxes[0], ...bottomName } : axis;
+    // Ticks along a narrow tile's bottom need room for their text, or "0 3 6 9 12" runs together.
+    const plotWidth = context.width - horizontalLabelChars(context.width) * LABEL_CHAR_PX - 40;
+    xAxis = horizontal ? { ...valueAxes[0], ...bottomName, splitNumber: Math.max(2, Math.min(5, Math.floor(plotWidth / 90))) } : axis;
     yAxis = horizontal ? axis : valueAxes;
   }
   const namedBottom = valueX || horizontal;

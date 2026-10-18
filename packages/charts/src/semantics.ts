@@ -2,8 +2,11 @@ import type { FieldMeta } from "@data-agent/contracts";
 
 export type QuantitativeMeta = Extract<FieldMeta, { type: "quantitative" }>;
 
-/** The eight-colour business palette, in series order. */
-export const PALETTE = ["#4F6980", "#F47942", "#638B66", "#FBB04E", "#B66353", "#849DB1", "#B9AA97", "#7E756D"] as const;
+/**
+ * The eight-colour business palette, in series order: a confident blue leads, and neighbours differ in hue
+ * and lightness so two to four series stay apart on a white tile.
+ */
+export const PALETTE = ["#2F6FDB", "#F28A30", "#22A38A", "#7B61D1", "#E8B53A", "#E05A6F", "#4FB3E8", "#8A94A6"] as const;
 
 /** Plain decimal text as stored results carry DECIMAL columns; the same rule as the Physical Profile. */
 const DECIMAL_TEXT = /^-?(0|[1-9]\d*)(\.\d+)?$/;
