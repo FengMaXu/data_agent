@@ -1,6 +1,7 @@
 import { type HeatmapChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
 import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
+import { THEME } from "../theme.js";
 import { CompileContext, temporalNotice, orderCategories, categoryAxis } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -68,7 +69,7 @@ function compileHeatmap(context: CompileContext, chart: HeatmapChart): ChartOpti
     // Symmetric around the declared midpoint, so equal distances get equal colour strength.
     const midpoint = chart.color.midpoint! * display;
     const reach = Math.max(Math.abs(high - midpoint), Math.abs(midpoint - low)) || 1;
-    range = { min: midpoint - reach, max: midpoint + reach, colors: [PALETTE[4], SCALE_CENTRE, PALETTE[0]] };
+    range = { min: midpoint - reach, max: midpoint + reach, colors: [PALETTE[1], SCALE_CENTRE, PALETTE[0]] };
   } else {
     range = { min: low, max: high === low ? low + 1 : high, colors: [SCALE_LIGHT, PALETTE[0]] };
   }
@@ -103,7 +104,7 @@ function compileHeatmap(context: CompileContext, chart: HeatmapChart): ChartOpti
       name: fieldTitle(color.field, color.meta),
       data,
       label: { show: rows.length <= MAX_LABELLED_CELLS, formatter: (params: { value: [number, number, number | string] }) => (typeof params.value[2] === "number" ? format(params.value[2]) : "") },
-      emphasis: { itemStyle: { borderColor: "#243142", borderWidth: 1 } },
+      emphasis: { itemStyle: { borderColor: THEME.ink, borderWidth: 1 } },
     }],
   };
 }

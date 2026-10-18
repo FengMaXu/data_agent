@@ -1,6 +1,7 @@
 import { type FunnelChart } from "@data-agent/contracts";
 import type { ChartOption } from "../types.js";
 import { PALETTE, displayScale, fieldLabel, fieldTitle, formatValue } from "../semantics.js";
+import { THEME } from "../theme.js";
 import { LABEL_CHAR_PX, CompileContext, refuseSelection } from "./shared.js";
 import type { MarkDefinition } from "./types.js";
 
@@ -57,7 +58,7 @@ function compileFunnel(context: CompileContext, chart: FunnelChart): ChartOption
       data: stages.map((stage, index) => ({ name: stage, value: numbers[index]! * scale })),
       // Each stage shows its own value; conversion rates would be computed numbers.
       // Beside the funnel, where every stage has room: inside, narrow stages and long names would be cut off.
-      label: { position: "right", formatter: (params: { name: string; value: number }) => `${params.name}\n${format(params.value)}`, color: "#243142", width: FUNNEL_LABEL_CHARS * LABEL_CHAR_PX, overflow: "truncate" },
+      label: { position: "right", formatter: (params: { name: string; value: number }) => `${params.name}\n${format(params.value)}`, color: THEME.ink, width: FUNNEL_LABEL_CHARS * LABEL_CHAR_PX, overflow: "truncate" },
       labelLine: { show: true },
       itemStyle: { borderColor: "#ffffff", borderWidth: 1 },
     }],

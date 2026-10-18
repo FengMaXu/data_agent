@@ -108,8 +108,16 @@ export function seriesGroups(labels: readonly string[], declared: readonly strin
   return declared ? [...declared.filter((value) => seen.includes(value)), ...seen.filter((value) => !declared.includes(value))] : seen;
 }
 
-export function truncate(label: string): string {
-  return label.length > MAX_LABEL_CHARS ? `${label.slice(0, MAX_LABEL_CHARS - 1)}…` : label;
+export function truncate(label: string, max = MAX_LABEL_CHARS): string {
+  return label.length > max ? `${label.slice(0, max - 1)}…` : label;
+}
+
+/** Share of a horizontal chart's width its category labels may take; the rest is left for the bars. */
+const HORIZONTAL_LABEL_SHARE = 0.34;
+
+/** Characters a horizontal chart's category labels keep, so a narrow tile still leaves room for its bars. */
+export function horizontalLabelChars(width: number): number {
+  return Math.max(5, Math.min(MAX_LABEL_CHARS, Math.floor((width * HORIZONTAL_LABEL_SHARE) / LABEL_CHAR_PX)));
 }
 
 /** Layout of a category axis: static targets must fit every category; interactive ones may scroll. */
@@ -127,8 +135,9 @@ export function categoryAxis(context: CompileContext, categories: readonly strin
     return undefined;
   }
   const longest = Math.max(0, ...categories.map(labelWidth));
-  if (categories.some((label) => label.length > MAX_LABEL_CHARS)) {
-    context.notice({ kind: "layout", code: "LABELS_TRUNCATED", message: `过长的类目标签截断显示为前 ${MAX_LABEL_CHARS - 1} 个字符，完整名称见提示框`, field });
+  const maxChars = horizontal ? horizontalLabelChars(context.width) : MAX_LABEL_CHARS;
+  if (categories.some((label) => label.length > maxChars)) {
+    context.notice({ kind: "layout", code: "LABELS_TRUNCATED", message: `过长的类目标签截断显示为前 ${maxChars - 1} 个字符，完整名称见提示框`, field });
   }
   // A time axis reads in order, so labels that do not fit are thinned, never rotated: 2017-01, 2017-04, ...
   // Categories have no such order and keep every label.
@@ -140,7 +149,7 @@ export function categoryAxis(context: CompileContext, categories: readonly strin
     type: "category",
     data: categories,
     ...(horizontal ? { inverse: true } : {}),
-    axisLabel: { interval: thinned ? "auto" : 0, hideOverlap: thinned, ...(rotate ? { rotate: 45 } : {}), formatter: (value: string) => truncate(value) },
+    axisLabel: { interval: thinned ? "auto" : 0, hideOverlap: thinned, ...(rotate ? { rotate: 45 } : {}), formatter: (value: string) => truncate(value, maxChars) },
   };
 }
 
