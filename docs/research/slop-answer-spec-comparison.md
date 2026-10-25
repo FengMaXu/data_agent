@@ -25,7 +25,7 @@ SLOP 的核心范式是将开放式生成转化为：**形式化契约（`@inten
 
 根据 [ADR-0007](../adr/0007-answer-spec-as-one-field-vocabulary.md) 对 118 道历史错题的归因：能定性的 74 题中，**口径声明值错 36 题（假定错 23、待定后决定错 7、题面引用错 6）、未声明 24 题、SQL 实现错 8 题**。在遵守 [ADR-0002](../adr/0002-bounded-deterministic-query-gates.md)（有界确定性门控）和 [ADR-0003](../adr/0003-detect-inform-never-block.md)（检测默认告知、仅对必然违规硬阻断）的前提下，可从以下 5 个方向借鉴 SLOP。
 
-> **实证注意**：23 道假定错的具体字段分布已在[第 5 节](#5-实证补充23-道假定错的字段分布与-p3-覆盖范围修正)中给出。物理层 Typed Holes（第 3.2 节 / P3）最多覆盖其中 2–3 道；最大来源（9 题，39%）是 `output` 列范围假定，需要独立规则（P1c）而不是 P3。
+> **实证注意**：23 道假定错按标答值复核后的字段分布见[第 5 节](#5-实证补充23-道假定错的字段分布按标答值复核)。最大来源是 `measure`（10 题，43%），其次是 `population`（7 题）；物理层 Typed Holes（第 3.2 节 / P3）最多覆盖 2–3 道；`output` 只有 2 题。
 
 ---
 
@@ -63,8 +63,8 @@ SLOP 的核心范式是将开放式生成转化为：**形式化契约（`@inten
 - 自由文本导致 Runtime 无法对这些字段执行 `Spec Realization`（[ADR-0003](../adr/0003-detect-inform-never-block.md)：“规则读不懂的字段记为不可判定”）。
 - 模型在首次调用 `set_answer_spec` 时，对尚未探查的物理映射或过滤取值往往直接写成 `assumed`（导致 23 道假定错），而不是先留空洞再去取证。
 
-**实证限制（见[第 5 节](#5-实证补充23-道假定错的字段分布与-p3-覆盖范围修正)）**：
-对 23 道假定错按最早分叉节点做字段分布后，物理层假定（可被 Typed Holes 拦截）只有 2–3 道（local003 列映射、local273 来源表、local017 分组列）；另有 9 道（39%）是 `output` 列扩展假定，不属于物理层，P3 对其无效。因此本方案应聚焦于物理层字段（`population.source`、`population.timeField`、`population.joinMultiplicity`、物理列映射），不应以"拦截 23 道假定错"作为整体预期。
+**实证限制（见[第 5 节](#5-实证补充23-道假定错的字段分布按标答值复核)）**：
+23 道假定错中，物理层假定（可被 Typed Holes 拦截）只有 2–3 道（local003 列映射、local273 来源表、local017 分组列）；另有 2 道是 `measure.countGrain` 去重粒度（local032、037），代数化后可由 Spec Realization 核对。因此本方案应聚焦于物理层字段（`population.source`、`population.timeField`、`population.joinMultiplicity`、物理列映射）与 `countGrain`，不应以"拦截 23 道假定错"作为整体预期。
 
 **改进方案**：
 1. **关键字段代数化（保留 `note` 作为补充说明，主结构枚举化）**：
@@ -147,8 +147,7 @@ SLOP 的核心范式是将开放式生成转化为：**形式化契约（`@inten
 ```mermaid
 flowchart LR
     P1[“P1: 输出值域契约 + 探针差异反例<br/>(零工具接口破坏，纯 Runtime 增强)”] --> P2[“P2: 时间边界/差值方向微样例校验<br/>(扩展 Spec Realization 确定性规则)”]
-    P2 --> P1c[“P1c: output 列无依据扩展约束<br/>(最大假定错来源，9/23，纯规则)”]
-    P1c --> P3[“P3: 物理层 Typed Holes<br/>(仅针对 source/timeField/列映射，覆盖 2–3/23)”]
+    P2 --> P3[“P3: 物理层 Typed Holes + countGrain 代数化<br/>(source/timeField/列映射/去重键，覆盖 4–5/23)”]
     P3 --> P4[“P4: 多层公式 CTE 阶段粒度不变量<br/>(SQL AST 阶段级对齐校验)”]
 ```
 
@@ -157,67 +156,75 @@ flowchart LR
 | **P1** | **输出值域契约（Range Types）** | `packages/runtime/src/answering/` (`result-execution` / `spec-realization`) | 否（从 `measure.formula.op` 自动推导） | 回放 2026-10-10 字段树运行 102 题，统计在错题与正确题上的触发率 |
 | **P1** | **探针差异反例（Witness Rows）** | `packages/runtime/src/answering/` (`exploration` / `advice`) | 否（增强返回文本与 Jev 输入） | 对比待定字段在 `lean=none` 或错选题目上的裁决准确率 |
 | **P2** | **时间端点开闭与差值方向校验** | `packages/runtime/src/answering/` (`spec-realization`) | 否（利用现有 `population.time.boundary` 与 `from`/`to`） | 回放历史时间边界错题（如 local157）与变化率错题 |
-| **P1c** | **output 列无依据扩展约束** | `packages/runtime/src/answering/` (`spec-realization`) | 否（新增 Spec Realization 规则） | 对 9 道 output 假定错回放，统计规则触发率与误报率（正确题不应触发） |
-| **P3** | **物理层 Typed Holes**（`population.source` / `population.timeField` / 物理列映射） | `packages/runtime/src/tools/answer-fields.ts` + `Schema Profile` | 是（扩展字段 Schema） | 回放 local003、local273、local017 三道已知物理层假定错，验证 `hole → fill` 能否拦截；字段代数化部分（`eligibility`、`countGrain`）单独验证，先于 `conditions` 结构化 |
+| **P3** | **物理层 Typed Holes**（`population.source` / `population.timeField` / 物理列映射） | `packages/runtime/src/tools/answer-fields.ts` + `Schema Profile` | 是（扩展字段 Schema） | 回放 local003、local273、local017 三道已知物理层假定错，验证 `hole → fill` 能否拦截；字段代数化部分（`countGrain` 以 local032、037 验证去重键核对，`eligibility` 以 local133 验证零活动对象计入）单独验证，先于 `conditions` 结构化 |
 | **P4** | **多层公式阶段不变量** | `packages/runtime/src/answering/` (`spec-realization`) | 否 | 回放 44 道两层以上聚合标准口径题；优先验证 local194（缺外层 AVG）与 local335（嵌套次序错） |
 
 ---
 
-## 5. 实证补充：23 道假定错的字段分布与 P3 覆盖范围修正
+## 5. 实证补充：23 道假定错的字段分布（按标答值复核）
 
-> **数据来源**：`evaluations/spider2/adr0007/relabel-v2/wrong118-relabel-v2.jsonl`，过滤 `visibility == "假定错"` 的 23 条记录，取 `bifurcation_node` 字段做分布统计。本节逐条校验了每题的 `layer_reason` 与 `visibility_reason`，确认了各题是语义层假定还是物理层假定。
+> **数据来源**：`evaluations/spider2/adr0007/relabel-v2/wrong118-relabel-v2.jsonl` 中 `visibility == "假定错"` 的 23 条记录；预测与标答结果取自 `evaluations/spider2/wrong118-dossiers.jsonl` 与 `evaluations/spider2/adr0007/independent-recompute-35/cases/*/csv-comparison.json`。
+>
+> **复核方法**：Spider2 评分器（本组设置 `condition_cols: []`）逐列核对标答的每一列能否在预测中找到数值一致的列，预测多出的列不扣分。因此每题按"要改什么才能得分"重新判定分岔字段：只有标答各列的值都对、错在列或行的形状时，才归为 `output`。
 
-### 5.1 字段分布
+### 5.1 复核后的字段分布
 
-| `bifurcation_node` | 题数 | 占比 |
-| --- | --- | --- |
-| `output` | 9 | 39% |
-| `measure.formula` | 6 | 26% |
-| `population.time` | 2 | 9% |
-| `population.entity` | 2 | 9% |
-| `population.conditions` | 1 | 4% |
-| `population.source` | 1 | 4% |
-| `population.eligibility` | 1 | 4% |
-| `grouping` | 1 | 4% |
+relabel-v2 把 9 题标为 `output`，依据的是列数不同。按标答值复核，其中 6 题的值本身就错，多出的列不是失分原因；local062、local064 的原标注也与结果对不上。
 
-### 5.2 最大来源：`output` 列范围假定（9 题，39%）
+| 分岔字段 | 题数 | 占比 | 题号 |
+| --- | --- | --- | --- |
+| `measure.formula` | 8 | 35% | local003、035、060、062、152、194、300、335 |
+| `measure.countGrain` | 2 | 9% | local032、037 |
+| `population.*` | 7 | 30% | local040（conditions）、130（entity）、133（eligibility）、263（conditions）、273（source）、301（time）、355（entity） |
+| `grouping` | 1 | 4% | local017 |
+| `output` | 2 | 9% | local025、073 |
+| 数值错，根因未定 | 3 | 13% | local049、064、258 |
 
-**local025、032、035、037、040、049、073、133、258** 的共同模式：模型在 `output` 字段中以 `basis: "assumed"` 或直接写值的方式，**主动添加了题面未要求的列**（附上状态、距离、类别、ID 等），或改变了列序，SQL 忠实执行了这份假定的输出契约。
+`measure` 合计 10 题（43%），是最大来源；`output` 只有 2 题。
 
-这不是"物理映射不明确需要 hole 占位"，而是**模型越权扩展了输出边界**。Typed Holes 对此无效——模型在 `source`/`timeField` 等物理字段上没有做任何未探查的假定，分叉恰好发生在 `output` 层。
+### 5.2 改判的题
 
-**对应规则**（P1c）：`output` 里每一列，要么有题面原文逐字对应，要么来自 Ready 之前已登记的探针观测；否则 Revision 不能进入 Ready。此规则不破坏现有工具签名，可在 `spec-realization` 中作为 Finding 先试运行。
+| 题号 | 原标注 | 改判 | 依据（预测 vs 标答） |
+| --- | --- | --- | --- |
+| local032 | `output` | `measure.countGrain` | 前三行一致；"最多 5 星评价"一行卖家与数值不同（993 vs 1096），SQL 用 `COUNT(DISTINCT review_id)`。列序不影响评分 |
+| local035 | `output` | `measure.formula` | 选出的城市对完全不同，预测距离 18208 km；距离算法与标答不一致 |
+| local037 | `output` | `measure.countGrain` | 三个类别一致，笔数偏多（7565 vs 7540），对支付事件 `(order_id, payment_sequential)` 去重的粒度不同 |
+| local040 | `output` | `population.conditions` | 树数与平均收入都有偏差（Queens 79366.74 vs 79366.24）；题面要求"filling missing ZIP values"，SQL 未补齐 |
+| local049 | `output` | 根因未定 | 原始提交只有一列，值仍错（57.67 vs 59.67）；行业归属或年份口径待查 |
+| local062 | `population.eligibility` | `measure.formula` | 各桶顾客数与标答完全一致，总体相同；差在每桶 min/max 的取值对象 |
+| local064 | `population.time` | 根因未定 | 值错（419.99 vs 363.74）；2020 数据本就只有 1–4 月，"缩到观测月份"不改变结果，疑为均值的计入对象 |
+| local133 | `output` | `population.eligibility` | 行数 20 vs 25，均值随之不同：标答包含未被排名的风格。ID 代替名称是次要问题 |
+| local258 | `output` | 根因未定 | wickets 计数不同（143 vs 159），行数 330 vs 286；缺数字 ID 列是次要问题 |
 
-### 5.3 第二来源：`measure.formula` 语义假定（6 题，26%）
+维持原标注的两道 `output` 题：local025 返回逐场 569 行明细，标答是 1 个标量；local073 缺 `pizza_id`、`order_time` 列，配料串分隔符也不同（`,` vs `, `）。两题都不是"多出无依据的列"。
 
-按是否属于物理层细分：
+### 5.3 `measure.formula` 8 题
 
-| 题号 | 假定内容 | 层 | P3 能拦截 | 其他方案 |
-| --- | --- | --- | --- | --- |
-| local003 | price → payment_value（金额列映射） | **物理层** | ✓ | — |
-| local060 | ratio 缺 ×100（量纲假定） | 语义 | ✗ | P1b 值域契约 |
-| local152 | 指标换成 duration（公式类型假定） | 语义 | ✗ | — |
-| local194 | 缺外层 AVG（嵌套层数假定） | 语义 | ✗ | P4 多层不变量 |
-| local300 | max(0, …) 截零假定（业务语义） | 语义 | ✗ | — |
-| local335 | 嵌套次序（队级 vs 球手级） | 语义 | ✗ | P4 多层不变量 |
+| 题号 | 假定内容 | 层 | 可能的检出手段 |
+| --- | --- | --- | --- |
+| local003 | 金额列 `payment_value` 代替 `price`，另有分位与均值算法差异 | 物理 + 语义 | P3 只覆盖列映射部分 |
+| local035 | 相邻城市距离算法 | 语义 | — |
+| local060 | 份额变化未 ×100，且数值本身也不同（2.55 vs 3.60） | 语义 | P1b 只能提示量纲，不能修正数值 |
+| local062 | 每桶 min/max 取自何种利润 | 语义 | — |
+| local152 | "inter-movie duration"换成片长均值 | 语义 | — |
+| local194 | 缺外层 AVG | 语义 | P4 |
+| local300 | `max(0, 上日余额 + 净额)` 截零后继续累计 | 语义 | — |
+| local335 | 队级总分代替车手级比较 | 语义 | P4 |
 
-### 5.4 物理层假定汇总
+### 5.4 物理层假定
 
-对全部 23 题按 `layer_reason` 核查后，**确认为物理层假定**的共 2–3 道：
+不变：local003（金额列映射，部分）、local273（来源表替换）、local017（分组列 `primary_collision_factor` vs `pcf_violation_category`），共 2–3 题。
 
-| 题号 | `bifurcation_node` | 物理假定内容 |
-| --- | --- | --- |
-| local003 | `measure.formula` | 金额列映射（`price` vs `payment_value`） |
-| local273 | `population.source` | 来源表替换（FIFO 分配记录 → 拣货事件） |
-| local017 | `grouping` | 分组键选择（`primary_collision_factor` vs `pcf_violation_category`） |
+### 5.5 对前文与路线的影响
 
-其余 20 道均为**语义层假定**（总体范围、粒度、时间锚、公式类型、输出列），物理层 Typed Holes 对其无效。
-
-### 5.5 对原文的修正
-
-| 原文说法 | 修正后 |
+| 原结论 | 修正后 |
 | --- | --- |
-| "23 道假定错"是 P3 的验证目标 | P3 最多覆盖其中 2–3 道（10–13%）；验证目标应锁定 local003、local273、local017 |
-| `population.eligibility` 与 `measure.countGrain` 代数化是对准假定错的关键改动 | 这两个字段在 23 道假定错中只出现 1 次（local062），代数化的价值在于让 Spec Realization 可读，而不在于拦截假定错 |
-| P3 在 P2 之后、P4 之前 | 在 P2 与 P3 之间插入 P1c（output 列约束）——它成本更低、覆盖更大（9 道），且不破坏接口 |
-| `population.conditions` 结构化是 P3 重点 | 在 23 道假定错中 `population.conditions` 只出现 1 次（local263），而该题是物理/语义混合；`conditions` 结构化优先级低于 `eligibility` 与 `countGrain` |
+| `output` 列扩展是最大来源（9 题，39%），设 P1c 规则 | `output` 只有 2 题，且都不是多列。另外多出的列都是题面提到的词（bowler、distance、payment type、number of trees），"每列须有题面依据"拦不住；少列它看不到。**P1c 取消** |
+| P3 最多覆盖 2–3 题 | 不变 |
+| `measure.countGrain` 代数化价值不在拦截假定错 | 修正：`countGrain` 有 2 题（local032、037），都是去重粒度。代数化后 Spec Realization 可核对 `COUNT(DISTINCT …)` 的键，值得保留在 P3 中 |
+| 探针差异反例（P1a）对准待定字段 | 不变，但注意：假定错按定义没有走待定与探针，P1a 对这 23 题无效 |
+| local060 是 ×100 量纲假定 | 部分修正：×100 之外数值也不同，值域契约只能提示一部分 |
+
+**结论**：23 道假定错中，确定性规则能直接对准的是 `measure` 的结构性部分（P4 的 local194、335；P1b 的量纲提示；P3 的 countGrain 与列映射），合计约 5–6 题。其余多为公式或总体的业务读法，只能靠证据（题面、文档、用户确认）而不是结构规则。
+
+> **方法教训**：relabel-v2 的 `bifurcation_node` 依据列数差异标注，没有核对标答值。以后按字段分布排优先级前，先用评分器口径复核"改哪里才能得分"。

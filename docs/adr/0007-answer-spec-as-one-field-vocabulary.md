@@ -285,22 +285,20 @@ output                    行粒度、行数、列、每列的单位与精度（
 - **未声明 24 题**，必要性规则最多只能作用于这部分。17 题落在原规则"总是"的节点上；7 题落在原规则未列出的节点上（`selection` 3、`population.conditions` 2、`population.time` 1、`population.source` 1）。这 7 题中有 5 题卷宗的 Spec 快照与决定记录全空，只能说明记录缺失；有记录支撑的漏检是 local157（`population.time`，漏了题面给的日界）和 local309（`population.source`，物理层，留给 Schema Profile）。据此把 `selection`、`population.conditions`、`population.time` 改为总是必须声明，"不适用"也是一种声明。
 - **声明了但值错 36 题**：假定错 23、待定后决定错 7、题面引用错 6。必要性规则对这部分无效，要靠证据核实（Schema Profile、探针）。错题的主因是声明的值错，而不是漏了声明。
 
-**假定错的字段分布（2026-10-25 补充）。** 对 23 道假定错按 `bifurcation_node` 逐题核查（数据源：`evaluations/spider2/adr0007/relabel-v2/wrong118-relabel-v2.jsonl`，过滤 `visibility == "假定错"`，校验各题 `layer_reason`）：
+**假定错的字段分布（2026-10-25 补充，按标答值复核）。** 23 道假定错（`relabel-v2` 中 `visibility == "假定错"`）的分岔字段，按 Spider2 评分器口径复核：评分器（`condition_cols: []`）只要求标答各列在预测中有数值一致的列，多出的列不扣分；只有标答各列的值都对、错在列或行的形状时，才算 `output`。
 
-  | `bifurcation_node` | 题数 | 占比 |
+  | 分岔字段 | 题数 | 题号 |
   | --- | --- | --- |
-  | `output` | 9 | 39% |
-  | `measure.formula` | 6 | 26% |
-  | `population.time` | 2 | 9% |
-  | `population.entity` | 2 | 9% |
-  | `population.conditions` | 1 | 4% |
-  | `population.source` | 1 | 4% |
-  | `population.eligibility` | 1 | 4% |
-  | `grouping` | 1 | 4% |
+  | `measure.formula` | 8 | local003、035、060、062、152、194、300、335 |
+  | `measure.countGrain` | 2 | local032、037 |
+  | `population.*` | 7 | local040、130、133、263、273、301、355 |
+  | `grouping` | 1 | local017 |
+  | `output` | 2 | local025（标量交成逐场明细）、local073（缺列、分隔符不同） |
+  | 数值错，根因未定 | 3 | local049、064、258 |
 
-  最大来源是 **`output` 列范围假定（9 题，39%）**：模型在 `output` 里以 `basis: "assumed"` 或直接写值的方式，添加了题面未要求的列（代表题：local025、local032、local035、local037、local040、local049、local073、local133、local258）。这不是物理映射未探查的问题，而是模型越权扩展了输出契约。对应规则：`output` 中每一列要么有题面原文逐字对应，要么来自 Ready 之前已登记的探针观测；否则 Revision 不能进入 Ready。此规则不破坏现有工具签名。
+  relabel-v2 原把 9 题标为 `output`，其中 6 题的值本身就错（如 local037 笔数 7565 vs 7540、local049 57.67 vs 59.67），多出的列不是失分原因。因此"`output` 每列须有题面或探针依据"的规则不成立：多出的列都是题面提到的词，规则拦不住；少列它看不到。
 
-  **物理层假定只有 2–3 道**，可被 Schema Profile / Typed Holes 拦截的对象是：local003（`measure.formula`，金额列映射 `price` vs `payment_value`）、local273（`population.source`，来源表替换）、local017（`grouping`，分组键选择）。其余 20 道均为语义层假定（总体范围、粒度、时间锚、公式类型、输出列），物理层证据核实对其无效。`measure.formula` 6 题中只有 local003 属于物理层；local060（缺 ×100）、local194（缺外层 AVG）、local335（嵌套次序）等属于语义层假定，需由值域契约或多层聚合校验处理，不由 Schema Profile 覆盖。
+  主要来源是 `measure`（10 题）。物理层假定只有 2–3 道（local003 金额列映射、local273 来源表、local017 分组列），可由 Schema Profile / Typed Holes 处理；`countGrain` 2 题都是去重粒度，结构化后可由 Spec Realization 核对去重键；local194、local335 的嵌套层次可由多层聚合校验处理。其余是公式或总体的业务读法，只能靠证据核实。复核明细见 `docs/research/slop-answer-spec-comparison.md` 第 5 节。
 
 **归因口径的缺口。** 可见性的五个类别描述的都是声明错误；13 题声明正确，失分来自 SQL 实现或标准答案，没有类别可用。可见性只应对口径错标注。
 
