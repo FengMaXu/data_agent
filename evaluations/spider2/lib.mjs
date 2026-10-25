@@ -530,7 +530,7 @@ export function stopPositionOf(calls) {
     if (call.isError || !call.finishedAt) continue;
     const details = call.result?.details;
     if (!details || typeof details !== "object") continue;
-    if (DELIVERY_TOOLS.has(call.toolName) && details.receiptId) return "published";
+    if (DELIVERY_TOOLS.has(call.toolName) && (details.receiptId || details.publicationReceipt?.receiptId)) return "published";
     if (call.toolName === "set_answer_spec" && details.revisionId) {
       revisionId = details.revisionId;
       incomplete = (details.undeclared?.length ?? 0) > 0 || (details.open?.length ?? 0) > 0;

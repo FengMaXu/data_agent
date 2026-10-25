@@ -404,6 +404,7 @@ test("stopPositionOf reads where a run stopped from the answering tools' details
   assert.equal(stopPositionOf([spec("r1"), candidate("r1")]), "candidate_unpublished");
   assert.equal(stopPositionOf([spec("r1"), candidate("r1"), spec("r2")]), "spec_ready", "a candidate of an older Revision cannot be published");
   assert.equal(stopPositionOf([spec("r1"), candidate("r1"), done("export_query", { receiptId: "p" })]), "published");
+  assert.equal(stopPositionOf([spec("r1"), candidate("r1"), done("export_query", { publicationReceipt: { receiptId: "p" } })]), "published");
   assert.equal(stopPositionOf([spec("r1"), candidate("r1"), { toolName: "export_query", isError: false, result: { details: null } }]), "candidate_unpublished", "a delivery cancelled before it finished published nothing");
 });
 
