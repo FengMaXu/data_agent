@@ -285,6 +285,23 @@ output                    行粒度、行数、列、每列的单位与精度（
 - **未声明 24 题**，必要性规则最多只能作用于这部分。17 题落在原规则"总是"的节点上；7 题落在原规则未列出的节点上（`selection` 3、`population.conditions` 2、`population.time` 1、`population.source` 1）。这 7 题中有 5 题卷宗的 Spec 快照与决定记录全空，只能说明记录缺失；有记录支撑的漏检是 local157（`population.time`，漏了题面给的日界）和 local309（`population.source`，物理层，留给 Schema Profile）。据此把 `selection`、`population.conditions`、`population.time` 改为总是必须声明，"不适用"也是一种声明。
 - **声明了但值错 36 题**：假定错 23、待定后决定错 7、题面引用错 6。必要性规则对这部分无效，要靠证据核实（Schema Profile、探针）。错题的主因是声明的值错，而不是漏了声明。
 
+**假定错的字段分布（2026-10-25 补充）。** 对 23 道假定错按 `bifurcation_node` 逐题核查（数据源：`evaluations/spider2/adr0007/relabel-v2/wrong118-relabel-v2.jsonl`，过滤 `visibility == "假定错"`，校验各题 `layer_reason`）：
+
+  | `bifurcation_node` | 题数 | 占比 |
+  | --- | --- | --- |
+  | `output` | 9 | 39% |
+  | `measure.formula` | 6 | 26% |
+  | `population.time` | 2 | 9% |
+  | `population.entity` | 2 | 9% |
+  | `population.conditions` | 1 | 4% |
+  | `population.source` | 1 | 4% |
+  | `population.eligibility` | 1 | 4% |
+  | `grouping` | 1 | 4% |
+
+  最大来源是 **`output` 列范围假定（9 题，39%）**：模型在 `output` 里以 `basis: "assumed"` 或直接写值的方式，添加了题面未要求的列（代表题：local025、local032、local035、local037、local040、local049、local073、local133、local258）。这不是物理映射未探查的问题，而是模型越权扩展了输出契约。对应规则：`output` 中每一列要么有题面原文逐字对应，要么来自 Ready 之前已登记的探针观测；否则 Revision 不能进入 Ready。此规则不破坏现有工具签名。
+
+  **物理层假定只有 2–3 道**，可被 Schema Profile / Typed Holes 拦截的对象是：local003（`measure.formula`，金额列映射 `price` vs `payment_value`）、local273（`population.source`，来源表替换）、local017（`grouping`，分组键选择）。其余 20 道均为语义层假定（总体范围、粒度、时间锚、公式类型、输出列），物理层证据核实对其无效。`measure.formula` 6 题中只有 local003 属于物理层；local060（缺 ×100）、local194（缺外层 AVG）、local335（嵌套次序）等属于语义层假定，需由值域契约或多层聚合校验处理，不由 Schema Profile 覆盖。
+
 **归因口径的缺口。** 可见性的五个类别描述的都是声明错误；13 题声明正确，失分来自 SQL 实现或标准答案，没有类别可用。可见性只应对口径错标注。
 
 标注与校验程序见 `evaluations/spider2/adr0007/relabel-v2/`。
