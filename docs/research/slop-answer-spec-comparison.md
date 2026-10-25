@@ -146,9 +146,9 @@ SLOP 的核心范式是将开放式生成转化为：**形式化契约（`@inten
 
 ```mermaid
 flowchart LR
-    P1[“P1: 输出值域契约 + 探针差异反例<br/>(零工具接口破坏，纯 Runtime 增强)”] --> P2[“P2: 时间边界/差值方向微样例校验<br/>(扩展 Spec Realization 确定性规则)”]
-    P2 --> P3[“P3: 物理层 Typed Holes + countGrain 代数化<br/>(source/timeField/列映射/去重键，覆盖 4–5/23)”]
-    P3 --> P4[“P4: 多层公式 CTE 阶段粒度不变量<br/>(SQL AST 阶段级对齐校验)”]
+    P1["P1: 输出值域契约 + 探针差异反例<br/>(零工具接口破坏，纯 Runtime 增强)"] --> P2["P2: 时间边界/差值方向微样例校验<br/>(扩展 Spec Realization 确定性规则)"]
+    P2 --> P3["P3: 物理层 Typed Holes + countGrain 代数化<br/>(source/timeField/列映射/去重键，覆盖 4–5/23)"]
+    P3 --> P4["P4: 多层公式 CTE 阶段粒度不变量<br/>(SQL AST 阶段级对齐校验)"]
 ```
 
 | 阶段 | 改进项 | 改动模块 | 是否破坏现有工具签名 | 验证方式 |
