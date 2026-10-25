@@ -35,6 +35,7 @@ import {
   selectFinalSql,
   selectModelProfile,
   sha256Tree,
+  stopPositionOf,
   validateOfficialEvaluatorSource,
 } from "./lib.mjs";
 
@@ -370,6 +371,41 @@ test("createRecorder marks a zero-call provider error as resumable", () => {
   assert.equal(recorder.calls.length, 0);
   assert.equal(recorder.terminalReason, "provider_error");
   assert.deepEqual(recorder.providerFailure, { status: null, message: "Connection error.", fatal: true });
+});
+
+test("createRecorder does not count delivery calls toward maxToolCalls", async () => {
+  let subscriber;
+  let aborts = 0;
+  const recorder = createRecorder({ subscribe: (fn) => { subscriber = fn; return () => {}; }, abort: () => { aborts += 1; } }, { maxToolCalls: 2 });
+  const start = (id, toolName) => subscriber({ type: "tool_execution_start", toolCallId: id, toolName, args: {} });
+  start("c1", "set_answer_spec");
+  start("c2", "query_database");
+  start("c3", "export_query");
+  start("c4", "publish_query_result");
+  assert.equal(recorder.limitError, undefined);
+  assert.equal(recorder.calls.length, 4);
+  start("c5", "query_database");
+  await recorder.waitForAbort();
+  assert.match(recorder.limitError.message, /MAX_TOOL_CALLS/);
+  assert.equal(aborts, 1);
+});
+
+test("stopPositionOf reads where a run stopped from the answering tools' details", () => {
+  const done = (toolName, details, extra = {}) => ({ toolName, finishedAt: 1, isError: false, result: { details }, ...extra });
+  const spec = (revisionId, undeclared = [], open = []) => done("set_answer_spec", { taskId: "t", revisionId, undeclared, open });
+  const candidate = (revisionId) => done("query_database", { kind: "result", artifact: { kind: "candidate", candidateId: "c", revisionId } });
+
+  assert.equal(stopPositionOf([]), "no_spec");
+  assert.equal(stopPositionOf([done("read_knowledge", null), done("subagent", [{ runId: "r" }])]), "no_spec");
+  assert.equal(stopPositionOf([{ toolName: "set_answer_spec", isError: true, finishedAt: 1, result: { details: null } }]), "no_spec");
+  assert.equal(stopPositionOf([spec("r1", ["output"])]), "spec_incomplete");
+  assert.equal(stopPositionOf([spec("r1", [], ["population.eligibility"])]), "spec_incomplete");
+  assert.equal(stopPositionOf([spec("r1", ["output"]), spec("r2")]), "spec_ready");
+  assert.equal(stopPositionOf([spec("r1"), candidate("r1")]), "candidate_unpublished");
+  assert.equal(stopPositionOf([spec("r1"), candidate("r1"), spec("r2")]), "spec_ready", "a candidate of an older Revision cannot be published");
+  assert.equal(stopPositionOf([spec("r1"), candidate("r1"), done("export_query", { receiptId: "p" })]), "published");
+  assert.equal(stopPositionOf([spec("r1"), candidate("r1"), done("export_query", { publicationReceipt: { receiptId: "p" } })]), "published");
+  assert.equal(stopPositionOf([spec("r1"), candidate("r1"), { toolName: "export_query", isError: false, result: { details: null } }]), "candidate_unpublished", "a delivery cancelled before it finished published nothing");
 });
 
 test("task timeout does not settle before AgentHarness abort cleanup", async () => {
