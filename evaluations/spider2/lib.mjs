@@ -514,10 +514,39 @@ export function infrastructureFailureOf(result) {
   return undefined;
 }
 
+/** Delivering an existing candidate is not work toward the answer, so it never counts toward maxToolCalls. */
+const DELIVERY_TOOLS = new Set(["export_query", "publish_query_result"]);
+
+/**
+ * Where a run stopped, read from the structured details the answering tools return:
+ * no_spec, spec_incomplete (undeclared or open fields at the last set_answer_spec),
+ * spec_ready, candidate_unpublished (a candidate of the current Revision) or published.
+ */
+export function stopPositionOf(calls) {
+  let revisionId;
+  let incomplete = false;
+  let candidateRevisionId;
+  for (const call of calls) {
+    if (call.isError || !call.finishedAt) continue;
+    const details = call.result?.details;
+    if (!details || typeof details !== "object") continue;
+    if (DELIVERY_TOOLS.has(call.toolName) && details.receiptId) return "published";
+    if (call.toolName === "set_answer_spec" && details.revisionId) {
+      revisionId = details.revisionId;
+      incomplete = (details.undeclared?.length ?? 0) > 0 || (details.open?.length ?? 0) > 0;
+    }
+    if (call.toolName === "query_database" && details.artifact?.kind === "candidate") candidateRevisionId = details.artifact.revisionId;
+  }
+  if (!revisionId) return "no_spec";
+  if (candidateRevisionId === revisionId) return "candidate_unpublished";
+  return incomplete ? "spec_incomplete" : "spec_ready";
+}
+
 export function createRecorder(harness, limits) {
   const events = [];
   const calls = [];
   const callsById = new Map();
+  let budgetedCalls = 0;
   let turnCount = 0;
   let terminalReason = "completed";
   let limitError;
@@ -561,7 +590,8 @@ export function createRecorder(harness, limits) {
       };
       calls.push(call);
       callsById.set(call.toolCallId, call);
-      if (limits.maxToolCalls != null && Number.isFinite(Number(limits.maxToolCalls)) && Number(limits.maxToolCalls) > 0 && calls.length > Number(limits.maxToolCalls)) {
+      if (!DELIVERY_TOOLS.has(call.toolName)) budgetedCalls += 1;
+      if (limits.maxToolCalls != null && Number.isFinite(Number(limits.maxToolCalls)) && Number(limits.maxToolCalls) > 0 && budgetedCalls > Number(limits.maxToolCalls)) {
         stopForLimit("max_tool_calls");
       }
     }
