@@ -37,6 +37,10 @@ const OUTPUT_FINGERPRINTS: Readonly<Record<string, string>> = {
   // 12: donut total in the hole, sliver slices unlabelled with shares in the legend, value ticks in 万/亿 from 100,000.
   // Theme 4: one cool grey family for chrome; context bars a solid cool grey.
   "12.4": "b8be0250",
+  // 13: horizontal category labels keep a share of the tile's width; a horizontal value axis spaces its ticks
+  //     by the plot width; waterfall steps take the good and bad colours.
+  // Theme 5: a blue-led palette and retuned chrome; compact lines, bars and tooltips restyled for tiles.
+  "13.5": "d3fc5358",
 };
 
 const data = { kind: "publication", receiptId: "publication_1" } as const;

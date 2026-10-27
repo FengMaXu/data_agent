@@ -285,6 +285,21 @@ output                    行粒度、行数、列、每列的单位与精度（
 - **未声明 24 题**，必要性规则最多只能作用于这部分。17 题落在原规则"总是"的节点上；7 题落在原规则未列出的节点上（`selection` 3、`population.conditions` 2、`population.time` 1、`population.source` 1）。这 7 题中有 5 题卷宗的 Spec 快照与决定记录全空，只能说明记录缺失；有记录支撑的漏检是 local157（`population.time`，漏了题面给的日界）和 local309（`population.source`，物理层，留给 Schema Profile）。据此把 `selection`、`population.conditions`、`population.time` 改为总是必须声明，"不适用"也是一种声明。
 - **声明了但值错 36 题**：假定错 23、待定后决定错 7、题面引用错 6。必要性规则对这部分无效，要靠证据核实（Schema Profile、探针）。错题的主因是声明的值错，而不是漏了声明。
 
+**假定错的字段分布（2026-10-25 补充，按标答值复核）。** 23 道假定错（`relabel-v2` 中 `visibility == "假定错"`）的分岔字段，按 Spider2 评分器口径复核：评分器（`condition_cols: []`）只要求标答各列在预测中有数值一致的列，多出的列不扣分；只有标答各列的值都对、错在列或行的形状时，才算 `output`。
+
+  | 分岔字段 | 题数 | 题号 |
+  | --- | --- | --- |
+  | `measure.formula` | 8 | local003、035、060、062、152、194、300、335 |
+  | `measure.countGrain` | 2 | local032、037 |
+  | `population.*` | 7 | local040、130、133、263、273、301、355 |
+  | `grouping` | 1 | local017 |
+  | `output` | 2 | local025（标量交成逐场明细）、local073（缺列、分隔符不同） |
+  | 数值错，根因未定 | 3 | local049、064、258 |
+
+  relabel-v2 原把 9 题标为 `output`，其中 6 题的值本身就错（如 local037 笔数 7565 vs 7540、local049 57.67 vs 59.67），多出的列不是失分原因。因此"`output` 每列须有题面或探针依据"的规则不成立：多出的列都是题面提到的词，规则拦不住；少列它看不到。
+
+  主要来源是 `measure`（10 题）。物理层假定只有 2–3 道（local003 金额列映射、local273 来源表、local017 分组列），可由 Schema Profile / Typed Holes 处理；`countGrain` 2 题都是去重粒度，结构化后可由 Spec Realization 核对去重键；local194、local335 的嵌套层次可由多层聚合校验处理。其余是公式或总体的业务读法，只能靠证据核实。复核明细见 `docs/research/slop-answer-spec-comparison.md` 第 5 节。
+
 **归因口径的缺口。** 可见性的五个类别描述的都是声明错误；13 题声明正确，失分来自 SQL 实现或标准答案，没有类别可用。可见性只应对口径错标注。
 
 标注与校验程序见 `evaluations/spider2/adr0007/relabel-v2/`。

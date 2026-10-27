@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChartSpec, FieldMeta } from "@data-agent/contracts";
-import { compileChart, formatFieldValue, validateChart, type ChartCompileResult, type ChartDataset } from "./index.js";
+import { PALETTE, THEME, compileChart, formatFieldValue, validateChart, type ChartCompileResult, type ChartDataset } from "./index.js";
 
 const additive: FieldMeta = { type: "quantitative", storage: "raw", additivity: "additive" };
 const data = { kind: "publication", receiptId: "publication_1" } as const;
@@ -457,7 +457,7 @@ describe("Waterfall", () => {
     const [base, bars] = seriesOf(option);
     expect(base!.data).toEqual([0, 100, 90, 0]);
     expect((bars!.data as { value: number; itemStyle: { color: string } }[]).map((bar) => bar.value)).toEqual([100, 60, 70, 90]);
-    expect((bars!.data as { itemStyle: { color: string } }[]).map((bar) => bar.itemStyle.color)).toEqual(["#4F6980", "#638B66", "#B66353", "#4F6980"]);
+    expect((bars!.data as { itemStyle: { color: string } }[]).map((bar) => bar.itemStyle.color)).toEqual([PALETTE[0], THEME.good, THEME.bad, PALETTE[0]]);
   });
 
   it("rejects steps that do not continue from the previous end, and totals that disagree", () => {
@@ -572,5 +572,46 @@ describe("Sunburst", () => {
   it("applies the treemap's rules", () => {
     expect(codes(compileChart(sunburst(), leaves([["A", "a", 1], ["A", "a", 2]]), { target: "interactive" }))).toEqual(["DUPLICATE_KEY"]);
     expect(codes(compileChart(sunburst(), leaves([["A", "a", -1]]), { target: "interactive" }))).toEqual(["NEGATIVE_IN_PART_OF_WHOLE"]);
+  });
+});
+
+describe("Compact density in dashboard tiles", () => {
+  const tile = { target: "interactive", density: "compact" } as const;
+  const months = (count: number): ChartDataset => ({ columns: ["month", "sales"], rows: Array.from({ length: count }, (_, index) => [`m${String(index).padStart(2, "0")}`, index + 1]) });
+
+  it("washes a lone line and hides its markers once points crowd", () => {
+    const [few] = seriesOf(ok(compileChart(cartesian([{ type: "line", y: { field: "sales" } }], {}, "month"), months(6), tile)).option);
+    expect(few!.showSymbol).toBe(true);
+    expect(few!.areaStyle).toBeDefined();
+    const [many] = seriesOf(ok(compileChart(cartesian([{ type: "line", y: { field: "sales" } }], {}, "month"), months(18), tile)).option);
+    expect(many!.showSymbol).toBe(false);
+  });
+
+  it("leaves lines that share a tile unfilled, so they never cover each other", () => {
+    const two: ChartDataset = { columns: ["region", "sales", "cost"], rows: [["east", 10, 4], ["west", 12, 5]] };
+    const spec = { ...cartesian([{ type: "line", y: { field: "sales" } }, { type: "line", y: { field: "cost" } }]), fields: { sales: additive, cost: additive } } as ChartSpec;
+    expect(seriesOf(ok(compileChart(spec, two, tile)).option).map((series) => series.areaStyle)).toEqual([undefined, undefined]);
+  });
+
+  it("gives non-negative horizontal bars a track, and bars that cross zero none", () => {
+    const horizontal = (rows: unknown[][]) => seriesOf(ok(compileChart(cartesian([{ type: "bar", y: { field: "sales" } }], { chart: { mark: "cartesian", x: { field: "region" }, orientation: "horizontal", layers: [{ type: "bar", y: { field: "sales" } }] } } as Partial<ChartSpec>), { columns: ["region", "sales"], rows }, tile)).option)[0]!;
+    expect(horizontal([["east", 10], ["west", 3]]).showBackground).toBe(true);
+    expect(horizontal([["east", 10], ["west", -3]]).showBackground).toBeUndefined();
+  });
+});
+
+describe("Horizontal charts in narrow tiles", () => {
+  const long: ChartDataset = { columns: ["region", "sales"], rows: [["机械设备、五金产品及电子产品批发", 10], ["其他批发业", 4]] };
+  const spec = { ...cartesian([{ type: "bar", y: { field: "sales" } }]), chart: { mark: "cartesian", x: { field: "region" }, orientation: "horizontal", layers: [{ type: "bar", y: { field: "sales" } }] } } as ChartSpec;
+
+  it("cuts category labels to a share of the tile's width and spaces value ticks by the plot", () => {
+    const narrow = ok(compileChart(spec, long, { target: "interactive", width: 300, height: 300 }));
+    const label = axis(narrow.option, "yAxis")[0]!.axisLabel as { formatter: (value: string) => string };
+    expect(label.formatter("机械设备、五金产品及电子产品批发")).toBe("机械设备、五金…");
+    expect(narrow.notices.map((notice) => notice.code)).toContain("LABELS_TRUNCATED");
+    expect(axis(narrow.option, "xAxis")[0]!.splitNumber).toBe(2);
+    const wide = ok(compileChart(spec, long, { target: "interactive", width: 1200, height: 300 }));
+    expect((axis(wide.option, "yAxis")[0]!.axisLabel as { formatter: (value: string) => string }).formatter("其他批发业")).toBe("其他批发业");
+    expect(axis(wide.option, "xAxis")[0]!.splitNumber).toBe(5);
   });
 });

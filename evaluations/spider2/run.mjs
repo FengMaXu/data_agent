@@ -28,6 +28,7 @@ import {
   selectModelProfile,
   sha256File,
   sha256Tree,
+  stopPositionOf,
   validateOfficialEvaluatorSource,
 } from "./lib.mjs";
 import { manifestFromExperiment, resolveExperiment, resolveSemanticSpecMode, validateExperimentConfig } from "./experiment.mjs";
@@ -835,6 +836,7 @@ async function createCaseRunner(config, runDir, systemPrompt, attemptId = "attem
       db: instance.db,
       backend: backendForCase(instance),
       status,
+      stopPosition: stopPositionOf(recorder?.calls ?? []),
       startedAt: new Date(startedAt).toISOString(),
       durationMs: Date.now() - startedAt,
       turns: recorder?.turnCount ?? 0,
@@ -1437,8 +1439,14 @@ async function writeSummary(runDir, results) {
   const statuses = {};
   const backends = {};
   const publicationStatuses = {};
+  const stopPositions = {};
   for (const result of results) {
     statuses[result.status] = (statuses[result.status] ?? 0) + 1;
+    // Results written before stopPosition existed have none; they are left out rather than guessed.
+    if (result.stopPosition) {
+      const key = `${result.status}:${result.stopPosition}`;
+      stopPositions[key] = (stopPositions[key] ?? 0) + 1;
+    }
     backends[result.backend] = (backends[result.backend] ?? 0) + 1;
     if (result.publicationStatus) publicationStatuses[result.publicationStatus] = (publicationStatuses[result.publicationStatus] ?? 0) + 1;
   }
@@ -1447,6 +1455,7 @@ async function writeSummary(runDir, results) {
     statuses,
     backends,
     publicationStatuses,
+    stopPositions,
     sqlCoverage: results.length ? results.filter((item) => item.finalSql).length / results.length : 0,
     csvCoverage: results.length ? results.filter((item) => item.csvGenerated).length / results.length : 0,
     averageDurationMs: results.length ? Math.round(results.reduce((sum, item) => sum + item.durationMs, 0) / results.length) : 0,
@@ -1484,6 +1493,7 @@ async function reportCommand(config, options) {
     `- SQL coverage: ${(summary.sqlCoverage * 100).toFixed(2)}%`,
     `- CSV coverage: ${(summary.csvCoverage * 100).toFixed(2)}%`,
     `- Publication statuses: ${Object.entries(summary.publicationStatuses).map(([key, value]) => `${key}=${value}`).join(", ") || "none"}`,
+    `- Stop positions (status:position): ${Object.entries(summary.stopPositions).map(([key, value]) => `${key}=${value}`).join(", ") || "none"}`,
     `- Average latency: ${summary.averageDurationMs} ms`,
     `- Average tool calls: ${summary.averageToolCalls.toFixed(2)}`,
     `- Registered anomalies: ${summary.anomalyCount}`,
@@ -1500,7 +1510,7 @@ async function reportCommand(config, options) {
     "",
     "## Cases needing review",
     "",
-    ...(failures.length ? failures.map((item) => `- ${item.instanceId}: status=${item.status}, sql=${Boolean(item.finalSql)}, csv=${item.csvGenerated}, sqlEX=${sqlCaseScores[item.instanceId] ?? "n/a"}, csvEX=${csvCaseScores[item.instanceId] ?? "n/a"}${item.csvError ? `, csvError=${item.csvError}` : ""}${item.error?.message ? `, error=${item.error.message}` : ""}`) : ["None."]),
+    ...(failures.length ? failures.map((item) => `- ${item.instanceId}: status=${item.status}${item.stopPosition ? `, stop=${item.stopPosition}` : ""}, sql=${Boolean(item.finalSql)}, csv=${item.csvGenerated}, sqlEX=${sqlCaseScores[item.instanceId] ?? "n/a"}, csvEX=${csvCaseScores[item.instanceId] ?? "n/a"}${item.csvError ? `, csvError=${item.csvError}` : ""}${item.error?.message ? `, error=${item.error.message}` : ""}`) : ["None."]),
     "",
   ].join("\n");
   await writeFile(path.join(runDir, "report.md"), report, "utf8");
