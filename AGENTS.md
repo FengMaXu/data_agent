@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues and specs live in the GitHub repository `FengMaXu/data_agent`. Use `gh` for issue operations. See `docs/agents/issue-tracker.md`.
+Issues and specs live in the GitHub repository `FengMaXu/yourdb`. Use `gh` for issue operations. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

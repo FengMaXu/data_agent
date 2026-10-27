@@ -4,8 +4,8 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 ## Repository
 
-- GitHub repository: `FengMaXu/data_agent`
-- Remote: `https://github.com/FengMaXu/data_agent.git`
+- GitHub repository: `FengMaXu/yourdb`
+- Remote: `https://github.com/FengMaXu/yourdb.git`
 
 ## Conventions
 
@@ -23,4 +23,4 @@ PRs are not treated as a request surface.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a GitHub issue in `FengMaXu/data_agent`.
+Create a GitHub issue in `FengMaXu/yourdb`.
