@@ -29,14 +29,6 @@ interface AppShellProps {
   onModelMissing: () => void;
 }
 
-const DESKTOP_MENU_ITEMS = [
-  { id: 'file', labelKey: 'desktop.file' },
-  { id: 'edit', labelKey: 'desktop.edit' },
-  { id: 'view', labelKey: 'desktop.view' },
-  { id: 'window', labelKey: 'desktop.window' },
-  { id: 'help', labelKey: 'desktop.help' },
-];
-
 const TOOL_PANEL_MIN_WIDTH = 300;
 const DEFAULT_CHAT_RATIO = 0.64;
 const CHAT_PANEL_MIN_WIDTH = 560;
@@ -63,7 +55,6 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, onRetryStartup, model
   const chatResizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const chatPaneRatioRef = useRef<number | null>(null);
   const [chatPaneWidth, setChatPaneWidth] = useState<number | null>(null);
-  const isDesktop = typeof window !== 'undefined' && Boolean(window.dataAgent);
   const semanticBlocked = !semanticStatus || ['checking', 'ingesting', 'failed'].includes(semanticStatus.status);
 
   const scheduleSidebarPeek = useCallback((peek: boolean) => {
@@ -226,28 +217,6 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, onRetryStartup, model
     <SessionProvider>
       <div className="desktop-shell">
         <a className="skip-link" href="#main-content">{t('accessibility.skipToContent')}</a>
-        {isDesktop && (
-          <div className="desktop-menu-strip" role="menubar" aria-label={t('desktop.menu')}>
-            {DESKTOP_MENU_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="desktop-menu-item"
-                role="menuitem"
-                onClick={(event) => {
-                  const rect = event.currentTarget.getBoundingClientRect();
-                  void window.dataAgent?.showMenu(item.id, {
-                    x: Math.round(rect.left),
-                    y: Math.round(rect.bottom),
-                  });
-                }}
-              >
-                {t(item.labelKey)}
-              </button>
-            ))}
-          </div>
-        )}
-
         {modelConfigured === false && activeView.kind !== 'settings' && (
           <ModelSetupPrompt onConfigure={() => setActiveView({ kind: 'settings', section: 'model' })} />
         )}
