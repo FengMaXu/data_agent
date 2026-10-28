@@ -25,7 +25,7 @@ const pkg = JSON.parse(await import("node:fs").then(m => m.readFileSync(path.joi
 const productName = pkg.build.productName;
 const exeName = `${productName}.exe`;
 // No spaces, so the installer's download URL needs no escaping.
-const installerName = `${productName}-Setup.exe`;
+const installerName = `${productName}-setup.exe`;
 
 if (!existsSync(path.join(frontend, "dist", "index.html"))) {
   console.error("Renderer build missing; run scripts/build-distribution.mjs first");

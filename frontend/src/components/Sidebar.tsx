@@ -446,10 +446,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
             <nav id="workspace-sidebar" className={`sidebar ${collapsed ? 'is-rail' : ''}`} aria-label={t('sidebar.navigation')}>
                 <div className="sidebar-header">
                     {collapsed ? (
-                        <div className="sidebar-logo sidebar-logo-compact"><BrandWordmark title="yourDB" /></div>
+                        <div className="sidebar-logo sidebar-logo-compact"><BrandWordmark title="yourdb" /></div>
                     ) : (
                         <>
-                            <div className="sidebar-logo"><BrandWordmark title="yourDB" /></div>
+                            <div className="sidebar-logo"><BrandWordmark title="yourdb" /></div>
                             <button
                                 type="button"
                                 className="sidebar-collapse-toggle"
