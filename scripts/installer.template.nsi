@@ -1,10 +1,11 @@
-; Data Agent Windows installer (NSIS)
+; yourdb Windows installer (NSIS)
 ; Packages the manually staged win-unpacked build without user data or the
-; legacy Python Web backend. Generated/invoked by scripts/package-electron-manual.mjs.
+; legacy Python Web backend. Generated/invoked by scripts/package-electron-manual.mjs,
+; which fills the name and version from frontend/package.json.
 
-!define APP_NAME "Data Agent"
-!define APP_VERSION "1.0.0"
-!define APP_EXE "Data Agent.exe"
+!define APP_NAME "{{APP_NAME}}"
+!define APP_VERSION "{{APP_VERSION}}"
+!define APP_EXE "${APP_NAME}.exe"
 !define SRC_DIR "{{SRC_DIR}}"
 !define OUT_FILE "{{OUT_FILE}}"
 
@@ -12,7 +13,7 @@ Unicode true
 
 Name "${APP_NAME}"
 OutFile "${OUT_FILE}"
-InstallDir "$LOCALAPPDATA\Programs\Data Agent"
+InstallDir "$LOCALAPPDATA\Programs\${APP_NAME}"
 RequestExecutionLevel user
 
 Page directory

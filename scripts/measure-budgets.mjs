@@ -16,7 +16,8 @@ import path from "node:path";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const releaseDir = process.argv[2] ?? path.join(root, "frontend", "release2", "win-unpacked");
-const installerPath = path.join(path.dirname(releaseDir), "Data Agent Setup.exe");
+const { productName } = JSON.parse(readFileSync(path.join(root, "frontend", "package.json"), "utf8")).build;
+const installerPath = path.join(path.dirname(releaseDir), `${productName}-setup.exe`);
 
 function dirSize(dir) {
   let total = 0;
