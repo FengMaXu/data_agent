@@ -26,7 +26,7 @@ export const SemanticStartupStatus: React.FC<SemanticStartupStatusProps> = ({ st
             retry: '重试同步',
             waiting: '语义分析将在目录就绪后开放',
             refreshingHint: '正在后台同步，当前查询继续使用最近一次有效目录',
-            skippedHint: '配置 ktx.yaml 后，Data Agent 会自动启动 KTX MCP 并同步数据',
+            skippedHint: '配置 ktx.yaml 后，yourdb 会自动启动 KTX MCP 并同步数据',
             degradedHint: '部分连接不可用，仍可继续使用已就绪目录',
         }
         : {
@@ -39,7 +39,7 @@ export const SemanticStartupStatus: React.FC<SemanticStartupStatusProps> = ({ st
             retry: 'Retry sync',
             waiting: 'Semantic analysis will unlock when the catalog is ready',
             refreshingHint: 'Sync is running in the background; queries continue on the last valid catalog',
-            skippedHint: 'Configure ktx.yaml and Data Agent will start the KTX MCP and sync the sources',
+            skippedHint: 'Configure ktx.yaml and yourdb will start the KTX MCP and sync the sources',
             degradedHint: 'Some connections are unavailable; the last valid catalog remains usable',
         };
     const title = copy[status.status];
