@@ -20,7 +20,9 @@ import path from "node:path";
 const releaseDir = path.resolve(process.argv[2] ?? path.join(process.cwd(), "frontend", "release2", "win-unpacked"));
 const smokeDir = mkdtempSync(path.join(os.tmpdir(), "data-agent-electron-smoke-"));
 const marker = path.join(smokeDir, "smoke.ok");
-const exe = path.join(releaseDir, "Data Agent.exe");
+const { productName } = JSON.parse(readFileSync(path.join(import.meta.dirname, "..", "frontend", "package.json"), "utf8")).build;
+const exeName = `${productName}.exe`;
+const exe = path.join(releaseDir, exeName);
 
 if (!existsSync(exe)) {
   console.error(`packaged exe not found: ${exe}`);
@@ -36,7 +38,7 @@ const result = spawnSync(exe, [], {
 // fail the gate, but the marker is the source of truth.
 const elapsedMs = Date.now() - started;
 if (result.error && result.error.killed) {
-  try { spawnSync("taskkill", ["/F", "/IM", "Data Agent.exe"], { stdio: "ignore" }); } catch { /* ignore */ }
+  try { spawnSync("taskkill", ["/F", "/IM", exeName], { stdio: "ignore" }); } catch { /* ignore */ }
 }
 
 if (existsSync(marker)) {
