@@ -1,12 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import '@fontsource-variable/noto-serif-sc';
-import { ArrowRight, Languages } from '../icons/Typicons';
+import { ArrowRight, Download, Languages, X } from '../icons/Typicons';
 import { BrandMark, BrandWordmark } from '../Brand';
 import { useLanguage } from '../../context/LanguageContext';
 import './landing.css';
 
-/** Where the "enter app" buttons go: the bundled /app, or VITE_APP_URL in a landing-only build (.env.landing). */
+/** Where the "enter app" buttons go when there is no download panel: the bundled /app, or VITE_APP_URL. */
 const APP_URL = (import.meta.env.VITE_APP_URL as string | undefined)?.trim() || '/app';
+/** A landing-only build (.env.landing) has no app to enter, so "get started" offers the desktop installer instead. */
+const DOWNLOAD_URL = (import.meta.env.VITE_DOWNLOAD_URL as string | undefined)?.trim();
+const RELEASES_URL = (import.meta.env.VITE_RELEASES_URL as string | undefined)?.trim();
+const APP_VERSION = import.meta.env.VITE_APP_VERSION as string;
 
 const CAPABILITIES = ['query', 'export', 'report', 'dashboard'];
 const PERSONAS = ['ops', 'engineer', 'analyst', 'boss'];
@@ -320,12 +324,62 @@ const CLAUSE_BODIES: Record<string, React.ReactNode> = {
     order: <><ClauseHead section="how" /><OrderBody /></>,
 };
 
+const DownloadDialog: React.FC<{ dialogRef: React.RefObject<HTMLDialogElement | null> }> = ({ dialogRef }) => {
+    const { t } = useLanguage();
+    return (
+        <dialog
+            ref={dialogRef}
+            className="lp-download"
+            aria-labelledby="lp-download-title"
+            // The body fills the dialog, so a click landing on the dialog itself is on the backdrop.
+            onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}
+        >
+            <div className="lp-download-body">
+                <div className="lp-download-head">
+                    <p className="lp-mono-note">-- yourDB v{APP_VERSION}</p>
+                    <button className="lp-btn lp-btn-quiet lp-download-close" type="button" aria-label={t('landing.download.close')} onClick={() => dialogRef.current?.close()}>
+                        <X size={18} />
+                    </button>
+                </div>
+                <h2 id="lp-download-title">{t('landing.download.title')}</h2>
+                <p className="lp-download-desc">{t('landing.download.desc')}</p>
+                <ul className="lp-download-list">
+                    <li>
+                        <div>
+                            <b>Windows</b>
+                            <span className="lp-mono-note">{t('landing.download.windowsReq')}</span>
+                        </div>
+                        <a className="lp-btn lp-btn-solid" href={DOWNLOAD_URL}>
+                            <Download size={16} />
+                            <span>{t('landing.download.action')}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <div>
+                            <b>macOS</b>
+                        </div>
+                        <button className="lp-btn lp-btn-line" type="button" disabled>{t('landing.download.soon')}</button>
+                    </li>
+                </ul>
+                {RELEASES_URL && (
+                    <a className="lp-download-more" href={RELEASES_URL} target="_blank" rel="noreferrer">{t('landing.download.releases')} ↗</a>
+                )}
+            </div>
+        </dialog>
+    );
+};
+
 const LandingPage: React.FC = () => {
     const { t, language, toggleLanguage } = useLanguage();
     const { phase, step, run, finish } = useQueryRun();
     const resultRef = useRef<HTMLDivElement>(null);
     const [pendingScroll, setPendingScroll] = useState<string | null>(null);
     const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+    const downloadRef = useRef<HTMLDialogElement>(null);
+
+    const getStarted = (className: string, children: React.ReactNode) => (DOWNLOAD_URL
+        ? <button className={className} type="button" onClick={() => downloadRef.current?.showModal()}>{children}</button>
+        : <a className={className} href={APP_URL}>{children}</a>);
 
     // Scrolling down to the results counts as running the query.
     useEffect(() => {
@@ -387,7 +441,7 @@ const LandingPage: React.FC = () => {
                             <Languages size={15} />
                             <span>{language === 'zh' ? 'EN' : '中文'}</span>
                         </button>
-                        <a className="lp-btn lp-btn-solid" href={APP_URL}>{t('landing.enterApp')}</a>
+                        {getStarted('lp-btn lp-btn-solid', t('landing.enterApp'))}
                     </div>
                 </div>
             </header>
@@ -484,10 +538,10 @@ const LandingPage: React.FC = () => {
                                 <h2>{t('landing.final.title')}</h2>
                                 <div className="lp-final-foot">
                                     <p>{t('landing.final.desc')}</p>
-                                    <a className="lp-btn lp-btn-invert lp-btn-lg" href={APP_URL}>
+                                    {getStarted('lp-btn lp-btn-invert lp-btn-lg', <>
                                         <span>{t('landing.hero.primary')}</span>
                                         <ArrowRight size={16} />
-                                    </a>
+                                    </>)}
                                 </div>
                             </div>
                         )}
@@ -505,6 +559,8 @@ const LandingPage: React.FC = () => {
                     <span>© 2026</span>
                 </div>
             </footer>
+
+            {DOWNLOAD_URL && <DownloadDialog dialogRef={downloadRef} />}
         </main>
     );
 };

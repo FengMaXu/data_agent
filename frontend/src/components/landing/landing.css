@@ -552,7 +552,73 @@
   color: var(--muted);
 }
 
+/* Download panel: "get started" in the landing-only build */
+.lp-download {
+  width: min(480px, calc(100vw - 32px));
+  /* The app's global reset zeroes the UA margin that centres a modal dialog. */
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.lp-download::backdrop { background: rgb(10 10 10 / 0.5); }
+.lp-download[open] { animation: lp-download-in 220ms var(--ease); }
+
+@keyframes lp-download-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+.lp-download-body { padding: 24px; }
+
+.lp-download-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lp-download-close { min-height: 36px; margin-right: -8px; padding: 0 8px; }
+
+.lp-download h2 {
+  margin-top: 16px;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.lp-download-desc { margin-top: 12px; font-size: 15px; line-height: 1.6; color: var(--muted); }
+
+.lp-download-list {
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.lp-download-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lp-download-list li > div { display: flex; flex-direction: column; gap: 4px; }
+.lp-download-list b { font-size: 16px; }
+
+.lp-download-more {
+  display: inline-block;
+  margin-top: 20px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+
 @media (hover: hover) and (pointer: fine) {
+  .lp-download-more:hover { color: var(--ink); }
   .lp-btn-solid:hover:not(:disabled) { background: #333; }
   .lp-btn-line:hover:not(:disabled) { background: var(--bg-2); }
   .lp-btn-invert:hover { background: #e5e5e5; }
@@ -577,6 +643,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .lp { scroll-behavior: auto; }
-  .lp-unfold, .lp-caret { animation: none; }
+  .lp-unfold, .lp-caret, .lp-download[open] { animation: none; }
   .lp-editor-lines li, .lp-btn { transition: none; }
 }
