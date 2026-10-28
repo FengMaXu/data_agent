@@ -49,7 +49,7 @@ const LoginView: React.FC<LoginViewProps> = ({ embedded = false }) => {
                         <LockKeyhole size={22} />
                     </div>
                     <div>
-                        <h1><BrandWordmark title="yourDB" /></h1>
+                        <h1><BrandWordmark title="yourdb" /></h1>
                         <p>{isRegister ? t('auth.registerSubtitle') : t('auth.loginSubtitle')}</p>
                     </div>
                 </div>

@@ -1,8 +1,8 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.0.0",
-  "description": "Data Agent desktop client",
+  "version": "0.1.0",
+  "description": "yourdb desktop client",
   "author": "OpenAI Codex",
   "type": "module",
   "main": "electron-host/main.cjs",
@@ -63,7 +63,7 @@
   },
   "build": {
     "appId": "com.yourdb.data-agent",
-    "productName": "Data Agent",
+    "productName": "yourdb",
     "electronLanguages": [
       "zh-CN",
       "en-US"

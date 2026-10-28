@@ -8,7 +8,7 @@
  * steps deterministically:
  *
  *   1. copy the local Electron runtime into <out>/win-unpacked
- *   2. rename electron.exe -> Data Agent.exe
+ *   2. rename electron.exe -> <productName>.exe
  *   3. pack the application (package.json + dist + electron + electron-host)
  *      into resources/app.asar
  *   4. stage extraResources (python-runtime, ktx-semantic-context)
@@ -22,6 +22,10 @@ const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([
 const frontend = path.join(root, "frontend");
 const out = process.argv[2] ? path.resolve(process.cwd(), process.argv[2]) : path.join(frontend, "release-manual", "win-unpacked");
 const pkg = JSON.parse(await import("node:fs").then(m => m.readFileSync(path.join(frontend, "package.json"), "utf8")));
+const productName = pkg.build.productName;
+const exeName = `${productName}.exe`;
+// No spaces, so the installer's download URL needs no escaping.
+const installerName = `${productName}-setup.exe`;
 
 if (!existsSync(path.join(frontend, "dist", "index.html"))) {
   console.error("Renderer build missing; run scripts/build-distribution.mjs first");
@@ -37,7 +41,7 @@ if (!existsSync(path.join(frontend, "electron-host", "main.cjs"))
 // Windows AV/indexer can briefly hold handles on a freshly written tree, and a
 // previous smoke run's processes may linger; clear both before restaging.
 if (process.platform === "win32") {
-  spawnSync("taskkill", ["/F", "/IM", "Data Agent.exe"], { stdio: "ignore", shell: true });
+  spawnSync("taskkill", ["/F", "/IM", exeName], { stdio: "ignore", shell: true });
 }
 for (let attempt = 1; ; attempt++) {
   try { rmSync(out, { recursive: true, force: true }); break; }
@@ -46,7 +50,7 @@ for (let attempt = 1; ; attempt++) {
     // Real-time protection can hold the previous build's asar for ~1 minute
     // after the owning process exits; re-kill stragglers and back off.
     if (process.platform === "win32") {
-      spawnSync("taskkill", ["/F", "/IM", "Data Agent.exe"], { stdio: "ignore", shell: true });
+      spawnSync("taskkill", ["/F", "/IM", exeName], { stdio: "ignore", shell: true });
     }
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000 * attempt);
   }
@@ -66,7 +70,6 @@ for (const file of readdirSync(path.join(out, "locales"))) {
 }
 
 // 2. Product executable name
-const exeName = `${pkg.build?.productName ?? "Data Agent"}.exe`;
 renameSync(path.join(out, "electron.exe"), path.join(out, exeName));
 
 // 3. Application archive
@@ -75,7 +78,7 @@ rmSync(staging, { recursive: true, force: true });
 mkdirSync(staging, { recursive: true });
 const appPkg = {
   name: "data-agent",
-  productName: "Data Agent",
+  productName,
   version: pkg.version,
   description: pkg.description,
   main: "electron-host/main.cjs",
@@ -167,12 +170,14 @@ if (process.env.SKIP_INSTALLER !== "1") {
     const template = await import("node:fs").then(m => m.readFileSync(path.join(root, "scripts", "installer.template.nsi"), "utf8"));
     const releaseDir = path.dirname(out);
     const nsi = template
+      .replace("{{APP_NAME}}", productName)
+      .replace("{{APP_VERSION}}", pkg.version)
       .replace("{{SRC_DIR}}", path.resolve(out))
-      .replace("{{OUT_FILE}}", path.resolve(releaseDir, "Data Agent Setup.exe"));
+      .replace("{{OUT_FILE}}", path.resolve(releaseDir, installerName));
     const nsiPath = path.join(releaseDir, "data-agent.nsi");
     writeFileSync(nsiPath, nsi);
     exec(makensis, [nsiPath]);
-    console.log(`installer OK -> ${path.join(releaseDir, "Data Agent Setup.exe")}`);
+    console.log(`installer OK -> ${path.join(releaseDir, installerName)}`);
   }
 }
 
