@@ -336,7 +336,7 @@ const DownloadDialog: React.FC<{ dialogRef: React.RefObject<HTMLDialogElement | 
         >
             <div className="lp-download-body">
                 <div className="lp-download-head">
-                    <p className="lp-mono-note">-- yourDB v{APP_VERSION}</p>
+                    <p className="lp-mono-note">-- yourdb v{APP_VERSION}</p>
                     <button className="lp-btn lp-btn-quiet lp-download-close" type="button" aria-label={t('landing.download.close')} onClick={() => dialogRef.current?.close()}>
                         <X size={18} />
                     </button>
