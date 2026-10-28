@@ -720,7 +720,10 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                         {skill.when_to_use && (
                                             <div style={{ fontSize: '0.85rem', color: '#374151', marginTop: '10px' }}>{t('plugins.whenToUse')}：{skill.when_to_use}</div>
                                         )}
-                                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '10px', wordBreak: 'break-all' }}>{t('plugins.path')}：{skill.location}</div>
+                                        {/* The runtime's skill list carries no file location; show the row only when one is known. */}
+                                        {skill.location && (
+                                            <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '10px', wordBreak: 'break-all' }}>{t('plugins.path')}：{skill.location}</div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

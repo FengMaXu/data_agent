@@ -82,6 +82,9 @@ interface ChatAreaProps {
     onModelNotConfigured?: () => void;
 }
 
+/** Starter questions an empty session offers; a click puts one in the input to edit before sending. */
+const STARTER_PROMPTS = ['query', 'trend', 'dashboard', 'report'] as const;
+
 const STAGE_ORDER: AgentProgressStage[] = [
     'sent',
     'understanding',
@@ -977,7 +980,7 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                             animated={isStreaming}
                         />
                     </span>
-                    <span className="breadcrumb-title">{t('chat.agents')}</span>
+                    <span className="breadcrumb-title">{t('chat.breadcrumbRoot')}</span>
                     <span className="breadcrumb-separator">/</span>
                     <span className="breadcrumb-task">{currentTask.name}</span>
                     <span className="breadcrumb-separator">/</span>
@@ -1008,8 +1011,26 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
                 className="chat-message-list scrollable-area flex flex-col gap-6 p-6"
             >
                 {messages.length === 0 && (
-                    <div className="empty-chat-state">
-                        {t('chat.placeholder')}
+                    <div className="chat-starter">
+                        <h2 className="chat-starter-title">{t('chat.starterTitle')}</h2>
+                        <p className="chat-starter-hint">{t('chat.starterHint')}</p>
+                        <div className="chat-starter-grid">
+                            {STARTER_PROMPTS.map((kind) => (
+                                <button
+                                    key={kind}
+                                    type="button"
+                                    className="chat-starter-card"
+                                    onClick={() => {
+                                        // Examples are generic; the user adapts one to their own data before sending.
+                                        setInputValue(t(`chat.starter.${kind}.prompt`));
+                                        textareaRef.current?.focus();
+                                    }}
+                                >
+                                    <span className="chat-starter-kind">{t(`chat.starter.${kind}.label`)}</span>
+                                    <span className="chat-starter-prompt">{t(`chat.starter.${kind}.prompt`)}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -1281,7 +1302,7 @@ const ChatArea: React.FC<ChatAreaProps> = (props) => {
                     <span className="breadcrumb-mark" aria-hidden="true">
                         <AgentOrbitIcon size={32} className="breadcrumb-icon is-idle" animated={false} />
                     </span>
-                    <span className="breadcrumb-title">{t('chat.agents')}</span>
+                    <span className="breadcrumb-title">{t('chat.breadcrumbRoot')}</span>
                     {currentTask && (
                         <>
                             <span className="breadcrumb-separator">/</span>

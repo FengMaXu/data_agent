@@ -55,6 +55,9 @@ describe('SessionProvider runtime identities', () => {
         act(() => result.current.createTask());
         await waitFor(() => expect(result.current.currentTask?.id).toBe('task-runtime'));
         expect(window.localStorage.getItem('data-agent:current-task')).toBe('task-runtime');
+        // A new task opens straight into a session.
+        await waitFor(() => expect(result.current.currentSession?.id).toBe('session-runtime'));
+        expect(runtime.createSessionViaRuntime).toHaveBeenCalledWith('task-runtime', expect.any(String));
 
         act(() => result.current.createSession('task-runtime'));
         await waitFor(() => expect(result.current.currentSession?.id).toBe('session-runtime'));

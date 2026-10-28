@@ -242,25 +242,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         warmSession(session.id);
     }, [sessions, warmSession]);
 
-    const createTask = useCallback(() => {
-        void createTaskWithIdViaRuntime(defaultTaskName).then((created) => {
-            const now = new Date().toISOString();
-            const task: Task = {
-                id: created.id,
-                name: created.name || defaultTaskName,
-                createdAt: now,
-                updatedAt: now,
-            };
-            setTasks((prev) => [task, ...prev.filter((item) => item.id !== task.id)]);
-            setCurrentTaskId(task.id);
-            setCurrentSessionId('');
-            writeCurrentTaskId(task.id);
-            writeCurrentSessionId('');
-        }).catch((error) => console.warn('Failed to create task:', error));
-    }, [defaultTaskName]);
-
-    const createSession = useCallback((taskId = currentTask?.id || '') => {
-        if (!taskId) return;
+    /** Opens a new empty session in a task and makes it current, ready for the first message. */
+    const openSession = useCallback((taskId: string) => {
         void createSessionViaRuntime(taskId, defaultSessionName).then((created) => {
             const session: Session = {
                 id: created.id,
@@ -279,7 +262,31 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             writeCurrentSessionId(session.id);
             warmSession(session.id);
         }).catch((error) => console.warn('Failed to create session:', error));
-    }, [currentTask?.id, defaultSessionName, warmSession]);
+    }, [defaultSessionName, warmSession]);
+
+    const createSession = useCallback((taskId = currentTask?.id || '') => {
+        if (taskId) openSession(taskId);
+    }, [currentTask?.id, openSession]);
+
+    const createTask = useCallback(() => {
+        void createTaskWithIdViaRuntime(defaultTaskName).then((created) => {
+            const now = new Date().toISOString();
+            const task: Task = {
+                id: created.id,
+                name: created.name || defaultTaskName,
+                createdAt: now,
+                updatedAt: now,
+            };
+            setTasks((prev) => [task, ...prev.filter((item) => item.id !== task.id)]);
+            setCurrentTaskId(task.id);
+            setCurrentSessionId('');
+            writeCurrentTaskId(task.id);
+            writeCurrentSessionId('');
+            // A new task opens straight into a session, so the user can type at once.
+            openSession(task.id);
+        }).catch((error) => console.warn('Failed to create task:', error));
+    }, [defaultTaskName, openSession]);
+
 
     const switchSession = useCallback((sessionId: string) => {
         if (!sessions.some((session) => session.id === sessionId)) return;
