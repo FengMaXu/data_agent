@@ -197,9 +197,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.startup-hint {
   color: currentColor;
   opacity: 0.72;
 }
@@ -214,11 +211,6 @@ body {
   color: inherit;
   cursor: pointer;
   font: inherit;
-}
-
-.startup-retry:disabled {
-  cursor: wait;
-  opacity: 0.62;
 }
 
 .app-container {

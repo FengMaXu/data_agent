@@ -17,8 +17,7 @@ import { SectionHeader, TreeAction, TreeGroup, TreeNote, TreeRow } from './Sideb
 import {
     type KnowledgeFile,
 } from '../api/client';
-import { readKnowledgeViaRuntime } from '../api/runtime-client';
-import { listKnowledgeViaRuntime, saveKnowledgeViaRuntime } from '../api/runtime-client';
+import { listKnowledgeViaRuntime, readKnowledgeViaRuntime, saveKnowledgeViaRuntime } from '../api/runtime-client';
 import ReactMarkdown from 'react-markdown';
 import { useSession } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
@@ -143,12 +142,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
         if (!editorOpen) return;
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
-                if (editorOpen) {
-                    setEditorOpen(false);
-                    setSelectedFile(null);
-                    setFileContent('');
-                    setIsEditing(false);
-                }
+                setEditorOpen(false);
+                setSelectedFile(null);
+                setFileContent('');
+                setIsEditing(false);
             }
         };
         document.addEventListener('keydown', handleKeyDown);

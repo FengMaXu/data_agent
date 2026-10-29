@@ -374,13 +374,12 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                     const isRestarting = pendingRestartServer === server.name;
                                     const hostManaged = isHostManaged(server);
                                     const statusMeta = getServerStatusMeta(server);
-                                    const displayName = server.name;
                                     return (
                                         <div key={server.key} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 18px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
                                                 <div>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                                                        <span style={{ fontWeight: 600, color: '#111827' }}>{displayName}</span>
+                                                        <span style={{ fontWeight: 600, color: '#111827' }}>{server.name}</span>
                                                         <span style={{ fontSize: '0.75rem', color: statusMeta.fg, background: statusMeta.bg, padding: '2px 8px', borderRadius: '999px' }}>
                                                             {statusMeta.label}
                                                         </span>
