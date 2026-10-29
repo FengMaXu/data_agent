@@ -77,7 +77,6 @@ interface ChatAreaProps {
     onToggleToolPanel?: () => void;
     isToolPanelOpen?: boolean;
     hasTools?: boolean;
-    semanticBlocked?: boolean;
     /** Called when the runtime refuses a turn because no model is configured. */
     onModelNotConfigured?: () => void;
 }
@@ -232,7 +231,6 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     onToggleToolPanel,
     isToolPanelOpen = false,
     hasTools = false,
-    semanticBlocked = false,
     onModelNotConfigured,
 }) => {
     const {
@@ -966,10 +964,10 @@ const ActiveChatArea: React.FC<ActiveChatAreaProps> = ({
     const latestAgentMessage = [...messages].reverse().find((message): message is AgentMessage => message.role === 'agent');
     const liveStatus = runReason === 'error'
         ? `${t('chat.requestFailed')} ${t('chat.retryHint')}`
-        : (isStreaming && isStreamReconnecting ? t('chat.streamReconnecting') : '') || latestAgentMessage?.statusNotice || latestAgentMessage?.retryNotice || (semanticBlocked && messages.length === 0 ? t('chat.semanticWaiting') : '');
+        : (isStreaming && isStreamReconnecting ? t('chat.streamReconnecting') : '') || latestAgentMessage?.statusNotice || latestAgentMessage?.retryNotice;
 
     return (
-        <main id="main-content" className="chat-area" data-semantic-blocked={semanticBlocked || undefined} aria-labelledby="chat-page-title">
+        <main id="main-content" className="chat-area" aria-labelledby="chat-page-title">
             <header className="breadcrumb-header">
                 <h1 id="chat-page-title" className="sr-only">{t('chat.pageTitle')}</h1>
                 <div className="breadcrumb-main">

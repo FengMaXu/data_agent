@@ -13,8 +13,6 @@ import { PreviewProvider } from './context/PreviewContext';
 import { getConfigViaRuntime } from './api/runtime-client';
 import LoginView from './components/LoginView';
 import GlobalPreviewModal from './components/common/GlobalPreviewModal';
-import { SemanticStartupStatus } from './components/SemanticStartupStatus';
-import { useSemanticStartupStatus } from './hooks/useSemanticStartupStatus';
 
 type StartupState = 'checking' | 'ready' | 'error';
 
@@ -53,7 +51,6 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, onRetryStartup, model
   const [isSidebarPeeking, setIsSidebarPeeking] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>(CHAT_VIEW);
   const sidebarPeekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { status: semanticStatus, retrying: semanticRetrying, retry: retrySemantic } = useSemanticStartupStatus();
 
   const previousToolsRef = useRef<ToolData[]>([]);
   const chatPanelShellRef = useRef<HTMLDivElement>(null);
@@ -62,7 +59,6 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, onRetryStartup, model
   const chatPaneRatioRef = useRef<number | null>(null);
   const [chatPaneWidth, setChatPaneWidth] = useState<number | null>(null);
   const isDesktop = typeof window !== 'undefined' && Boolean(window.dataAgent);
-  const semanticBlocked = !semanticStatus || ['checking', 'ingesting', 'failed'].includes(semanticStatus.status);
 
   const scheduleSidebarPeek = useCallback((peek: boolean) => {
     if (sidebarPeekTimerRef.current) clearTimeout(sidebarPeekTimerRef.current);
@@ -249,7 +245,6 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, onRetryStartup, model
         {modelConfigured === false && activeView.kind !== 'settings' && (
           <ModelSetupPrompt onConfigure={() => setActiveView({ kind: 'settings', section: 'model' })} />
         )}
-        <SemanticStartupStatus status={semanticStatus} retrying={semanticRetrying} onRetry={retrySemantic} />
 
         <div className="app-container">
           <div
@@ -301,7 +296,6 @@ const AppShell: React.FC<AppShellProps> = ({ startupState, onRetryStartup, model
                 onToggleToolPanel={toggleToolPanel}
                 isToolPanelOpen={isToolPanelOpen}
                 hasTools={tools.length > 0}
-                semanticBlocked={semanticBlocked}
                 onModelNotConfigured={onModelMissing}
               />
             </div>

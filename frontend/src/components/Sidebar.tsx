@@ -7,25 +7,22 @@ import {
     Save,
     Edit3,
     Trash2,
-    Database,
     Check,
     User,
     LogOut,
 } from './icons/Typicons';
 import { BrandWordmark } from './Brand';
-import { RiAdd, RiBookShelf, RiBrain4, RiChat3, RiComputer, RiConnector, RiDatabase2, RiDatabaseLine, RiFileEdit, RiFileText, RiFileUpload, RiFlowChart, RiFolder3, RiLayoutLeft2, RiListCheck3, RiPuzzle2, RiRefresh, RiRobot2, RiTaskLine } from './icons/RemixIcons';
+import { RiAdd, RiBookShelf, RiChat3, RiComputer, RiConnector, RiDatabaseLine, RiFileEdit, RiFileText, RiFileUpload, RiFlowChart, RiFolder3, RiLayoutLeft2, RiListCheck3, RiPuzzle2, RiRobot2, RiTaskLine } from './icons/RemixIcons';
 import { SectionHeader, TreeAction, TreeGroup, TreeNote, TreeRow } from './SidebarTree';
 import {
     type KnowledgeFile,
 } from '../api/client';
-import { getSemanticSourceViaRuntime, listSemanticSourcesViaRuntime, readKnowledgeViaRuntime } from '../api/runtime-client';
-import { listKnowledgeViaRuntime, saveKnowledgeViaRuntime } from '../api/runtime-client';
+import { listKnowledgeViaRuntime, readKnowledgeViaRuntime, saveKnowledgeViaRuntime } from '../api/runtime-client';
 import ReactMarkdown from 'react-markdown';
 import { useSession } from '../hooks/useSession';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../hooks/useAuth';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { SemanticAssetViewer, SourceKindBadge, type SemanticConnection, type SemanticSourceViewDto } from './semantic-viewer';
 import { CHAT_VIEW, type WorkspaceView } from './workspace-view';
 import type { PluginsTab } from './PluginsPanel';
 import type { SettingsSection } from './SettingsPanel';
@@ -83,13 +80,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [editTaskName, setEditTaskName] = useState('');
     const [knowledgeExpanded, setKnowledgeExpanded] = useState(false);
-    const [semanticExpanded, setSemanticExpanded] = useState(false);
     const [pluginsExpanded, setPluginsExpanded] = useState(false);
     const [settingsExpanded, setSettingsExpanded] = useState(false);
     const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
-    const [semanticConnections, setSemanticConnections] = useState<SemanticConnection[]>([]);
-    const [loadingSemantic, setLoadingSemantic] = useState(false);
-    const [semanticExpandedConnections, setSemanticExpandedConnections] = useState<Set<string>>(new Set());
     const [loadingKnowledge, setLoadingKnowledge] = useState(false);
     const [knowledgeExpandedPaths, setKnowledgeExpandedPaths] = useState<Set<string>>(new Set(['doc']));
     const [editorOpen, setEditorOpen] = useState(false);
@@ -97,19 +90,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
     const [fileContent, setFileContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [semanticViewerOpen, setSemanticViewerOpen] = useState(false);
-    const [semanticDetail, setSemanticDetail] = useState<SemanticSourceViewDto | null>(null);
-    const [loadingSemanticDetail, setLoadingSemanticDetail] = useState(false);
     const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const knowledgeImportInputRef = useRef<HTMLInputElement>(null);
     const editorOverlayRef = useRef<HTMLDivElement>(null);
     const editorModalRef = useRef<HTMLDivElement>(null);
-    const semanticOverlayRef = useRef<HTMLDivElement>(null);
-    const semanticModalRef = useRef<HTMLDivElement>(null);
 
     useFocusTrap(editorOpen, editorModalRef, editorOverlayRef);
-    useFocusTrap(semanticViewerOpen, semanticModalRef, semanticOverlayRef);
 
     const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -151,68 +138,26 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
         if (knowledgeExpanded) void loadKnowledgeFiles();
     }, [knowledgeExpanded, loadKnowledgeFiles]);
 
-    const loadSemanticSources = useCallback(async () => {
-        setLoadingSemantic(true);
-        try {
-            const runtimeSources = await listSemanticSourcesViaRuntime();
-            const byConnection = new Map<string, SemanticConnection>();
-            for (const item of runtimeSources) {
-                const connection = byConnection.get(item.connectionId) ?? { connectionId: item.connectionId, sources: [] as SemanticConnection['sources'] };
-                connection.sources.push({ sourceName: item.sourceName, sourceKind: 'standalone', assetType: 'semantic_model', title: null, isQueryable: true, hasOverlay: false, description: '' });
-                byConnection.set(item.connectionId, connection);
-            }
-            const response = { connections: Array.from(byConnection.values()) };
-            setSemanticConnections(response.connections);
-            setSemanticExpandedConnections((previous) => {
-                if (previous.size > 0) return previous;
-                return response.connections.length > 0 ? new Set([response.connections[0].connectionId]) : previous;
-            });
-        } catch (error) {
-            console.error('Failed to load semantic assets:', error);
-            showToast(t('semantic.loadFailed'), 'error');
-        } finally {
-            setLoadingSemantic(false);
-        }
-    }, [showToast, t]);
-
     useEffect(() => {
-        if (semanticExpanded) void loadSemanticSources();
-    }, [semanticExpanded, loadSemanticSources]);
-
-    // Auto-refresh while the section is open so newly ingested/discovered
-    // semantic sources appear without manual interaction.
-    useEffect(() => {
-        if (!semanticExpanded) return;
-        const timer = setInterval(() => { void loadSemanticSources(); }, 15000);
-        return () => clearInterval(timer);
-    }, [semanticExpanded, loadSemanticSources]);
-
-    useEffect(() => {
-        if (!editorOpen && !semanticViewerOpen) return;
+        if (!editorOpen) return;
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
-                if (semanticViewerOpen) {
-                    setSemanticViewerOpen(false);
-                    setSemanticDetail(null);
-                } else if (editorOpen) {
-                    setEditorOpen(false);
-                    setSelectedFile(null);
-                    setFileContent('');
-                    setIsEditing(false);
-                }
+                setEditorOpen(false);
+                setSelectedFile(null);
+                setFileContent('');
+                setIsEditing(false);
             }
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [editorOpen, semanticViewerOpen]);
+    }, [editorOpen]);
 
-    const toggleExclusiveSection = (section: 'tasks' | 'knowledge' | 'semantic' | 'plugins') => {
+    const toggleExclusiveSection = (section: 'tasks' | 'knowledge' | 'plugins') => {
         // From the icon rail, a section icon expands the sidebar straight into that section.
         const open = (current: boolean) => (collapsed ? true : !current);
         if (collapsed) onExpand?.();
         setTasksExpanded(section === 'tasks' ? open(tasksExpanded) : false);
         setKnowledgeExpanded(section === 'knowledge' ? open(knowledgeExpanded) : false);
-        setSemanticExpanded(section === 'semantic' ? open(semanticExpanded) : false);
         setPluginsExpanded(section === 'plugins' ? open(pluginsExpanded) : false);
     };
 
@@ -284,36 +229,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
         } else {
             showToast(t('editor.saveFailed'), 'error');
         }
-    };
-
-    const openSemanticSource = async (connectionId: string, sourceName: string) => {
-        setSemanticViewerOpen(true);
-        setSemanticDetail(null);
-        setLoadingSemanticDetail(true);
-        try {
-            const detail = await getSemanticSourceViaRuntime(connectionId, sourceName);
-            setSemanticDetail({ connectionId, sourceName, sourceKind: 'standalone', assetType: 'semantic_model', title: null, isQueryable: true, rawYaml: detail.rawYaml ?? '', table: null, sql: null, descriptions: {}, primaryDescription: null, descriptionProvenance: null, grain: [], columns: [], measures: [], segments: [], joins: [], tags: [], defaultTimeDimension: null, sourceDocuments: [], businessRules: [], queryTemplates: [] });
-        } catch (error) {
-            console.error('Failed to load semantic asset:', error);
-            setSemanticViewerOpen(false);
-            showToast(t('semantic.loadFailed'), 'error');
-        } finally {
-            setLoadingSemanticDetail(false);
-        }
-    };
-
-    const closeSemanticViewer = () => {
-        setSemanticViewerOpen(false);
-        setSemanticDetail(null);
-    };
-
-    const toggleSemanticConnection = (connectionId: string) => {
-        setSemanticExpandedConnections((previous) => {
-            const next = new Set(previous);
-            if (next.has(connectionId)) next.delete(connectionId);
-            else next.add(connectionId);
-            return next;
-        });
     };
 
     const handleSave = async () => {
@@ -407,39 +322,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
 
     const knowledgeFileTree = buildKnowledgeFileTree();
     const isMarkdown = selectedFile?.name.toLowerCase().endsWith('.md');
-
-    const renderSemanticConnection = (connection: SemanticConnection) => {
-        const expanded = semanticExpandedConnections.has(connection.connectionId);
-        return (
-            <React.Fragment key={connection.connectionId}>
-                <TreeRow
-                    depth={0}
-                    icon={<RiDatabase2 size={15} />}
-                    label={connection.connectionId}
-                    title={connection.connectionId}
-                    meta={connection.sources.length}
-                    expanded={expanded}
-                    onSelect={() => toggleSemanticConnection(connection.connectionId)}
-                />
-                {expanded && (
-                    <TreeGroup depth={0}>
-                        {connection.sources.map((source) => (
-                            <TreeRow
-                                key={source.sourceName}
-                                depth={1}
-                                icon={<RiFileText size={15} />}
-                                label={source.title || source.sourceName}
-                                title={source.description || source.sourceName}
-                                meta={source.assetType === 'business_knowledge' ? t('semantic.businessKnowledge') : undefined}
-                                active={semanticViewerOpen && semanticDetail?.connectionId === connection.connectionId && semanticDetail?.sourceName === source.sourceName}
-                                onSelect={() => void openSemanticSource(connection.connectionId, source.sourceName)}
-                            />
-                        ))}
-                    </TreeGroup>
-                )}
-            </React.Fragment>
-        );
-    };
 
     return (
         <>
@@ -607,27 +489,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
                         )}
 
                         <SectionHeader
-                            icon={<RiBrain4 className="nav-item-icon" size={18} />}
-                            label={t('sidebar.semantic')}
-                            expanded={semanticExpanded}
-                            onToggle={() => toggleExclusiveSection('semantic')}
-                            actions={!collapsed && (
-                                <TreeAction label={t('common.semanticRefresh')} onClick={() => { void loadSemanticSources(); }}>
-                                    <RiRefresh size={15} aria-hidden="true" />
-                                </TreeAction>
-                            )}
-                        />
-                        {!collapsed && semanticExpanded && (
-                            <div className="tree">
-                                {loadingSemantic && semanticConnections.length === 0 ? (
-                                    <TreeNote depth={0} role="status">{t('common.loading')}</TreeNote>
-                                ) : semanticConnections.length === 0 ? (
-                                    <TreeNote depth={0}>{t('common.noSemanticAssets')}</TreeNote>
-                                ) : semanticConnections.map(renderSemanticConnection)}
-                            </div>
-                        )}
-
-                        <SectionHeader
                             icon={<RiPuzzle2 className="nav-item-icon" size={18} />}
                             label={t('sidebar.plugins')}
                             expanded={pluginsExpanded}
@@ -719,38 +580,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, collapsed = f
                 </div>
             )}
 
-            {semanticViewerOpen && (
-                <div ref={semanticOverlayRef} className="semantic-modal-overlay" onClick={closeSemanticViewer}>
-                    <div ref={semanticModalRef} className="semantic-asset-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="semantic-modal-title" tabIndex={-1}>
-                        <div className="semantic-modal-header">
-                            <div className="semantic-modal-title" id="semantic-modal-title">
-                                <Database size={16} aria-hidden="true" />
-                                <span>{semanticDetail?.assetType === 'business_knowledge'
-                                    ? (semanticDetail.title || semanticDetail.sourceName)
-                                    : (semanticDetail?.sourceName || t('sidebar.semantic'))}</span>
-                                {semanticDetail && (semanticDetail.assetType === 'business_knowledge' ? (
-                                    <span className="semantic-asset-type-badge">{t('semantic.businessKnowledge')}</span>
-                                ) : (
-                                    <>
-                                        <SourceKindBadge kind={semanticDetail.sourceKind} />
-                                        {semanticDetail.isQueryable && <span className="semantic-queryable-badge">{t('semantic.queryable')}</span>}
-                                    </>
-                                ))}
-                            </div>
-                            <button type="button" className="semantic-modal-close" onClick={closeSemanticViewer} title={t('semantic.close')} aria-label={t('semantic.close')}>
-                                <X size={16} aria-hidden="true" />
-                            </button>
-                        </div>
-                        <div className="semantic-modal-content">
-                            {loadingSemanticDetail || !semanticDetail ? (
-                                <div className="semantic-loading-state" role="status">{t('semantic.loading')}</div>
-                            ) : (
-                                <SemanticAssetViewer dto={semanticDetail} onClose={closeSemanticViewer} />
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 };

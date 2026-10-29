@@ -11,7 +11,7 @@
  *   2. rename electron.exe -> <productName>.exe
  *   3. pack the application (package.json + dist + electron + electron-host)
  *      into resources/app.asar
- *   4. stage extraResources (python-runtime, ktx-semantic-context)
+ *   4. stage extraResources (python-runtime)
  *   5. keep only the Chinese and English Electron locales
  */
 import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";

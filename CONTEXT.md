@@ -5,7 +5,7 @@ This context defines the language used to assess whether a freely generated data
 ## Language
 
 **Evidence Authority**:
-The precedence order used when semantic evidence conflicts: user clarification, reviewed business definitions or semantic models, task-supplied business documents, explicit request wording, formal schema constraints, observed data evidence, and finally model inference. Evaluation Gold is never runtime evidence.
+The precedence order used when semantic evidence conflicts: user clarification, reviewed business definitions, task-supplied business documents, explicit request wording, formal schema constraints, observed data evidence, and finally model inference. Evaluation Gold is never runtime evidence.
 _Avoid_: Source priority, truth ranking
 
 **Query Task**:

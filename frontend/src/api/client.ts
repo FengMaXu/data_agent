@@ -3,7 +3,6 @@
  * 用于连接后端 FastAPI 服务，处理 REST API 和 SSE 流
  */
 
-import type { SemanticSourceViewDto, SemanticSourcesResponse } from '../components/semantic-viewer/types';
 import type { SubagentChildProgress } from '@data-agent/contracts';
 
 const ENV_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
@@ -201,7 +200,6 @@ export interface DatabaseConnection {
     port: number;
     user: string;
     database: string;
-    semantic_enabled: boolean;
     password_configured: boolean;
 }
 
@@ -214,7 +212,6 @@ export type DatabaseConnectionUpdate = DBConfigUpdate & {
     id?: string;
     name?: string;
     driver?: 'mysql';
-    semantic_enabled?: boolean;
 };
 
 export interface MCPMappingSummary {
@@ -716,39 +713,6 @@ export async function getConfig(): Promise<AIConfig> {
     return res.json();
 }
 
-export interface SemanticStartupSummary {
-    updated: number;
-    unchanged: number;
-    failed: number;
-    skipped: number;
-}
-
-export interface SemanticStartupStatus {
-    status: 'checking' | 'ingesting' | 'refreshing' | 'ready' | 'degraded' | 'failed' | 'skipped';
-    jobId: string | null;
-    currentConnectionId: string | null;
-    completedConnections: number;
-    totalConnections: number;
-    summary: SemanticStartupSummary;
-    failedConnections: string[];
-    errorCode: string | null;
-    updatedAt: string | null;
-}
-
-export async function getStartupStatus(): Promise<SemanticStartupStatus> {
-    const res = await apiFetch(`${API_BASE_URL}/startup/status`);
-    if (!res.ok) throw new Error('Failed to fetch startup status');
-    return res.json();
-}
-
-export async function retrySemanticIngest(): Promise<SemanticStartupStatus> {
-    const res = await apiFetch(`${API_BASE_URL}/startup/semantic-ingest/retry`, {
-        method: 'POST',
-    });
-    if (!res.ok) throw new Error('Failed to retry semantic ingest');
-    return res.json();
-}
-
 export async function updateLLMConfig(data: LLMConfigUpdate) {
     const res = await fetch(`${API_BASE_URL}/settings/llm`, {
         method: 'POST',
@@ -797,7 +761,6 @@ export async function updateDBConfig(data: DBConfigUpdate) {
     return saveDatabaseConnection('default-mysql', {
         name: 'Default MySQL',
         driver: 'mysql',
-        semantic_enabled: true,
         ...data,
     });
 }
@@ -1061,26 +1024,6 @@ export async function saveKnowledgeContent(path: string, content: string): Promi
         body: JSON.stringify({ path, content }),
     });
     if (!res.ok) throw new Error('Failed to save knowledge content');
-    return res.json();
-}
-
-export async function getSemanticSources(): Promise<SemanticSourcesResponse> {
-    const res = await apiFetch(`${API_BASE_URL}/semantic/sources`);
-    if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.detail || 'Failed to fetch semantic sources');
-    }
-    return res.json();
-}
-
-export async function getSemanticSource(connectionId: string, sourceName: string): Promise<SemanticSourceViewDto> {
-    const res = await apiFetch(
-        `${API_BASE_URL}/semantic/sources/${encodeURIComponent(connectionId)}/${encodeURIComponent(sourceName)}`,
-    );
-    if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.detail || 'Failed to fetch semantic source');
-    }
     return res.json();
 }
 

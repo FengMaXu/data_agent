@@ -176,22 +176,6 @@ export async function saveKnowledgeViaRuntime(path: string, content: string): Pr
   await getRuntimeClient().dispatch({ type: "knowledge.save", path, content });
 }
 
-export interface RuntimeSemanticConnection { connectionId: string; sources: Array<{ sourceName: string; sourceKind: string; assetType: string; title: string | null; isQueryable: boolean; hasOverlay: boolean; description: string }> }
-
-export async function listSemanticSourcesViaRuntime(): Promise<Array<{ connectionId: string; sourceName: string; updatedAt: number }>> {
-  const envelope = await getRuntimeClient().dispatch({ type: "semantic.sources.list" });
-  const result = envelope.response;
-  if (result.type !== "semantic.sources.result") throw new Error("UNEXPECTED_RESPONSE");
-  return result.sources as Array<{ connectionId: string; sourceName: string; updatedAt: number }>;
-}
-
-export async function getSemanticSourceViaRuntime(connectionId: string, sourceName: string): Promise<{ rawYaml: string }> {
-  const envelope = await getRuntimeClient().dispatch({ type: "semantic.sources.get", connectionId, sourceName });
-  const result = envelope.response;
-  if (result.type !== "semantic.source.result") throw new Error("UNEXPECTED_RESPONSE");
-  return (result.source as { definition: { rawYaml?: string } }).definition as { rawYaml: string };
-}
-
 export interface RuntimeSkillInfo { name: string; description: string; tools?: string[] }
 
 export async function listSkillsViaRuntime(): Promise<RuntimeSkillInfo[]> {
@@ -211,20 +195,6 @@ export async function getMcpConfigViaRuntime(): Promise<{ servers: Array<Record<
 
 export async function saveMcpConfigViaRuntime(config: { servers: Array<Record<string, unknown>> }): Promise<void> {
   await getRuntimeClient().dispatch({ type: "mcp.config.save", config });
-}
-
-export interface RuntimeIngestStatus { status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }
-
-export async function getIngestStatusViaRuntime(): Promise<RuntimeIngestStatus> {
-  const envelope = await getRuntimeClient().dispatch({ type: "semantic.ingest.status" });
-  const result = envelope.response;
-  if (result.type !== "semantic.ingest.status.result") throw new Error("UNEXPECTED_RESPONSE");
-  return result as unknown as RuntimeIngestStatus;
-}
-
-export async function retryIngestViaRuntime(): Promise<void> {
-  const envelope = await getRuntimeClient().dispatch({ type: "semantic.ingest.retry" });
-  if (envelope.response.type !== "semantic.ingest.retry.result") throw new Error("UNEXPECTED_RESPONSE");
 }
 
 export async function answerClarificationViaRuntime(clarificationId: string, answer: string, sessionId?: string): Promise<void> {

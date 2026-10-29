@@ -11,8 +11,7 @@ import { createMcpQueryExecutor, type McpQueryExecutionOptions } from "./mcp-que
  * - register IPC and application publication protocols
  * - load the Renderer
  *
- * Python runs only through the isolated capability pack. Semantic resources
- * are resolved from the packaged application resources.
+ * Python runs only through the isolated capability pack.
  */
 
 export interface ElectronMainRuntimePaths {
@@ -484,12 +483,6 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     const apiFormat = cfg.api_format === "chat" || cfg.apiFormat === "chat" ? "chat" : "responses";
     return { provider, model, apiKey, apiFormat, ...(baseUrl ? { baseUrl } : {}) } as const;
   };
-  // Semantic sources live in a KTX project under the user data dir; the
-  // runtime scans business-semantic/ and semantic-layer/ layouts there.
-  // DATA_AGENT_SEMANTIC_PROJECT_DIR overrides (e.g. to reuse an existing project).
-  const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
-    ? path.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR)
-    : path.join(paths.userDataDir, "semantic-context");
   const applicationRoot = path.dirname(paths.rendererDist);
   const developmentRoot = applicationRoot.includes(`${path.sep}app.asar`) ? applicationRoot : path.resolve(applicationRoot, "..");
   const packagedRoot = effectiveResources ?? applicationRoot;
@@ -500,7 +493,6 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     knowledgeRoot,
     // General method guides are read in place so they update with the application.
     builtinKnowledgeRoots: [path.join(packagedRoot, ".agents", "knowledge"), path.join(developmentRoot, ".agents", "knowledge")],
-    semanticProjectDir,
     pythonExecutable: bundledPythonExecutable,
     bundledPythonExecutable,
     resolveProfile: resolveConfiguredProfile,
@@ -526,27 +518,6 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
     projectRoot: developmentRoot,
     packagedRoot,
     skillRoots: [path.join(developmentRoot, ".agents", "skills"), path.join(packagedRoot, ".agents", "skills")],
-  });
-  application.setIngestJob({
-    async getStatus() {
-      const { readdir } = await import("node:fs/promises");
-      let count = 0;
-      for (const segment of ["semantic-layer", "business-semantic"]) {
-        try {
-          const entries = await readdir(path.join(semanticProjectDir, segment), { recursive: true });
-          count += entries.filter((entry) => entry.endsWith(".yaml") || entry.endsWith(".yml")).length;
-        } catch {
-          // A missing semantic project is a valid not-yet-configured state.
-        }
-      }
-      return {
-        status: count > 0 ? "ready" : "skipped",
-        jobId: null,
-        summary: { updated: 0, unchanged: count, failed: 0, skipped: 0 },
-        errorCode: null,
-      };
-    },
-    async retry() { return { accepted: true }; },
   });
 
   const mysqlMcpScript = [
