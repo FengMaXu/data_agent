@@ -43,7 +43,10 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --agent-detail-font-size: 0.86rem;
-  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, ui-monospace, monospace;
+  /* System faces only, as the OS draws them: no web font to download, and Chinese in a sans (黑体) face. */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'PingFang SC', 'Microsoft YaHei', monospace;
 }
 
 * {
@@ -69,7 +72,7 @@ select:focus-visible {
 }
 
 body {
-  font-family: 'Josefin Sans Variable', 'Noto Serif SC Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-sans);
   background:
     radial-gradient(circle at 8% 12%, rgba(251, 146, 60, 0.22), transparent 30%),
     radial-gradient(circle at 82% 6%, rgba(15, 23, 42, 0.08), transparent 26%),
@@ -1100,6 +1103,12 @@ body {
   line-height: 1.66;
 }
 
+/* Chinese reads better with more air between lines than Latin text does. */
+:lang(zh-CN) .message-content,
+:lang(zh-CN) .agent-message-body {
+  line-height: 1.75;
+}
+
 .agent-message-body.markdown-content {
   white-space: normal;
   overflow-x: auto;
@@ -1887,7 +1896,7 @@ body {
 .code-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   line-height: 1.6;
 }
@@ -1913,7 +1922,7 @@ body {
 .json-highlight {
   padding: 12px;
   margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -1946,7 +1955,7 @@ body {
 .formatted-text {
   padding: 12px;
   margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -2743,7 +2752,7 @@ body {
   outline: none;
   resize: none;
   padding: 16px;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   line-height: 1.6;
   color: var(--text-primary);
@@ -2758,7 +2767,7 @@ body {
 
 .knowledge-panel .file-preview pre {
   margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -2816,7 +2825,7 @@ body {
   background: #f3f4f6;
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85em;
 }
 
@@ -3048,7 +3057,7 @@ body {
 
 /* CSV Preview */
 .csv-preview {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.4;
   white-space: pre-wrap;
@@ -3329,7 +3338,7 @@ body {
   resize: none;
   overflow: auto;
   padding: 16px;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   line-height: 1.6;
   color: var(--text-primary);
@@ -3344,7 +3353,7 @@ body {
 
 .editor-modal .editor-preview pre {
   margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -3374,7 +3383,7 @@ body {
 
 .editor-modal .editor-preview.plain-preview pre {
   margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -3432,7 +3441,7 @@ body {
   background: #f3f4f6;
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85em;
 }
 
@@ -6156,32 +6165,8 @@ body {
 
 /* ──────── Layout refresh: narrow sidebar, icon rail, tool thread, code font ──────── */
 
-@font-face {
-  font-family: 'JetBrainsMono Nerd Font';
-  src: url('./assets/fonts/JetBrainsMonoNerdFont-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'JetBrainsMono Nerd Font';
-  src: url('./assets/fonts/JetBrainsMonoNerdFont-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'JetBrainsMono Nerd Font';
-  src: url('./assets/fonts/JetBrainsMonoNerdFont-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
-  --font-code: 'JetBrainsMono Nerd Font', 'JetBrains Mono', 'Fira Code', Consolas, 'PingFang SC', 'Microsoft YaHei', ui-monospace, monospace;
+  --font-code: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'PingFang SC', 'Microsoft YaHei', monospace;
   --font-mono: var(--font-code);
   --sidebar-width: 184px;
   --sidebar-rail-width: 64px;
@@ -7289,7 +7274,13 @@ body {
 }
 
 /* Sidebar labels read bold */
+/* System CJK faces have only regular and bold, so 600 renders bold: only the current section takes it. */
 .sidebar .nav-item {
+  font-weight: 500;
+}
+
+.sidebar .nav-item.active,
+.sidebar .nav-item.expanded {
   font-weight: 600;
 }
 

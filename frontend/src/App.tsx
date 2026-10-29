@@ -1,6 +1,4 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-// Chinese text face for the workspace app only; the landing page never loads it.
-import '@fontsource-variable/noto-serif-sc';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ToolPanel, { type ToolData } from './components/ToolPanel';
