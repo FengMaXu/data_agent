@@ -16,13 +16,13 @@ export interface ModelSetupPromptProps {
 export const ModelSetupPrompt: React.FC<ModelSetupPromptProps> = ({ onConfigure }) => {
     const { t } = useLanguage();
     return (
-        <div className="semantic-startup-strip" role="status">
-            <div className="semantic-startup-main">
+        <div className="startup-strip" role="status">
+            <div className="startup-main">
                 <KeyRound size={17} aria-hidden="true" />
                 <strong>{t('modelSetup.title')}</strong>
-                <span className="semantic-startup-hint">{t('modelSetup.hint')}</span>
+                <span className="startup-hint">{t('modelSetup.hint')}</span>
             </div>
-            <button type="button" className="semantic-startup-retry" onClick={onConfigure}>
+            <button type="button" className="startup-retry" onClick={onConfigure}>
                 <span>{t('modelSetup.action')}</span>
             </button>
         </div>

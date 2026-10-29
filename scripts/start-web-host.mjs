@@ -12,9 +12,6 @@ const dataDir = process.env.DATA_AGENT_DATA_DIR
 const knowledgeRoot = process.env.DATA_AGENT_KNOWLEDGE_DIR
   ? path.resolve(process.env.DATA_AGENT_KNOWLEDGE_DIR)
   : path.join(root, "knowledge");
-const semanticProjectDir = process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR
-  ? path.resolve(process.env.DATA_AGENT_SEMANTIC_PROJECT_DIR)
-  : path.resolve(dataDir, "..", "semantic-context");
 const packagedRoot = process.resourcesPath ?? root;
 const skillRoots = [path.join(root, ".agents", "skills"), path.join(packagedRoot, ".agents", "skills")];
 const builtinKnowledgeRoots = [path.join(root, ".agents", "knowledge"), path.join(packagedRoot, ".agents", "knowledge")];
@@ -64,7 +61,6 @@ application = await createDataAgentApplication({
   host: "web",
   knowledgeRoot,
   builtinKnowledgeRoots,
-  semanticProjectDir,
   pythonExecutable,
   queryExecutor: resolveQueryExecutor,
   ...(process.env.TYPESAFE_API_KEY?.trim() ? {
@@ -104,22 +100,6 @@ application = await createDataAgentApplication({
   skillRoots,
 });
 application.setHostTesters(createHostTesters({ dbMcp: mysqlMcpProcess }));
-application.setIngestJob({
-  async getStatus() {
-    let count = 0;
-    try {
-      const fsPromises = await import("node:fs/promises");
-      for (const segment of ["semantic-layer", "business-semantic"]) {
-        const directory = path.join(semanticProjectDir, segment);
-        if (!existsSync(directory)) continue;
-        const entries = await fsPromises.readdir(directory, { recursive: true });
-        count += entries.filter((entry) => String(entry).endsWith(".yaml") || String(entry).endsWith(".yml")).length;
-      }
-    } catch { count = 0; }
-    return { status: count > 0 ? "ready" : "skipped", jobId: null, summary: { updated: 0, unchanged: count, failed: 0, skipped: 0 }, errorCode: null };
-  },
-  async retry() { return { accepted: true }; },
-});
 resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query executor unavailable:", error.message));
 
 const app = await createRuntimeServer(application, {
@@ -147,7 +127,6 @@ await app.listen({ port, host });
 console.log(`[data-agent-web] listening on http://${host}:${port}`);
 console.log(`[data-agent-web] data dir: ${dataDir}`);
 console.log(`[data-agent-web] knowledge dir: ${knowledgeRoot} (${application.knowledge.catalog().length} documents)`);
-console.log(`[data-agent-web] semantic project dir: ${semanticProjectDir}${existsSync(semanticProjectDir) ? "" : " (not created yet)"}`);
 
 // Channels (ADR-0011). The settings page connects one by scanning a QR code; FEISHU_APP_ID and
 // FEISHU_APP_SECRET still work as a fallback when nothing has been saved. Results reach a group only

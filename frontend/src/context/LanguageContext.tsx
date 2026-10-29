@@ -22,7 +22,6 @@ const translations: Translations = {
         'sidebar.metrics': 'Metrics',
         'sidebar.settings': 'Settings',
         'sidebar.langToggle': 'Switch to Chinese',
-        'sidebar.semantic': 'Semantic model',
         'sidebar.language': 'Language',
         'sidebar.logout': 'Sign out',
 
@@ -45,9 +44,6 @@ const translations: Translations = {
         'common.knowledgePlaceholder': 'Empty',
         'common.knowledgePlaceholderHint': 'Placeholder: fill in this document so the Agent can use it.',
         'common.knowledgeNamePrompt': 'File name (e.g. doc/notes.md):',
-        'common.noSemanticAssetsHint': 'Scanning the semantic project directory automatically; use refresh to re-scan.',
-        'common.semanticRefresh': 'Refresh', 
-        'common.noSemanticAssets': 'No semantic assets available.',
         'common.requestFailed': 'Request failed.',
         'common.retryHint': 'Check your connection or configuration and try again.',
 
@@ -402,7 +398,6 @@ const translations: Translations = {
         'chat.phaseDoneTool': 'Completed tool',
         'chat.phaseErrorTool': 'Tool failed',
         'chat.retryNotice': 'Retrying {operation}: {attempt}/{max} in {delay}s',
-        'chat.semanticWaiting': 'Semantic context is still preparing. You can continue with other questions.',
         
         'tools.processing': 'Thinking...',
         'tools.statusError': 'Error',
@@ -442,9 +437,6 @@ const translations: Translations = {
         'editor.loading': 'Loading file…',
         'editor.loadFailed': 'Unable to load the file. Try again later.',
         'editor.saveFailed': 'Unable to save the file. Check your connection and try again.',
-        'semantic.close': 'Close semantic asset',
-        'semantic.loading': 'Loading semantic asset…',
-        'semantic.loadFailed': 'Unable to load the semantic asset. Try again later.',
 
 
         'task.new': 'New task',
@@ -458,24 +450,6 @@ const translations: Translations = {
         'session.confirmDelete': 'Delete session “{name}”?',
         'knowledge.loadFailed': 'Failed to load knowledge base',
 
-        'semantic.toolbarLabel': 'Semantic asset view mode',
-        'semantic.split': 'Split',
-        'semantic.code': 'Code',
-        'semantic.visual': 'Visual',
-        'semantic.narrowHint': 'Switched to single-column tabs for narrow screen',
-        'semantic.manifestOnly': 'Defined by system manifest',
-        'semantic.manifestOnlyDesc': 'No standalone YAML file. To customize, create an Overlay via KTX.',
-        'semantic.yamlSource': 'YAML source',
-        'semantic.businessKnowledge': 'Business Knowledge YAML',
-        'semantic.queryable': 'Queryable',
-        'semantic.noPhysicalSource': 'No physical source declared',
-        'semantic.defaultTime': 'Default time: ',
-        'semantic.tags': 'Tags',
-        'semantic.copy': 'Copy code',
-        'semantic.copied': 'Copied',
-        'semantic.noFields': 'No fields defined',
-        'semantic.fields': 'Fields',
-        'semantic.inheritedFromManifest': 'Inherited from manifest'
     },
     zh: {
         'sidebar.navigation': '工作区导航',
@@ -489,7 +463,6 @@ const translations: Translations = {
         'sidebar.metrics': '指标',
         'sidebar.settings': '设置',
         'sidebar.langToggle': 'Switch to English',
-        'sidebar.semantic': '语义模型',
         'sidebar.language': '语言',
         'sidebar.logout': '退出',
 
@@ -512,9 +485,6 @@ const translations: Translations = {
         'common.knowledgePlaceholder': '待填写',
         'common.knowledgePlaceholderHint': '占位文档：填写内容后 Agent 才会使用它。',
         'common.knowledgeNamePrompt': '文件名（例如 doc/notes.md）：',
-        'common.noSemanticAssetsHint': '会自动扫描语义项目目录；点击刷新可重新扫描。',
-        'common.semanticRefresh': '刷新', 
-        'common.noSemanticAssets': '暂无可用语义资产。',
         'common.requestFailed': '请求失败。',
         'common.retryHint': '请检查网络或配置后重试。',
 
@@ -869,7 +839,6 @@ const translations: Translations = {
         'chat.phaseDoneTool': '完成工具',
         'chat.phaseErrorTool': '工具失败',
         'chat.retryNotice': '重试 {operation}：{attempt}/{max}，{delay}s 后继续',
-        'chat.semanticWaiting': '语义上下文仍在准备中，你可以继续处理其他问题。',
         
         'tools.processing': '思考中...',
         'tools.statusError': '错误',
@@ -909,9 +878,6 @@ const translations: Translations = {
         'editor.loading': '正在加载文件…',
         'editor.loadFailed': '无法加载文件，请稍后重试。',
         'editor.saveFailed': '无法保存文件，请检查连接后重试。',
-        'semantic.close': '关闭语义资产',
-        'semantic.loading': '正在加载语义资产…',
-        'semantic.loadFailed': '无法加载语义资产，请稍后重试。',
 
 
         'task.new': '新任务',
@@ -925,24 +891,6 @@ const translations: Translations = {
         'session.confirmDelete': '确认删除会话“{name}”吗？',
         'knowledge.loadFailed': '加载知识库失败',
 
-        'semantic.toolbarLabel': '语义资产视图模式',
-        'semantic.split': '对照',
-        'semantic.code': '代码',
-        'semantic.visual': '可视化',
-        'semantic.narrowHint': '窄屏已切换为单栏标签页',
-        'semantic.manifestOnly': '此模型由系统 manifest 定义',
-        'semantic.manifestOnlyDesc': '暂无独立 YAML 文件。如需自定义，请通过 KTX 创建 Overlay。',
-        'semantic.yamlSource': 'YAML 原文',
-        'semantic.businessKnowledge': '业务知识 YAML',
-        'semantic.queryable': '可查询',
-        'semantic.noPhysicalSource': '未声明物理来源',
-        'semantic.defaultTime': '默认时间：',
-        'semantic.tags': '标签',
-        'semantic.copy': '复制源码',
-        'semantic.copied': '已复制',
-        'semantic.noFields': '未定义字段',
-        'semantic.fields': '字段',
-        'semantic.inheritedFromManifest': '继承自 manifest'
     }
 };
 

@@ -283,7 +283,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
         server => server.name === mcpConfig.servers[selectedMcpServer]?.name,
     );
 
-    const isHostManaged = (server: MCPServerStatus) => Boolean(server.host_managed || server.server_type === 'semantic');
+    const isHostManaged = (server: MCPServerStatus) => Boolean(server.host_managed);
 
     const getServerStatusMeta = (server: MCPServerStatus) => {
         if (isHostManaged(server) && !server.enabled) {
@@ -374,7 +374,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                     const isRestarting = pendingRestartServer === server.name;
                                     const hostManaged = isHostManaged(server);
                                     const statusMeta = getServerStatusMeta(server);
-                                    const displayName = hostManaged ? 'KTX Semantic' : server.name;
+                                    const displayName = server.name;
                                     return (
                                         <div key={server.key} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 18px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>

@@ -28,7 +28,6 @@ export interface DataAgentApplicationOptions {
   readonly knowledgeRoot?: string;
   /** Read-only roots holding built-in knowledge that ships with the application; earlier roots win on duplicate paths. */
   readonly builtinKnowledgeRoots?: readonly string[];
-  readonly semanticProjectDir?: string;
   readonly pythonExecutable?: string | (() => string | undefined);
   readonly bundledPythonExecutable?: string;
   readonly queryExecutor?: SessionQueryExecutor | (() => SessionQueryExecutor | Promise<SessionQueryExecutor>);
@@ -58,11 +57,6 @@ export interface DataAgentApplicationOptions {
     readonly endpoint?: string;
     readonly timeoutMs?: number;
   };
-}
-
-export interface IngestJobPort {
-  getStatus(): Promise<{ status: string; jobId: string | null; summary: { updated: number; unchanged: number; failed: number; skipped: number }; errorCode: string | null }>;
-  retry(): Promise<{ accepted: boolean }>;
 }
 
 export interface HostTestPorts {
@@ -172,7 +166,6 @@ export class DataAgentApplication implements ApplicationCommandHost {
       knowledgeRoot,
       ...(initialPythonExecutable ? { pythonExecutable: initialPythonExecutable } : {}),
       ...(options.bundledPythonExecutable ? { bundledPythonExecutable: options.bundledPythonExecutable } : {}),
-      ...(options.semanticProjectDir ? { semanticProjectDir: options.semanticProjectDir } : {}),
       ...(options.skillRoots ? { skillRoots: [...options.skillRoots] } : {}),
       ...(options.projectRoot ? { projectRoot: options.projectRoot } : {}),
       ...(options.packagedRoot ? { packagedRoot: options.packagedRoot } : {}),
@@ -266,7 +259,6 @@ export class DataAgentApplication implements ApplicationCommandHost {
     if (ports.dbTester) this.runtime.dbTester = ports.dbTester;
     if (ports.llmTester) this.runtime.llmTester = ports.llmTester;
   }
-  setIngestJob(job: IngestJobPort): void { this.runtime.ingestJob = job; }
   getResources(): ApplicationResources { return this.agent.getResources(); }
   setResources(resources: ApplicationResources): Promise<void> { return this.agent.setResources(resources); }
 
