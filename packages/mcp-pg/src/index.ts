@@ -29,9 +29,72 @@ const calendarTypes: CustomTypesConfig = {
 
 const FORBIDDEN = /\b(drop|truncate|delete|insert|update|alter|grant|revoke|call|replace|copy)\b/i;
 
+/**
+ * Connections the pool may open. A query waiting for a connection still spends
+ * its time budget, so the pool holds as many as the host runs at once: the
+ * Runtime caps child explorations at 12, and the parent and result queries come
+ * on top. Cancelling a statement borrows one more. The default max_connections
+ * of PostgreSQL is 100, shared by every client of the server.
+ */
+export const DEFAULT_PG_CONNECTIONS = 20;
+
+function positiveInteger(value: string | undefined): number | undefined {
+  const parsed = value === undefined ? Number.NaN : Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+/** Credentials come from the environment owned by the MCP Server process. */
+export function poolConfigFromEnv(): pg.PoolConfig {
+  return {
+    host: process.env.DATA_AGENT_PG_HOST ?? "127.0.0.1",
+    port: Number(process.env.DATA_AGENT_PG_PORT ?? 5432),
+    user: process.env.DATA_AGENT_PG_USER ?? "postgres",
+    password: process.env.DATA_AGENT_PG_PASSWORD,
+    database: process.env.DATA_AGENT_PG_DATABASE,
+    max: positiveInteger(process.env.DATA_AGENT_PG_CONNECTIONS) ?? DEFAULT_PG_CONNECTIONS,
+    connectionTimeoutMillis: 10_000,
+  };
+}
+
+/** SQLSTATE 57014 query_canceled: statement_timeout passed or the statement was cancelled. */
+function isQueryCanceled(error: unknown): boolean {
+  return (error as { code?: string } | undefined)?.code === "57014";
+}
+
+const timeoutPayload = (timeoutMs: number | undefined) => ({ error: { code: "QUERY_TIMEOUT", message: `statement stopped by PostgreSQL after ${timeoutMs ?? 0} ms (statement_timeout)` } });
+
 export async function createPgReferenceServer(options: PgReferenceServerOptions) {
   const pool = options.pool;
   const maxPreviewRows = Math.min(options.maxPreviewRows ?? MAX_PREVIEW_LIMIT, MAX_PREVIEW_LIMIT);
+
+  /**
+   * Runs one statement in a read-only transaction. PostgreSQL enforces the
+   * statement's own time limit, and a cancelled MCP call cancels the statement
+   * on the server; a closed client alone would leave it running.
+   */
+  const runBounded = async (text: string, timeoutMs: number | undefined, signal: AbortSignal | undefined) => {
+    const client = await pool.connect();
+    const processId = (client as unknown as { processID?: number }).processID;
+    const cancel = () => { if (processId !== undefined) pool.query("SELECT pg_cancel_backend($1)", [processId]).catch(() => undefined); };
+    try {
+      await client.query("BEGIN READ ONLY");
+      if (timeoutMs) await client.query(`SET LOCAL statement_timeout = ${Math.max(1, Math.floor(timeoutMs))}`);
+      signal?.addEventListener("abort", cancel, { once: true });
+      const result = await client.query({ text, types: calendarTypes });
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      signal?.removeEventListener("abort", cancel);
+      client.release();
+    }
+  };
+  const failure = (error: unknown, trimmed: string, timeoutMs: number | undefined, signal: AbortSignal | undefined) => {
+    if (isQueryCanceled(error)) return signal?.aborted ? { error: { code: "QUERY_CANCELLED" } } : timeoutPayload(timeoutMs);
+    return { error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`).slice(0, 500) } };
+  };
 
   const server = new McpServer({ name: "data-agent-pg-reference", version: "1.0.0" });
 
@@ -42,15 +105,17 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
       sql: z.string().min(1),
       limit: z.number().int().positive().max(MAX_PREVIEW_LIMIT).optional(),
       maxBytes: z.number().int().positive().max(64 * 1024).optional(),
+      /** Statement time limit in ms, enforced by PostgreSQL. */
+      timeoutMs: z.number().int().positive().optional(),
     },
-    async ({ sql, limit, maxBytes }) => {
+    async ({ sql, limit, maxBytes, timeoutMs }, extra) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       if (FORBIDDEN.test(trimmed)) {
         return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       }
       const effectiveLimit = Math.min(limit ?? DEFAULT_PREVIEW_LIMIT, maxPreviewRows);
       try {
-        const result = await pool.query({ text: `SELECT * FROM (${trimmed}) __preview LIMIT ${effectiveLimit + 1}`, types: calendarTypes });
+        const result = await runBounded(`SELECT * FROM (${trimmed}) __preview LIMIT ${effectiveLimit + 1}`, timeoutMs, extra.signal);
         const columns = result.fields.map((field) => field.name);
         let rows = result.rows.slice(0, effectiveLimit);
         let truncated = result.rows.length > effectiveLimit;
@@ -63,7 +128,7 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
         }
         return { content: [{ type: "text", text: JSON.stringify({ rows, columns, totalRows: result.rows.length, truncated, serverLimit: maxPreviewRows, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`) } }) }] };
+        return { content: [{ type: "text", text: JSON.stringify(failure(error, trimmed, timeoutMs, extra.signal)) }] };
       }
     },
   );
@@ -91,18 +156,20 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
     {
       sql: z.string().min(1),
       maxRows: z.number().int().positive().max(MAX_EXPORT_ROWS).optional(),
+      /** Statement time limit in ms, enforced by PostgreSQL. */
+      timeoutMs: z.number().int().positive().optional(),
     },
-    async ({ sql, maxRows: requestedMaxRows }) => {
+    async ({ sql, maxRows: requestedMaxRows, timeoutMs }, extra) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       const rowLimit = Math.min(requestedMaxRows ?? MAX_EXPORT_ROWS, MAX_EXPORT_ROWS);
       try {
-        const result = await pool.query({ text: `SELECT * FROM (${trimmed}) __result LIMIT ${rowLimit + 1}`, types: calendarTypes });
+        const result = await runBounded(`SELECT * FROM (${trimmed}) __result LIMIT ${rowLimit + 1}`, timeoutMs, extra.signal);
         if (result.rows.length > rowLimit) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "EXPORT_ROW_LIMIT_EXCEEDED", rowLimit } }) }] };
         const columns = result.fields.map((field) => field.name);
         return { content: [{ type: "text", text: JSON.stringify({ rows: result.rows, columns, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: { code: "QUERY_FAILED", message: redact(`${(error as Error).message} in ${redact(trimmed)}`).slice(0, 500) } }) }] };
+        return { content: [{ type: "text", text: JSON.stringify(failure(error, trimmed, timeoutMs, extra.signal)) }] };
       }
     },
   );
@@ -139,6 +206,9 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
 }
 
 export async function startPgReferenceStdio(pool: Pool): Promise<void> {
-  const { server } = await createPgReferenceServer({ pool });
+  const { server, close } = await createPgReferenceServer({ pool });
+  // The host stops the server by closing stdin; ending the pool closes each
+  // session cleanly and lets the process exit instead of waiting to be killed.
+  process.stdin.once("end", () => { void close().catch(() => undefined).finally(() => process.exit(0)); });
   await server.connect(new StdioServerTransport());
 }

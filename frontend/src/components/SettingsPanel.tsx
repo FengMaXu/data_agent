@@ -2,16 +2,22 @@ import React, { useEffect, useState } from 'react';
 import ChannelsSettings from './ChannelsSettings';
 import {
     Settings as SettingsIcon,
-    User, Link, Eye, ExternalLink, Loader2, Terminal
+    User, Link, Eye, ExternalLink, Loader2, Terminal, Database
 } from './icons/Typicons';
 import { RiCloud, RiKey2, RiUsb } from './icons/RemixIcons';
 import {
     type AIConfig,
+    type DatabaseDriver,
     type PythonRuntimeConfig,
     type PythonRuntimeUpdate,
 } from '../api/client';
 import { getConfigViaRuntime, saveConfigViaRuntime, testDbViaRuntime, testPythonRuntimeViaRuntime } from '../api/runtime-client';
 import { useLanguage } from '../context/LanguageContext';
+
+const DB_DRIVER_DEFAULTS: Record<DatabaseDriver, { port: number; user: string }> = {
+    mysql: { port: 3306, user: 'root' },
+    postgres: { port: 5432, user: 'postgres' },
+};
 
 export type SettingsSection = 'model' | 'database' | 'environment' | 'channels';
 
@@ -123,9 +129,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ section }) => {
     const [isSavingLLM, setIsSavingLLM] = useState(false);
 
     // DB states
+    const [dbDriver, setDbDriver] = useState<DatabaseDriver>('mysql');
     const [dbHost, setDbHost] = useState('localhost');
-    const [dbPort, setDbPort] = useState(3306);
-    const [dbUser, setDbUser] = useState('root');
+    const [dbPort, setDbPort] = useState(DB_DRIVER_DEFAULTS.mysql.port);
+    const [dbUser, setDbUser] = useState(DB_DRIVER_DEFAULTS.mysql.user);
     const [dbPassword, setDbPassword] = useState('');
     const [dbName, setDbName] = useState('my_database');
     const [isTestingDB, setIsTestingDB] = useState(false);
@@ -144,9 +151,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ section }) => {
             try {
                 const initialConfig: AIConfig = await getConfigViaRuntime() as unknown as AIConfig;
                 setConfig(initialConfig);
+                const driver: DatabaseDriver = initialConfig.driver === 'postgres' ? 'postgres' : 'mysql';
+                setDbDriver(driver);
                 setDbHost(initialConfig.host || 'localhost');
-                setDbPort(initialConfig.port || 3306);
-                setDbUser(initialConfig.user || 'root');
+                setDbPort(initialConfig.port || DB_DRIVER_DEFAULTS[driver].port);
+                setDbUser(initialConfig.user || DB_DRIVER_DEFAULTS[driver].user);
                 setDbPassword(initialConfig.password || '');
                 setDbName(initialConfig.database || '');
                 const runtime = initialConfig.python_runtime || { mode: 'bundled' as const };
@@ -287,11 +296,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ section }) => {
 
 
 
+    // Switching the database type moves the port and user along only while they still hold the previous defaults.
+    const changeDbDriver = (driver: DatabaseDriver) => {
+        const previous = DB_DRIVER_DEFAULTS[dbDriver];
+        if (dbPort === previous.port) setDbPort(DB_DRIVER_DEFAULTS[driver].port);
+        if (dbUser === previous.user) setDbUser(DB_DRIVER_DEFAULTS[driver].user);
+        setDbDriver(driver);
+        setDbTestResult(null);
+    };
+
     const handleTestDB = async () => {
         setIsTestingDB(true);
         setDbTestResult(null);
         try {
             const res = await testDbViaRuntime({
+                driver: dbDriver,
                 host: dbHost,
                 port: dbPort,
                 user: dbUser,
@@ -311,6 +330,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ section }) => {
         setIsSavingDB(true);
         try {
             await saveConfigViaRuntime({
+                driver: dbDriver,
                 host: dbHost,
                 port: dbPort,
                 user: dbUser,
@@ -569,6 +589,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ section }) => {
                     <div className="settings-tab-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #f3f4f6', flex: 1 }}>
 
+                            {/* Row 0 */}
+                            <div style={{ marginBottom: '24px' }}>
+                                <label htmlFor="settings-db-driver" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', fontWeight: 600, color: '#1f2937' }}>
+                                    <Database size={18} aria-hidden="true" />
+                                    <span>{t('settings.dbDriver')}</span>
+                                </label>
+                                <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px' }}>
+                                    <select id="settings-db-driver" value={dbDriver} onChange={e => changeDbDriver(e.target.value as DatabaseDriver)} style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontSize: '0.95rem' }}>
+                                        <option value="mysql">MySQL</option>
+                                        <option value="postgres">PostgreSQL</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             {/* Row 1 */}
                             <div className="settings-form-row" style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
                                 <div style={{ flex: 1 }}>
@@ -586,7 +620,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ section }) => {
                                         <span>{t('settings.dbPort')}</span>
                                     </label>
                                     <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px' }}>
-                                        <input id="settings-db-port" type="number" placeholder="3306" value={dbPort} onChange={e => setDbPort(parseInt(e.target.value) || 3306)} style={{ fontSize: '0.95rem' }} />
+                                        <input id="settings-db-port" type="number" placeholder={String(DB_DRIVER_DEFAULTS[dbDriver].port)} value={dbPort} onChange={e => setDbPort(parseInt(e.target.value) || DB_DRIVER_DEFAULTS[dbDriver].port)} style={{ fontSize: '0.95rem' }} />
                                     </div>
                                 </div>
                             </div>
@@ -599,7 +633,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ section }) => {
                                         <span>{t('settings.dbUser')}</span>
                                     </label>
                                     <div className="settings-input-wrapper" style={{ margin: 0, borderRadius: '12px', padding: '14px 16px' }}>
-                                        <input id="settings-db-user" type="text" placeholder="root" value={dbUser} onChange={e => setDbUser(e.target.value)} style={{ fontSize: '0.95rem' }} />
+                                        <input id="settings-db-user" type="text" placeholder={DB_DRIVER_DEFAULTS[dbDriver].user} value={dbUser} onChange={e => setDbUser(e.target.value)} style={{ fontSize: '0.95rem' }} />
                                     </div>
                                 </div>
                                 <div style={{ flex: 1 }}>

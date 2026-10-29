@@ -14,6 +14,7 @@ const sourceRoots = [
   "packages/charts/src",
   "packages/channel-feishu/src",
   "packages/electron-host/src",
+  "packages/database/src",
   "packages/mcp-mysql/src",
   "packages/mcp-pg/src",
   "apps/server/src",

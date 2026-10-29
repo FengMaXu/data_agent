@@ -33,7 +33,8 @@ if (!existsSync(path.join(frontend, "dist", "index.html"))) {
 }
 if (!existsSync(path.join(frontend, "electron-host", "main.cjs"))
   || !existsSync(path.join(frontend, "electron-host", "metadata-worker.cjs"))
-  || !existsSync(path.join(frontend, "electron-host", "mcp-mysql.cjs"))) {
+  || !existsSync(path.join(frontend, "electron-host", "mcp-mysql.cjs"))
+  || !existsSync(path.join(frontend, "electron-host", "mcp-pg.cjs"))) {
   console.error("Electron host bundle missing; run scripts/build-distribution.mjs first");
   process.exit(1);
 }
@@ -88,7 +89,7 @@ writeFileSync(path.join(staging, "package.json"), JSON.stringify(appPkg, null, 2
 cpSync(path.join(frontend, "dist"), path.join(staging, "dist"), { recursive: true });
 cpSync(path.join(frontend, "electron"), path.join(staging, "electron"), { recursive: true });
 mkdirSync(path.join(staging, "electron-host"), { recursive: true });
-for (const name of ["main.cjs", "metadata-worker.cjs", "mcp-mysql.cjs"]) {
+for (const name of ["main.cjs", "metadata-worker.cjs", "mcp-mysql.cjs", "mcp-pg.cjs"]) {
   for (const file of [name, `${name}.map`]) {
     if (existsSync(path.join(frontend, "electron-host", file))) {
       cpSync(path.join(frontend, "electron-host", file), path.join(staging, "electron-host", file));
