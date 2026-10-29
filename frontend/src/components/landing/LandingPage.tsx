@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+// The landing page's own faces, self-hosted (fontsource): Google Fonts is often unreachable from mainland China.
+import '@fontsource-variable/inter/opsz.css';
 import '@fontsource-variable/noto-serif-sc';
 import { ArrowRight, Download, Languages, X } from '../icons/Typicons';
 import { BrandMark, BrandWordmark } from '../Brand';

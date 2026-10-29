@@ -546,7 +546,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                                             value={mcpConfig.servers[selectedMcpServer].args_input ?? JSON.stringify(mcpConfig.servers[selectedMcpServer].args || [], null, 2)}
                                                             onChange={e => updateMcpServerField(selectedMcpServer, 'args_input', e.target.value)}
                                                             placeholder='["mcp", "stdio"]'
-                                                            style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', margin: 0, width: '100%', minHeight: '72px', padding: '12px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                                                            style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', margin: 0, width: '100%', minHeight: '72px', padding: '12px', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}
                                                         />
                                                     </div>
                                                 )}
@@ -560,7 +560,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                                         </label>
                                                         <textarea
                                                             id="mcp-server-env"
-                                                            style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', margin: 0, width: '100%', minHeight: '80px', padding: '12px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                                                            style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', margin: 0, width: '100%', minHeight: '80px', padding: '12px', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}
                                                             value={mcpConfig.servers[selectedMcpServer].env_input ?? ''}
                                                             onChange={e => updateMcpServerField(selectedMcpServer, 'env_input', e.target.value)}
                                                             placeholder='{"KEY": "value"}'
@@ -573,7 +573,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                                         </label>
                                                         <textarea
                                                             id="mcp-server-headers"
-                                                            style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', margin: 0, width: '100%', minHeight: '80px', padding: '12px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                                                            style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', margin: 0, width: '100%', minHeight: '80px', padding: '12px', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}
                                                             value={mcpConfig.servers[selectedMcpServer].headers_input ?? ''}
                                                             onChange={e => updateMcpServerField(selectedMcpServer, 'headers_input', e.target.value)}
                                                             placeholder='{"Authorization": "Bearer..."}'
