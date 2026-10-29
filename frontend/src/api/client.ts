@@ -119,12 +119,16 @@ export async function logout(): Promise<void> {
     setAuthToken('');
 }
 
+/** Databases the product connects to; each runs through its own contract MCP server. */
+export type DatabaseDriver = 'mysql' | 'postgres';
+
 export interface AIConfig {
     provider?: 'openai' | 'anthropic';
     llm_enabled?: boolean;
     model?: string;
     api_key?: string;
     base_url?: string;
+    driver?: DatabaseDriver;
     host?: string;
     port?: number;
     user?: string;

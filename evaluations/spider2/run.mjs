@@ -622,7 +622,7 @@ function knowledgeMetrics(calls, startedAt) {
 
 async function createCaseRunner(config, runDir, systemPrompt, attemptId = "attempt-001", experimentId = "legacy", attemptMode = "run", queryBudgetPolicy, retryOfAttemptId, fanoutEnabled = true, semanticSpecMode = "required") {
   const protocol = await import("@data-agent/runtime/testing");
-  const { createMcpQueryExecutor } = await import("../../apps/server/dist/mcp-query-executor.js");
+  const { createMcpQueryExecutor } = await import("../../packages/database/dist/mcp-query-executor.js");
   const profile = profileFromConfig(config);
   const specFeedbackConfigured = semanticSpecMode === "required" && specFeedbackRequested(config) && Boolean(process.env.TYPESAFE_API_KEY?.trim());
   return async (instance) => {
@@ -1021,7 +1021,7 @@ async function currentBaselineSurface(config) {
     skillsSha256: await sha256Tree(path.join(projectRoot, ".agents", "skills")),
     evaluationSkillsSha256: await sha256Tree(path.join(here, "skills")),
     sqliteMcpSha256: await sha256File(path.join(projectRoot, "apps", "server", "dist", "reference-sqlite-mcp.js")),
-    queryExecutorSha256: await sha256File(path.join(projectRoot, "apps", "server", "dist", "mcp-query-executor.js")),
+    queryExecutorSha256: await sha256File(path.join(projectRoot, "packages", "database", "dist", "mcp-query-executor.js")),
     serverSourceSha256: await sha256Tree(path.join(projectRoot, "apps", "server", "src")),
     serverBuildProvenanceSha256: await sha256File(path.join(projectRoot, "apps", "server", "dist", "build-provenance.json")),
     evaluationAdapter: {
@@ -1558,7 +1558,7 @@ async function preflightCommand(config, options) {
     path.join(config.evaluationSuite, "evaluate.py"),
     path.join(config.evaluationSuite, "gold", "spider2lite_eval.jsonl"),
     path.join(projectRoot, "packages", "runtime", "dist", "index.js"),
-    path.join(projectRoot, "apps", "server", "dist", "mcp-query-executor.js"),
+    path.join(projectRoot, "packages", "database", "dist", "mcp-query-executor.js"),
     path.join(projectRoot, "apps", "server", "dist", "reference-sqlite-mcp.js"),
   ];
   const missing = [];

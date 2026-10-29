@@ -7,7 +7,7 @@ export interface McpQueryExecutorOptions {
   env?: Record<string, string>;
   dialect?: "sqlite" | "mysql" | "postgres" | "bigquery" | "snowflake";
   connectionId?: string;
-  /** Statement time limit when the caller sets no deadline; MySQL enforces it. Unresponsive workers are replaced. */
+  /** Statement time limit when the caller sets no deadline; the database server enforces it. Unresponsive workers are replaced. */
   requestTimeoutMs?: number;
   /** Explicit local-test capability; callers must provide server-side scoped enforcement before using it in production. */
   scopedExploration?: { readonly scopeId: string; readonly connectionId: string };
@@ -28,8 +28,9 @@ export class DatabaseUnavailableError extends Error {
 
 /**
  * How long past a statement's own time limit the client waits for the server's
- * report. MySQL stops the statement at the limit (MAX_EXECUTION_TIME) and says
- * QUERY_TIMEOUT; a server that has not answered by then is unresponsive.
+ * report. The database stops the statement at the limit (MySQL MAX_EXECUTION_TIME,
+ * PostgreSQL statement_timeout) and says QUERY_TIMEOUT; a server that has not
+ * answered by then is unresponsive.
  */
 const STATEMENT_REPORT_GRACE_MS = 5_000;
 

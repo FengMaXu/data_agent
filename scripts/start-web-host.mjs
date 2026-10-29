@@ -20,41 +20,20 @@ const pythonExecutable = process.env.DATA_AGENT_PYTHON
 
 const { createDataAgentApplication } = await import(toUrl(path.join(root, "packages/runtime/dist/index.js")));
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
-const { createMcpQueryExecutor } = await import(toUrl(path.join(root, "apps/server/dist/mcp-query-executor.js")));
+const { createConfiguredQueryExecutor } = await import(toUrl(path.join(root, "packages/database/dist/index.js")));
 const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
 
-const mysqlMcpProcess = {
-  command: process.execPath,
-  args: [path.join(root, "packages", "mcp-mysql", "dist", "cli.js")],
+const databaseServers = {
+  mysql: { command: process.execPath, args: [path.join(root, "packages", "mcp-mysql", "dist", "cli.js")] },
+  postgres: { command: process.execPath, args: [path.join(root, "packages", "mcp-pg", "dist", "cli.js")] },
 };
-function mysqlEnvFromConfig(config) {
-  const env = {};
-  if (!config) return env;
-  if (config.host) env.DATA_AGENT_MYSQL_HOST = String(config.host);
-  if (config.port) env.DATA_AGENT_MYSQL_PORT = String(config.port);
-  if (config.user) env.DATA_AGENT_MYSQL_USER = String(config.user);
-  if (config.password) env.DATA_AGENT_MYSQL_PASSWORD = String(config.password);
-  if (config.database) env.DATA_AGENT_MYSQL_DATABASE = String(config.database);
-  return env;
-}
 
 let application;
-let queryExecutor;
-let queryExecutorEnvKey = "";
-async function resolveQueryExecutor() {
-  const saved = (await application.getConfig("ui.settings")) ?? {};
-  const env = mysqlEnvFromConfig(saved);
-  const key = JSON.stringify(env);
-  if (!queryExecutor || key !== queryExecutorEnvKey) {
-    await queryExecutor?.close?.();
-    queryExecutor = createMcpQueryExecutor({
-      ...mysqlMcpProcess,
-      env: Object.keys(env).length ? env : undefined,
-    });
-    queryExecutorEnvKey = key;
-  }
-  return queryExecutor;
-}
+const queryExecutor = createConfiguredQueryExecutor({
+  readSettings: () => application.getConfig("ui.settings"),
+  servers: databaseServers,
+});
+const resolveQueryExecutor = () => queryExecutor.resolve();
 
 application = await createDataAgentApplication({
   dataRoot: dataDir,
@@ -99,7 +78,7 @@ application = await createDataAgentApplication({
   packagedRoot,
   skillRoots,
 });
-application.setHostTesters(createHostTesters({ dbMcp: mysqlMcpProcess }));
+application.setHostTesters(createHostTesters({ databaseServers }));
 resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query executor unavailable:", error.message));
 
 const app = await createRuntimeServer(application, {
