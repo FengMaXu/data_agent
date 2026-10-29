@@ -67,19 +67,42 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
   const pool = options.pool;
   const maxPreviewRows = Math.min(options.maxPreviewRows ?? MAX_PREVIEW_LIMIT, MAX_PREVIEW_LIMIT);
 
+  // An idle pooled session can fail (server restart, idle timeout); without a
+  // listener the pool's error event would end the process.
+  pool.on("error", (error) => console.error("[mcp-pg] idle connection error:", error.message));
+
+  /**
+   * Cancels a statement from its own session outside the pool: a saturated
+   * pool would queue the cancel behind the work it is meant to stop.
+   */
+  const cancelStatement = async (processId: number): Promise<void> => {
+    const canceller = new pg.Client((pool as unknown as { options: pg.ClientConfig }).options);
+    try {
+      await canceller.connect();
+      await canceller.query("SELECT pg_cancel_backend($1)", [processId]);
+    } finally {
+      await canceller.end().catch(() => undefined);
+    }
+  };
+  const cancelled = () => Object.assign(new Error("QUERY_CANCELLED"), { code: "57014" });
+
   /**
    * Runs one statement in a read-only transaction. PostgreSQL enforces the
    * statement's own time limit, and a cancelled MCP call cancels the statement
    * on the server; a closed client alone would leave it running.
    */
   const runBounded = async (text: string, timeoutMs: number | undefined, signal: AbortSignal | undefined) => {
+    if (signal?.aborted) throw cancelled();
     const client = await pool.connect();
     const processId = (client as unknown as { processID?: number }).processID;
-    const cancel = () => { if (processId !== undefined) pool.query("SELECT pg_cancel_backend($1)", [processId]).catch(() => undefined); };
+    let cancelling: Promise<void> | undefined;
+    const cancel = () => { if (processId !== undefined) cancelling = cancelStatement(processId).catch(() => undefined); };
+    signal?.addEventListener("abort", cancel, { once: true });
     try {
+      // The call may have been cancelled while it waited for a connection.
+      if (signal?.aborted) throw cancelled();
       await client.query("BEGIN READ ONLY");
       if (timeoutMs) await client.query(`SET LOCAL statement_timeout = ${Math.max(1, Math.floor(timeoutMs))}`);
-      signal?.addEventListener("abort", cancel, { once: true });
       const result = await client.query({ text, types: calendarTypes });
       await client.query("COMMIT");
       return result;
@@ -88,7 +111,10 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
       throw error;
     } finally {
       signal?.removeEventListener("abort", cancel);
-      client.release();
+      // A cancel can land after the statement ended. The session is discarded,
+      // never reused, so it cannot stop another call's statement.
+      await cancelling;
+      client.release(cancelling ? true : undefined);
     }
   };
   const failure = (error: unknown, trimmed: string, timeoutMs: number | undefined, signal: AbortSignal | undefined) => {
@@ -137,11 +163,12 @@ export async function createPgReferenceServer(options: PgReferenceServerOptions)
     "explain_query",
     "Compile a read-only PostgreSQL query and return its EXPLAIN plan",
     { sql: z.string().min(1) },
-    async ({ sql }) => {
+    async ({ sql }, extra) => {
       const trimmed = sql.trim().replace(/;+\s*$/, "");
       if (FORBIDDEN.test(trimmed)) return { content: [{ type: "text", text: JSON.stringify({ error: { code: "FORBIDDEN_SQL" } }) }] };
       try {
-        const result = await pool.query(`EXPLAIN ${trimmed}`);
+        // EXPLAIN ANALYZE executes the statement; the read-only transaction keeps it from writing.
+        const result = await runBounded(`EXPLAIN ${trimmed}`, undefined, extra.signal);
         const columns = result.fields.map((field) => field.name);
         return { content: [{ type: "text", text: JSON.stringify({ columns, rows: result.rows, truncated: false, contractVersion: DATABASE_MCP_CONTRACT_VERSION }) }] };
       } catch (error) {

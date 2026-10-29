@@ -13,11 +13,20 @@ const servers: DatabaseServers = {
 describe("databaseConnectionFrom", () => {
   it("treats a connection saved without a driver as MySQL", () => {
     expect(databaseConnectionFrom({ host: "db", port: "3307", user: "u", password: "", database: "sales" }))
-      .toEqual({ driver: "mysql", host: "db", port: 3307, user: "u", database: "sales" });
+      .toEqual({ driver: "mysql", host: "db", port: 3307, user: "u", password: "", database: "sales" });
   });
 
   it("refuses an unknown driver instead of connecting it as MySQL", () => {
     expect(() => databaseConnectionFrom({ driver: "oracle" })).toThrow("UNSUPPORTED_DATABASE_DRIVER: oracle");
+  });
+
+  it("refuses a port it cannot use instead of falling back to the default", () => {
+    for (const port of ["abc", 0, 70000, "3306.5"]) expect(() => databaseConnectionFrom({ port })).toThrow("INVALID_DATABASE_PORT");
+    expect(databaseConnectionFrom({ port: "" })).toEqual({ driver: "mysql" });
+  });
+
+  it("keeps an empty password the user saved", () => {
+    expect(databaseConnectionFrom({ driver: "postgres", password: "" })).toEqual({ driver: "postgres", password: "" });
   });
 });
 
@@ -49,6 +58,23 @@ describe("createConfiguredQueryExecutor", () => {
     const second = await configured.resolve();
     expect(second).not.toBe(first);
     expect(second.dialect).toBe("postgres");
+    await configured.close();
+  });
+
+  it("applies concurrent resolves in call order, so a slow read of old settings cannot win", async () => {
+    const reads = [
+      { delayMs: 50, settings: { database: "old" } },
+      { delayMs: 0, settings: { database: "new" } },
+      { delayMs: 0, settings: { database: "new" } },
+    ];
+    const configured = createConfiguredQueryExecutor({
+      readSettings: () => { const read = reads.shift()!; return new Promise((resolve) => setTimeout(() => resolve(read.settings), read.delayMs)); },
+      servers,
+    });
+    const [first, second] = await Promise.all([configured.resolve(), configured.resolve()]);
+    expect(first).not.toBe(second);
+    // The newer settings stay current: resolving them again keeps the same executor.
+    expect(await configured.resolve()).toBe(second);
     await configured.close();
   });
 });

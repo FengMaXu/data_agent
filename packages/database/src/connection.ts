@@ -34,20 +34,23 @@ export function isDatabaseDriver(value: unknown): value is DatabaseDriver {
 /**
  * Reads a connection from saved settings or a test request. A missing driver
  * is MySQL, which every connection was before drivers existed; an unknown one
- * is refused rather than silently connected as MySQL.
+ * is refused rather than silently connected as MySQL. An unusable port is
+ * refused too, so a test never succeeds against the default port instead.
  */
 export function databaseConnectionFrom(settings: unknown): DatabaseConnection {
   const record = settings && typeof settings === "object" ? settings as Record<string, unknown> : {};
   const driver = record.driver ?? "mysql";
   if (!isDatabaseDriver(driver)) throw new Error(`UNSUPPORTED_DATABASE_DRIVER: ${String(driver)}`);
   const text = (value: unknown) => value === undefined || value === null || value === "" ? undefined : String(value);
-  const port = Number(record.port);
+  const port = text(record.port) === undefined ? undefined : Number(record.port);
+  if (port !== undefined && !(Number.isSafeInteger(port) && port >= 1 && port <= 65_535)) throw new Error(`INVALID_DATABASE_PORT: ${String(record.port)}`);
   return {
     driver,
     ...(text(record.host) ? { host: text(record.host)! } : {}),
-    ...(Number.isSafeInteger(port) && port > 0 ? { port } : {}),
+    ...(port !== undefined ? { port } : {}),
     ...(text(record.user) ? { user: text(record.user)! } : {}),
-    ...(text(record.password) ? { password: text(record.password)! } : {}),
+    // An empty password is a value the user saved, not a missing one.
+    ...(typeof record.password === "string" ? { password: record.password } : {}),
     ...(text(record.database) ? { database: text(record.database)! } : {}),
   };
 }
@@ -74,28 +77,40 @@ export type DatabaseQueryExecutor = ReturnType<typeof createMcpQueryExecutor>;
 
 /**
  * One executor for the saved connection. Each resolve rereads the settings and
- * replaces the MCP server process when the connection changed, so a driver or
+ * starts a new MCP server process when the connection changed, so a driver or
  * credential change applies to the next session without a restart.
+ *
+ * A session keeps the executor it resolved for its whole turn. A replaced
+ * executor therefore stays open until close(): closing it under a running
+ * turn would fail its call, and the executor would reconnect on its own with
+ * the old connection, out of reach of close().
  */
 export function createConfiguredQueryExecutor(options: { readonly readSettings: () => Promise<unknown>; readonly servers: DatabaseServers }) {
   let executor: DatabaseQueryExecutor | undefined;
   let executorKey = "";
+  const replaced: DatabaseQueryExecutor[] = [];
+  // Resolves run one at a time, so a slow settings read cannot replace a newer connection.
+  let queue: Promise<unknown> = Promise.resolve();
+  const resolveNow = async (): Promise<DatabaseQueryExecutor> => {
+    const next = databaseExecutorOptions(databaseConnectionFrom(await options.readSettings()), options.servers);
+    const nextKey = JSON.stringify(next);
+    if (executor && executorKey === nextKey) return executor;
+    if (executor) replaced.push(executor);
+    executor = createMcpQueryExecutor(next);
+    executorKey = nextKey;
+    return executor;
+  };
   return {
-    async resolve(): Promise<DatabaseQueryExecutor> {
-      const next = databaseExecutorOptions(databaseConnectionFrom(await options.readSettings()), options.servers);
-      const nextKey = JSON.stringify(next);
-      if (executor && executorKey === nextKey) return executor;
-      const previous = executor;
-      executor = createMcpQueryExecutor(next);
-      executorKey = nextKey;
-      await previous?.close().catch(() => undefined);
-      return executor;
+    resolve(): Promise<DatabaseQueryExecutor> {
+      const resolved = queue.then(resolveNow);
+      queue = resolved.catch(() => undefined);
+      return resolved;
     },
     async close(): Promise<void> {
-      const current = executor;
+      const all = [...replaced.splice(0), ...(executor ? [executor] : [])];
       executor = undefined;
       executorKey = "";
-      await current?.close();
+      await Promise.all(all.map((current) => current.close().catch(() => undefined)));
     },
   };
 }
