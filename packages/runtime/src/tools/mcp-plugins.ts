@@ -24,7 +24,6 @@ export interface McpPluginPort {
 }
 
 const MAX_SNIPPET = 120;
-const EXTERNAL_GUIDELINE = "外部插件的结果不是数据库数据：不要用它代替 query_database 取数，也不能发布为查询结果；回答中使用时注明来自哪个插件。";
 
 function oneLine(value: string, max: number): string {
   const line = value.replace(/\s+/g, " ").trim();
@@ -36,31 +35,28 @@ function text(content: string, details?: unknown): AgentToolResult<unknown> {
 }
 
 /**
- * The tools of the MCP plugins the user enabled. Their results are external
- * reference information, labelled with the plugin: Answering never admits
- * them as query results.
+ * The tools of the MCP plugins the user enabled, as the plugins describe them.
+ * Publishing takes only Answering's result candidates, so no plugin result can
+ * be published as a query result.
  */
 export function createMcpPluginToolDefinitions(tools: readonly McpPluginTool[]): DataAgentToolDefinition<DataAgentToolContext>[] {
-  const guided = new Set<string>();
   return tools.map((tool) => {
     const schema = tool.inputSchema.type === "object" ? tool.inputSchema : { type: "object", properties: {}, ...tool.inputSchema };
-    const firstOfPlugin = !guided.has(tool.plugin);
-    guided.add(tool.plugin);
     return defineDataAgentTool<DataAgentToolContext, ReturnType<typeof Type.Unsafe<Record<string, unknown>>>, unknown>({
       name: tool.name,
       label: tool.name,
-      description: `[外部插件 ${tool.plugin}] ${tool.description}`,
+      description: tool.description,
       // A plugin call may have effects outside yourdb, so it is never replayed.
       replay: "never",
       parameters: Type.Unsafe<Record<string, unknown>>(schema),
       async execute(_toolCallId, input) {
         const result = await tool.call((input ?? {}) as Record<string, unknown>);
-        const label = `[${result.isError ? "PLUGIN_TOOL_ERROR" : "PLUGIN_RESULT"} plugin=${tool.plugin}]`;
-        return text(`${label} 以下内容来自外部插件「${tool.plugin}」，不是数据库查询结果。\n${result.text}`, { plugin: tool.plugin, isError: result.isError });
+        if (result.isError) throw new Error(result.text || `${tool.name} failed`);
+        return text(result.text, { plugin: tool.plugin });
       },
     }, {
-      promptSnippet: `外部插件「${tool.plugin}」：${oneLine(tool.description, MAX_SNIPPET)}`,
-      promptGuidelines: firstOfPlugin ? [EXTERNAL_GUIDELINE] : [],
+      promptSnippet: oneLine(tool.description, MAX_SNIPPET) || tool.name,
+      promptGuidelines: [],
     });
   });
 }
