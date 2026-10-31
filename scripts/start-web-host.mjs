@@ -22,6 +22,7 @@ const { createDataAgentApplication } = await import(toUrl(path.join(root, "packa
 const { createRuntimeServer } = await import(toUrl(path.join(root, "apps/server/dist/index.js")));
 const { createConfiguredQueryExecutor } = await import(toUrl(path.join(root, "packages/database/dist/index.js")));
 const { createHostTesters } = await import(toUrl(path.join(root, "apps/server/dist/host-testers.js")));
+const { createMcpPluginSupervisor } = await import(toUrl(path.join(root, "packages/mcp-plugins/dist/index.js")));
 
 const databaseServers = {
   mysql: { command: process.execPath, args: [path.join(root, "packages", "mcp-mysql", "dist", "cli.js")] },
@@ -72,6 +73,7 @@ application = await createDataAgentApplication({
   skillRoots,
 });
 application.setHostTesters(createHostTesters({ databaseServers }));
+application.setMcpPlugins(createMcpPluginSupervisor({ readConfig: () => application.getConfig("mcp.config"), writeConfig: (config) => application.setConfig("mcp.config", config) }));
 resolveQueryExecutor().catch((error) => console.warn("[data-agent-web] mcp query executor unavailable:", error.message));
 
 const app = await createRuntimeServer(application, {

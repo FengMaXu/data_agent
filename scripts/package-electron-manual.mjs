@@ -115,6 +115,8 @@ for (const name of [
   "@modelcontextprotocol/sdk", "ajv", "ajv-formats", "cross-spawn", "fast-deep-equal",
   "fast-uri", "json-schema-traverse", "json-schema-typed", "path-key", "require-from-string",
   "shebang-command", "shebang-regex", "which", "isexe", "zod", "zod-to-json-schema",
+  // The MCP plugin supervisor reaches remote plugins over Streamable HTTP and SSE.
+  "eventsource", "eventsource-parser", "pkce-challenge",
 ]) {
   cpSync(resolveModule(name), path.join(staging, "node_modules", name), { recursive: true });
 }

@@ -23,6 +23,7 @@ import type { ApplicationAgentEvent } from "./application/host.js";
 import type { ApplicationCommandHost, ApplicationEventFilter, EventReplay } from "./application/protocol-host.js";
 import type { TranscriptMessage } from "./facets/transcript.js";
 import { readBoundedFile } from "./bounded-read.js";
+import type { McpPluginPort } from "./tools/mcp-plugins.js";
 
 export class DataAgentRuntimeError extends Error {
   readonly code: "INVALID_COMMAND" | "UNSUPPORTED_PROTOCOL_VERSION" | "INVALID_CONTEXT" | "SESSION_ACCESS_DENIED" | "SESSION_BUSY" | "CLARIFICATION_SETTLED";
@@ -102,7 +103,8 @@ export class DataAgentRuntime implements ApplicationCommandHost {
   llmTester?: { test(profile: Record<string, unknown>): Promise<{ success: boolean; message: string; details?: unknown }> };
   /** Host callback for capability controllers after config changes. */
   onConfigSaved?: (config: Record<string, unknown>, context: RequestContext) => void | Promise<void>;
-  mcpSupervisor?: { status(): Promise<Array<{ name: string; enabled: boolean; connected: boolean; toolCount: number; hostManaged: boolean }>>; test(name: string): Promise<{ ok: boolean; message: string }>; restart(name: string): Promise<{ ok: boolean }> };
+  /** The host's MCP plugin supervisor; without one, plugin settings are only stored. */
+  mcpSupervisor?: Pick<McpPluginPort, "view" | "save" | "status" | "test" | "restart">;
   /** Host-composed channel management (ADR-0011); absent where no channels are enabled. */
   channelControl?: { list(): import("@data-agent/contracts").ChannelStatus[]; provision(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; disconnect(channelId: string): Promise<import("@data-agent/contracts").ChannelStatus[]>; createLinkCode(userId: string): Promise<{ code: string; expiresAt: number }>; access(): Promise<import("@data-agent/contracts").ChannelAccess>; decideAccess(requestId: string, decision: "allow" | "deny", decidedBy: string): Promise<unknown>; revokeAccess(actor: import("@data-agent/contracts").ChannelActor): Promise<void> };
   private readonly clarifications: ClarificationManager;
@@ -213,7 +215,18 @@ export class DataAgentRuntime implements ApplicationCommandHost {
     }
 
     if (command.command.type === "mcp.config.get" || command.command.type === "mcp.config.save") {
-      if (command.command.type === "mcp.config.save") await this.metadata!.setConfig("mcp.config", (command.command as { config: unknown }).config);
+      const saved = command.command.type === "mcp.config.save" ? (command.command as { config: unknown }).config : undefined;
+      if (this.mcpSupervisor) {
+        // The supervisor validates the save and never returns secrets.
+        const config = command.command.type === "mcp.config.save"
+          ? await this.mcpSupervisor.save(saved).catch((error: unknown) => {
+            const message = error instanceof Error ? error.message : String(error);
+            throw message.startsWith("MCP_CONFIG_INVALID") ? new DataAgentRuntimeError("INVALID_COMMAND", message) : error;
+          })
+          : await this.mcpSupervisor.view();
+        return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.config.result", config } };
+      }
+      if (command.command.type === "mcp.config.save") await this.metadata!.setConfig("mcp.config", saved);
       const config = (await this.metadata!.getConfig("mcp.config")) ?? null;
       return { protocolVersion: ProtocolVersion, requestId: command.requestId, response: { type: "mcp.config.result", config } };
     }

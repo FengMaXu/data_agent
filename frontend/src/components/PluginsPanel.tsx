@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, RefreshCw, Plus, Loader2 } from './icons/Typicons';
 import {
     type MCPConfig,
+    type MCPPreset,
     type MCPServerConfig,
     type MCPServerRequest,
     type MCPServerStatus,
@@ -71,11 +72,15 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
             setIsLoadingMCP(true);
         }
         try {
-            const configRes = await getMcpConfigViaRuntime();
-            const serversRes = { servers: [] as never[] };
+            const configRes = await getMcpConfigViaRuntime() as unknown as MCPConfig;
             setMcpError(null);
-            setMcpConfig(configRes as never);
-            setMcpServers(serversRes.servers || []);
+            setMcpConfig(configRes);
+            setMcpServers(configRes.servers);
+            // Reading statuses connects the enabled plugins, which can take a while; show them when they arrive.
+            void getMcpServersViaRuntime().then((statuses) => setMcpServers(configRes.servers.map((server) => {
+                const status = statuses.find((item) => item.name === server.name);
+                return status ? { ...server, connected: status.connected, tool_count: status.toolCount, host_managed: status.hostManaged } : server;
+            }))).catch((err) => console.error('Failed to load MCP status:', err));
             setSelectedMcpServer(prev => {
                 if ((configRes.servers || []).length === 0) return null;
                 if (prev === null || prev >= configRes.servers.length) return 0;
@@ -129,6 +134,14 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
     };
 
     const buildMcpServerPayload = (server: MCPServerConfig): MCPServerRequest => {
+        if (server.preset) {
+            // A secret left blank keeps the saved one.
+            const field_values: Record<string, string | string[]> = { ...(server.field_values || {}) };
+            for (const [key, value] of Object.entries(server.field_inputs || {})) {
+                if (value.trim()) field_values[key] = value;
+            }
+            return { name: server.name, enabled: server.enabled, transport: server.transport, field_values } as MCPServerRequest;
+        }
         const payload: MCPServerRequest = {
             name: server.name,
             transport: server.transport,
@@ -171,25 +184,8 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
         setPendingToggleServer(serverName);
         setMcpConfig(nextConfig);
         try {
-            await saveMcpConfigViaRuntime({ servers: nextConfig.servers.map((server) => ({ ...server, enabled: server.name === serverName ? enabled : server.enabled })) });
-            const result = { server: mcpConfig.servers.find((item) => item.name === serverName) ?? { name: serverName, enabled } as never };
-            setMcpConfig(prev => ({
-                ...prev,
-                servers: prev.servers.map(server =>
-                    server.name === serverName ? { ...server, ...result.server, enabled: result.server.enabled } : server
-                ),
-            }));
-            setMcpServers(prev => {
-                let found = false;
-                const next = prev.map(server => {
-                    if (server.name !== serverName) {
-                        return server;
-                    }
-                    found = true;
-                    return result.server;
-                });
-                return found ? next : [...next, result.server];
-            });
+            await persistMcpConfig(nextConfig);
+            await loadMCPData({ silent: true });
         } catch (e: unknown) {
             console.error('Failed to update MCP status:', e);
             setMcpError(e instanceof SyntaxError ? t('plugins.invalidJson') : t('plugins.updateFailed'));
@@ -255,6 +251,76 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
         } finally {
             setIsTestingMCP(false);
         }
+    };
+
+    const updatePresetValue = (index: number, key: string, value: string | string[], secret: boolean) => {
+        setMcpConfig(prev => ({
+            ...prev,
+            servers: prev.servers.map((server, i) => i !== index ? server : secret
+                ? { ...server, field_inputs: { ...(server.field_inputs || {}), [key]: value as string } }
+                : { ...server, field_values: { ...(server.field_values || {}), [key]: value } }),
+        }));
+    };
+
+    const presetLabelStyle: React.CSSProperties = { display: 'block', fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px', color: '#374151' };
+    const presetHelpStyle: React.CSSProperties = { fontSize: '0.8rem', color: '#6b7280', marginTop: '6px' };
+
+    const renderPresetFields = (index: number, preset: MCPPreset) => {
+        const server = mcpConfig.servers[index];
+        return (
+            <>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#4b5563' }}>{preset.description}</p>
+                {preset.fields.map((field) => {
+                    const id = `mcp-preset-${preset.id}-${field.key}`;
+                    const required = field.required ? <span aria-hidden="true" style={{ color: '#b91c1c' }}> *</span> : null;
+                    if (field.kind === 'choices') {
+                        const saved = server.field_values?.[field.key];
+                        const chosen = Array.isArray(saved) ? saved : (field.defaultValue || []);
+                        return (
+                            <fieldset key={field.key} style={{ border: 'none', margin: 0, padding: 0 }}>
+                                <legend style={presetLabelStyle}>{field.label}{required}</legend>
+                                <div style={{ display: 'grid', gap: '6px' }}>
+                                    {(field.choices || []).map((choice) => (
+                                        <label key={choice.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#374151', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={chosen.includes(choice.value)}
+                                                onChange={(e) => updatePresetValue(index, field.key, e.target.checked ? [...chosen, choice.value] : chosen.filter((value) => value !== choice.value), false)}
+                                                style={{ width: '16px', height: '16px' }}
+                                            />
+                                            {choice.label}
+                                        </label>
+                                    ))}
+                                </div>
+                                {field.help && <div style={presetHelpStyle}>{field.help}</div>}
+                            </fieldset>
+                        );
+                    }
+                    const secret = field.kind === 'secret';
+                    const value = secret ? (server.field_inputs?.[field.key] ?? '') : String(server.field_values?.[field.key] ?? '');
+                    return (
+                        <div key={field.key}>
+                            <label htmlFor={id} style={{ ...presetLabelStyle, display: 'flex', justifyContent: 'space-between' }}>
+                                <span>{field.label}{required}</span>
+                                {secret && field.configured && <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 400 }}>{t('plugins.secretConfigured')}</span>}
+                            </label>
+                            <div className="plugins-input-group">
+                                <input
+                                    id={id}
+                                    type={secret ? 'password' : 'text'}
+                                    autoComplete="off"
+                                    value={value}
+                                    onChange={(e) => updatePresetValue(index, field.key, e.target.value, secret)}
+                                    placeholder={secret && field.configured ? t('plugins.secretKeep') : (field.placeholder || '')}
+                                    style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none' }}
+                                />
+                            </div>
+                            {field.help && <div style={presetHelpStyle}>{field.help}</div>}
+                        </div>
+                    );
+                })}
+            </>
+        );
     };
 
     const loadSkills = async () => {
@@ -379,7 +445,8 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
                                                 <div>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                                                        <span style={{ fontWeight: 600, color: '#111827' }}>{server.name}</span>
+                                                        <span style={{ fontWeight: 600, color: '#111827' }}>{server.preset?.title ?? server.name}</span>
+                                                        {server.preset && <span style={{ fontSize: '0.75rem', color: '#4338ca', background: '#eef2ff', padding: '2px 8px', borderRadius: '999px' }}>{t('plugins.preset')}</span>}
                                                         <span style={{ fontSize: '0.75rem', color: statusMeta.fg, background: statusMeta.bg, padding: '2px 8px', borderRadius: '999px' }}>
                                                             {statusMeta.label}
                                                         </span>
@@ -469,7 +536,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            <div style={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}>{server.name || t('plugins.unnamedSrv')}</div>
+                                            <div style={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}>{server.preset?.title ?? (server.name || t('plugins.unnamedSrv'))}</div>
                                             <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{server.transport} · {server.server_type || 'service'}</div>
                                         </button>
                                     ))}
@@ -501,6 +568,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                             </div>
 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                {mcpConfig.servers[selectedMcpServer].preset ? renderPresetFields(selectedMcpServer, mcpConfig.servers[selectedMcpServer].preset!) : (<>
                                                 {/* Name & Transport */}
                                                 <div className="plugins-form-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                                                     <div>
@@ -603,19 +671,20 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                                         <input id="mcp-server-description" value={mcpConfig.servers[selectedMcpServer].description || ''} onChange={e => updateMcpServerField(selectedMcpServer, 'description', e.target.value)} placeholder="用途说明" style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none' }} />
                                                     </div>
                                                 </div>
+                                                </>)}
 
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
                                                     <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#374151', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500 }}>
                                                         <input type="checkbox" checked={mcpConfig.servers[selectedMcpServer].enabled} onChange={e => updateMcpServerField(selectedMcpServer, 'enabled', e.target.checked)} style={{ width: '16px', height: '16px' }} />
                                                         {t('plugins.enableServer')}
                                                     </label>
-                                                    <button
+                                                    {!mcpConfig.servers[selectedMcpServer].preset && <button
                                                         type="button"
                                                         onClick={() => removeMcpServer(selectedMcpServer)}
                                                         style={{ background: '#fff0f2', border: '1px solid #ffccd5', color: '#be123c', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500 }}
                                                     >
                                                         {t('plugins.deleteConfig')}
-                                                    </button>
+                                                    </button>}
                                                 </div>
                                             </div>
 

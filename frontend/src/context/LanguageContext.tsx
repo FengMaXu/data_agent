@@ -331,6 +331,9 @@ const translations: Translations = {
         'plugins.testFailed': 'MCP test failed. Check the server configuration and try again.',
         'plugins.loadSkillsFailed': 'Unable to load Skills. Try again.',
         'plugins.notConfigured': 'Not configured',
+        'plugins.preset': 'Preset',
+        'plugins.secretConfigured': 'Configured',
+        'plugins.secretKeep': 'Configured; leave blank to keep it',
         'plugins.connecting': 'Connecting',
         'plugins.error': 'Error',
 
@@ -773,6 +776,9 @@ const translations: Translations = {
         'plugins.testFailed': 'MCP 测试失败，请检查服务配置后重试。',
         'plugins.loadSkillsFailed': '无法加载 Skills，请重试。',
         'plugins.notConfigured': '待配置',
+        'plugins.preset': '预置',
+        'plugins.secretConfigured': '已配置',
+        'plugins.secretKeep': '已配置，留空则保持不变',
         'plugins.connecting': '连接中',
         'plugins.error': '异常',
 
