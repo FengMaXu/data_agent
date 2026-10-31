@@ -121,7 +121,12 @@ export function createMcpPluginSupervisor(options: McpPluginSupervisorOptions) {
       connection.error = undefined;
       connection.failedAt = undefined;
       // A lost process or stream is connected again on the next reconcile.
-      client.onclose = () => { connection.client = undefined; if (!connection.closed) connection.error = "连接已断开"; };
+      // Only this client's own loss counts: a late close of a replaced client must not drop its successor.
+      client.onclose = () => {
+        if (connection.client !== client) return;
+        connection.client = undefined;
+        if (!connection.closed) connection.error = "连接已断开";
+      };
       connection.tools = listed.tools.map((tool) => ({
         plugin: connection.plugin,
         name: `${connection.spec.id}__${tool.name}`.replace(TOOL_NAME, "_").slice(0, MAX_TOOL_NAME),
