@@ -263,6 +263,11 @@ export interface MCPServerConfig {
     server_type?: string;
     tags?: string[];
     preset?: MCPPreset;
+    /** Run and configured by yourdb elsewhere, such as the database; listed but not edited here. */
+    host_managed?: boolean;
+    default_enabled?: boolean;
+    /** Where a host-managed server is configured. */
+    settings_hint?: string;
     field_values?: Record<string, string | string[]>;
     /** Secrets typed on this page and not yet saved. */
     field_inputs?: Record<string, string>;

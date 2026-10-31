@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { configView, connectionsOf, mergeSavedConfig } from "./config.js";
-import { DEFAULT_MCP_PRESETS, KTX_PRESET, QCC_PRESET } from "./presets.js";
+import { DEFAULT_MCP_PRESETS, QCC_PRESET } from "./presets.js";
 
 describe("MCP plugin configuration", () => {
   it("connects 企查查 to one Streamable HTTP server per chosen group with the Bearer key", () => {
@@ -10,13 +10,6 @@ describe("MCP plugin configuration", () => {
     ]);
     // Without a choice, the four everyday groups.
     expect(QCC_PRESET.connections({ apiKey: "k" }).map((spec) => spec.id)).toEqual(["qcc_company", "qcc_risk", "qcc_operation", "qcc_ipr"]);
-  });
-
-  it("starts KTX over stdio for the project directory", () => {
-    expect(KTX_PRESET.connections({ projectDir: "D:\\proj", env: "{\"KTX_X\":\"1\"}" })).toEqual([
-      { id: "ktx", transport: "stdio", command: "npx", args: ["-y", "@kaelio/ktx", "--project-dir", "D:\\proj", "mcp", "stdio"], env: { KTX_X: "1" } },
-    ]);
-    expect(() => connectionsOf({ name: "ktx", preset: "ktx", enabled: true, field_values: {} }, DEFAULT_MCP_PRESETS)).toThrow("MCP_PLUGIN_INCOMPLETE: 请先填写 KTX 项目目录");
   });
 
   it("keeps stored headers and env a save leaves out, and masks them in the view", () => {

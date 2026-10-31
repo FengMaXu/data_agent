@@ -118,6 +118,7 @@ describe("PostgreSQL through its contract MCP server", () => {
     const { settings } = await startDatabase();
     const configured = createConfiguredQueryExecutor({ readSettings: async () => settings, servers: pgServers });
     try {
+      await expect(configured.check()).resolves.toBeUndefined();
       const executor = await configured.resolve();
       expect(await executor.run("SELECT id, amount FROM orders ORDER BY id", 10, { kind: "result" })).toEqual({ columns: ["id", "amount"], rows: [[1, "10"], [2, "20"]], truncated: false });
       expect(await executor.getSchema()).toMatchObject({ connectionId: "postgres:postgres", dialect: "postgres", tables: [{ name: "orders", columns: ["id", "amount"], primaryKey: ["id"] }] });

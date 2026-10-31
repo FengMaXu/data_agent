@@ -72,29 +72,34 @@ export const QCC_PRESET: McpPreset = {
   },
 };
 
-/** KTX (`ktx mcp stdio`, ktx/packages/cli): the local semantic layer and wiki of an existing KTX project. */
-export const KTX_PRESET: McpPreset = {
-  id: "ktx",
-  title: "KTX",
-  description: "接入已有 KTX 项目的语义层、指标与知识库。需要先在本机用 ktx setup 建好项目并完成导入，且本机已安装 Node.js。",
-  fields: [
-    { key: "projectDir", label: "KTX 项目目录", kind: "text", required: true, placeholder: "D:\\ktx-project", help: "包含 ktx.yaml 的目录。" },
-    { key: "env", label: "环境变量（JSON，可选）", kind: "secret", required: false, placeholder: "{\"KTX_...\": \"...\"}", help: "KTX 需要的模型密钥等，只填写 KTX_ 开头或 KTX 文档要求的变量。" },
-  ],
-  connections(values) {
-    const raw = text(values, "env");
-    const env = raw ? parseStringMap(raw, "KTX 环境变量") : {};
-    return [{
-      id: "ktx",
-      transport: "stdio" as const,
-      command: "npx",
-      args: ["-y", "@kaelio/ktx", "--project-dir", text(values, "projectDir"), "mcp", "stdio"],
-      env,
-    }];
-  },
-};
+export const DEFAULT_MCP_PRESETS: readonly McpPreset[] = [QCC_PRESET];
 
-export const DEFAULT_MCP_PRESETS: readonly McpPreset[] = [QCC_PRESET, KTX_PRESET];
+/**
+ * A server the host runs and configures elsewhere, listed with the plugins so
+ * the user sees it and its connection; the plugin settings cannot change it.
+ */
+export interface McpHostServer {
+  readonly name: string;
+  readonly title: string;
+  readonly description: string;
+  /** Where the user configures it. */
+  readonly settingsHint: string;
+  readonly toolCount: number;
+  /** Resolves when the server answers; rejects with the reason it does not. */
+  check(): Promise<void>;
+}
+
+/** The database contract MCP server (execute_query_preview, execute_query_export, explain_query, get_schema). */
+export function databaseHostServer(check: () => Promise<void>): McpHostServer {
+  return {
+    name: "database",
+    title: "数据库",
+    description: "连接业务数据库（MySQL、PostgreSQL），供数据查询使用。",
+    settingsHint: "在「设置 → 数据库」中配置",
+    toolCount: 4,
+    check,
+  };
+}
 
 /** A JSON object of strings, as env and headers are written in the settings page. */
 export function parseStringMap(raw: string, label: string): Record<string, string> {

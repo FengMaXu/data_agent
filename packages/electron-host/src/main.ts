@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createConfiguredQueryExecutor, testDatabaseConnection, type DatabaseServers } from "@data-agent/database";
-import { createMcpPluginSupervisor } from "@data-agent/mcp-plugins";
+import { createMcpPluginSupervisor, databaseHostServer } from "@data-agent/mcp-plugins";
 
 /**
  * Production Electron main entry for the TypeScript stack.
@@ -459,7 +459,11 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
   application.setHostTesters(createElectronHostTesters(databaseServers));
   const queryExecutor = createConfiguredQueryExecutor({ readSettings: () => application.getConfig("ui.settings"), servers: databaseServers });
   application.setQueryExecutor(() => queryExecutor.resolve());
-  const mcpPlugins = createMcpPluginSupervisor({ readConfig: () => application.getConfig("mcp.config"), writeConfig: (config) => application.setConfig("mcp.config", config) });
+  const mcpPlugins = createMcpPluginSupervisor({
+    readConfig: () => application.getConfig("mcp.config"),
+    writeConfig: (config) => application.setConfig("mcp.config", config),
+    hostServers: [databaseHostServer(() => queryExecutor.check())],
+  });
   application.setMcpPlugins(mcpPlugins);
   const unregisterDesktopCapabilities = registerDesktopCapabilities(deps.ipcMain as DesktopIpcLike, {
     userDataDir: paths.userDataDir,

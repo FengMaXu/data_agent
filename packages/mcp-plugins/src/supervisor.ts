@@ -4,7 +4,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { configView, connectionsOf, mergeSavedConfig, readStoredConfig, withPresets, type StoredMcpConfig } from "./config.js";
-import { DEFAULT_MCP_PRESETS, type McpConnectionSpec, type McpPreset } from "./presets.js";
+import { DEFAULT_MCP_PRESETS, type McpConnectionSpec, type McpHostServer, type McpPreset } from "./presets.js";
 
 /** One tool of a connected plugin, under a name unique across plugins. */
 export interface McpPluginTool {
@@ -28,6 +28,8 @@ export interface McpPluginSupervisorOptions {
   readonly readConfig: () => Promise<unknown>;
   readonly writeConfig: (config: StoredMcpConfig) => Promise<void>;
   readonly presets?: readonly McpPreset[];
+  /** Servers the host runs, such as the database; always listed first and always on. */
+  readonly hostServers?: readonly McpHostServer[];
   readonly connectTimeoutMs?: number;
   readonly callTimeoutMs?: number;
   /** How long a failed connection waits before an ordinary reconcile tries it again; test and restart retry at once. */
@@ -93,6 +95,7 @@ export function createMcpPluginSupervisor(options: McpPluginSupervisorOptions) {
   const maxResultChars = options.maxResultChars ?? 20_000;
   const retryAfterMs = options.retryAfterMs ?? 60_000;
   const createTransport = options.createTransport ?? defaultTransport;
+  const hostServers = options.hostServers ?? [];
   const connections = new Map<string, Connection>();
   const configErrors = new Map<string, string>();
   let queue: Promise<unknown> = Promise.resolve();
@@ -179,22 +182,57 @@ export function createMcpPluginSupervisor(options: McpPluginSupervisorOptions) {
     return config;
   });
 
+  const hostView = (server: McpHostServer) => ({
+    name: server.name,
+    enabled: true,
+    host_managed: true,
+    default_enabled: true,
+    transport: "stdio",
+    description: server.description,
+    server_type: "preset",
+    settings_hint: server.settingsHint,
+    preset: { id: server.name, title: server.title, description: server.description, fields: [] },
+  });
+
+  const checkHost = async (server: McpHostServer): Promise<{ ok: boolean; message: string }> => {
+    try {
+      await withTimeout(server.check(), connectTimeoutMs, "连接");
+      return { ok: true, message: `已连接，共 ${server.toolCount} 个工具` };
+    } catch (error) {
+      return { ok: false, message: message(error) };
+    }
+  };
+
+  const withHostServers = (view: { servers: unknown[] }) => ({ servers: [...hostServers.map(hostView), ...view.servers] });
+
   const pluginConnections = (name: string) => [...connections.values()].filter((connection) => connection.plugin === name);
 
   return {
     /** The settings page's view: presets included, secrets masked. */
     async view(): Promise<unknown> {
-      return configView(readStoredConfig(await options.readConfig()), presets);
+      return withHostServers(configView(readStoredConfig(await options.readConfig()), presets));
     },
     async save(incoming: unknown): Promise<unknown> {
+      const servers = (incoming as { servers?: unknown } | undefined)?.servers;
+      const reserved = Array.isArray(servers)
+        ? servers.find((server) => hostServers.some((host) => host.name === (server as { name?: unknown } | undefined)?.name)) as { name: string } | undefined
+        : undefined;
+      if (reserved) throw new Error(`MCP_CONFIG_INVALID: 名称 "${reserved.name}" 已被预装插件使用`);
       const merged = mergeSavedConfig(readStoredConfig(await options.readConfig()), incoming, presets);
       await options.writeConfig(merged);
       void reconcile().catch(() => undefined);
-      return configView(merged, presets);
+      return withHostServers(configView(merged, presets));
     },
     async status(): Promise<McpPluginStatus[]> {
-      const config = await reconcile();
-      return withPresets(config, presets).map((server) => {
+      const [config, hosts] = await Promise.all([reconcile(), Promise.all(hostServers.map(checkHost))]);
+      const hostStatuses = hostServers.map((server, index) => ({
+        name: server.name,
+        enabled: true,
+        connected: hosts[index]!.ok,
+        toolCount: hosts[index]!.ok ? server.toolCount : 0,
+        hostManaged: true,
+      }));
+      return [...hostStatuses, ...withPresets(config, presets).map((server) => {
         const owned = pluginConnections(server.name);
         return {
           name: server.name,
@@ -203,10 +241,12 @@ export function createMcpPluginSupervisor(options: McpPluginSupervisorOptions) {
           toolCount: owned.reduce((sum, connection) => sum + connection.tools.length, 0),
           hostManaged: false,
         };
-      });
+      })];
     },
     /** Connects the plugin again and says what happened. */
     async test(name: string): Promise<{ ok: boolean; message: string }> {
+      const host = hostServers.find((server) => server.name === name);
+      if (host) return checkHost(host);
       const config = await reconcile(name, true);
       const server = config.servers.find((item) => item.name === name);
       if (!server?.enabled) return { ok: false, message: "插件未启用，请先启用后再测试" };
@@ -218,6 +258,8 @@ export function createMcpPluginSupervisor(options: McpPluginSupervisorOptions) {
       return { ok: true, message: `已连接，共 ${owned.reduce((sum, connection) => sum + connection.tools.length, 0)} 个工具` };
     },
     async restart(name: string): Promise<{ ok: boolean }> {
+      const host = hostServers.find((server) => server.name === name);
+      if (host) return { ok: (await checkHost(host)).ok };
       await reconcile(name, true);
       const owned = pluginConnections(name);
       return { ok: owned.length > 0 && owned.every((connection) => Boolean(connection.client)) };

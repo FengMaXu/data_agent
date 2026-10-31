@@ -30,15 +30,40 @@ const qcc = {
     },
     field_values: {},
 };
+const database = {
+    name: 'database',
+    enabled: true,
+    host_managed: true,
+    default_enabled: true,
+    transport: 'stdio',
+    description: '连接业务数据库',
+    server_type: 'preset',
+    settings_hint: '在「设置 → 数据库」中配置',
+    preset: { id: 'database', title: '数据库', description: '连接业务数据库', fields: [] },
+};
 const custom = { name: 'mine', enabled: true, transport: 'http', url: 'https://x', headers: { configured: true, count: 1 }, env: { configured: false, count: 0 }, args: [] };
 
 describe('PluginsPanel MCP presets', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        api.getMcpConfigViaRuntime.mockResolvedValue({ servers: [qcc, custom] });
-        api.getMcpServersViaRuntime.mockResolvedValue([{ name: 'mine', enabled: true, connected: true, toolCount: 2, hostManaged: false }]);
+        api.getMcpConfigViaRuntime.mockResolvedValue({ servers: [database, qcc, custom] });
+        api.getMcpServersViaRuntime.mockResolvedValue([
+            { name: 'database', enabled: true, connected: true, toolCount: 4, hostManaged: true },
+            { name: 'mine', enabled: true, connected: true, toolCount: 2, hostManaged: false },
+        ]);
         api.saveMcpConfigViaRuntime.mockResolvedValue(undefined);
         api.listSkillsViaRuntime.mockResolvedValue([]);
+    });
+
+    it('lists the database as pre-installed and on, with its status and where to configure it', async () => {
+        render(<PluginsPanel tab="MCP" />);
+        expect(await screen.findByText('数据库')).toBeInTheDocument();
+        expect(screen.getByText('默认启用')).toBeInTheDocument();
+        expect(screen.getByText('在「设置 → 数据库」中配置')).toBeInTheDocument();
+        await waitFor(() => expect(screen.getAllByText('已连接').length).toBeGreaterThan(0));
+        fireEvent.click(screen.getAllByRole('tab')[1]!);
+        // Not editable on this page.
+        expect(screen.queryByRole('button', { name: '数据库' })).toBeNull();
     });
 
     it('lists presets by title and enables one without sending masked secrets back', async () => {
@@ -49,6 +74,8 @@ describe('PluginsPanel MCP presets', () => {
         fireEvent.click(enable);
         await waitFor(() => expect(api.saveMcpConfigViaRuntime).toHaveBeenCalled());
         const saved = api.saveMcpConfigViaRuntime.mock.calls[0]![0] as { servers: Array<Record<string, unknown>> };
+        // The database is never part of a plugin save.
+        expect(saved.servers.map((server) => server.name)).toEqual(['qcc', 'mine']);
         expect(saved.servers[0]).toEqual({ name: 'qcc', enabled: true, transport: 'streamable-http', field_values: {} });
         // The custom plugin keeps its stored headers: the page sends none.
         expect(saved.servers[1]).not.toHaveProperty('headers');

@@ -72,12 +72,14 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
             setIsLoadingMCP(true);
         }
         try {
-            const configRes = await getMcpConfigViaRuntime() as unknown as MCPConfig;
+            const listed = (await getMcpConfigViaRuntime() as unknown as MCPConfig).servers;
+            // Host-managed servers are listed with their status but configured elsewhere, so they are not editable here.
+            const configRes: MCPConfig = { servers: listed.filter((server) => !server.host_managed) };
             setMcpError(null);
             setMcpConfig(configRes);
-            setMcpServers(configRes.servers);
+            setMcpServers(listed);
             // Reading statuses connects the enabled plugins, which can take a while; show them when they arrive.
-            void getMcpServersViaRuntime().then((statuses) => setMcpServers(configRes.servers.map((server) => {
+            void getMcpServersViaRuntime().then((statuses) => setMcpServers(listed.map((server) => {
                 const status = statuses.find((item) => item.name === server.name);
                 return status ? { ...server, connected: status.connected, tool_count: status.toolCount, host_managed: status.hostManaged } : server;
             }))).catch((err) => console.error('Failed to load MCP status:', err));
@@ -447,6 +449,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                                                         <span style={{ fontWeight: 600, color: '#111827' }}>{server.preset?.title ?? server.name}</span>
                                                         {server.preset && <span style={{ fontSize: '0.75rem', color: '#4338ca', background: '#eef2ff', padding: '2px 8px', borderRadius: '999px' }}>{t('plugins.preset')}</span>}
+                                                        {server.default_enabled && <span style={{ fontSize: '0.75rem', color: '#047857', background: '#ecfdf5', padding: '2px 8px', borderRadius: '999px' }}>{t('plugins.defaultEnabled')}</span>}
                                                         <span style={{ fontSize: '0.75rem', color: statusMeta.fg, background: statusMeta.bg, padding: '2px 8px', borderRadius: '999px' }}>
                                                             {statusMeta.label}
                                                         </span>
@@ -459,7 +462,7 @@ const PluginsPanel: React.FC<PluginsPanelProps> = ({ tab }) => {
                                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                     {hostManaged ? (
                                                         <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                                                            {t('plugins.hostManaged')}
+                                                            {server.settings_hint || t('plugins.hostManaged')}
                                                         </span>
                                                     ) : (
                                                         <>

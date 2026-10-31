@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpPluginSupervisor, type McpPluginSupervisor } from "./supervisor.js";
 import type { StoredMcpConfig } from "./config.js";
-import type { McpPreset } from "./presets.js";
+import { databaseHostServer, type McpHostServer, type McpPreset } from "./presets.js";
 // @ts-expect-error -- a plain ESM fixture without types
 import { echoServer } from "../test-fixtures/echo-server.mjs";
 
@@ -19,12 +19,13 @@ afterEach(async () => {
   for (const server of servers.splice(0)) await new Promise((resolve) => server.close(resolve));
 });
 
-function supervise(initial: unknown, presets: readonly McpPreset[]) {
+function supervise(initial: unknown, presets: readonly McpPreset[], hostServers: readonly McpHostServer[] = []) {
   let stored: unknown = initial;
   const supervisor = createMcpPluginSupervisor({
     readConfig: async () => stored,
     writeConfig: async (config: StoredMcpConfig) => { stored = config; },
     presets,
+    hostServers,
     connectTimeoutMs: 10_000,
   });
   supervisors.push(supervisor);
@@ -46,6 +47,19 @@ async function httpEndpoint(token = "secret"): Promise<string> {
 }
 
 describe("MCP plugin supervisor", () => {
+  it("lists the database first as pre-installed and on, with its connection state, and keeps it out of plugin saves", async () => {
+    let reachable = true;
+    const database = databaseHostServer(async () => { if (!reachable) throw new Error("DATABASE_UNAVAILABLE: connect ECONNREFUSED"); });
+    const { supervisor } = supervise(undefined, [], [database]);
+    expect(((await supervisor.view()) as { servers: unknown[] }).servers[0]).toMatchObject({ name: "database", enabled: true, host_managed: true, default_enabled: true, settings_hint: "在「设置 → 数据库」中配置" });
+    expect(await supervisor.status()).toEqual([{ name: "database", enabled: true, connected: true, toolCount: 4, hostManaged: true }]);
+    expect(await supervisor.test("database")).toEqual({ ok: true, message: "已连接，共 4 个工具" });
+    reachable = false;
+    expect(await supervisor.status()).toEqual([{ name: "database", enabled: true, connected: false, toolCount: 0, hostManaged: true }]);
+    expect(await supervisor.test("database")).toEqual({ ok: false, message: "DATABASE_UNAVAILABLE: connect ECONNREFUSED" });
+    await expect(supervisor.save({ servers: [{ name: "database", enabled: false }] })).rejects.toThrow("已被预装插件使用");
+  });
+
   it("serves the tools of an enabled stdio plugin under prefixed names", async () => {
     const { supervisor } = supervise({ servers: [stdio({ env: { PLUGIN_VALUE: "from-env" } })] }, []);
     const tools = await supervisor.tools();
