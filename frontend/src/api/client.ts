@@ -224,6 +224,27 @@ export interface MCPMappingSummary {
     safe_keys?: string[];
 }
 
+export interface MCPPresetField {
+    key: string;
+    label: string;
+    kind: 'text' | 'secret' | 'choices';
+    required: boolean;
+    placeholder?: string;
+    help?: string;
+    choices?: { value: string; label: string }[];
+    defaultValue?: string[];
+    /** Whether a value is saved; secret values themselves are never sent to the page. */
+    configured?: boolean;
+}
+
+/** A plugin yourdb ships ready to configure; the user fills in its fields. */
+export interface MCPPreset {
+    id: string;
+    title: string;
+    description: string;
+    fields: MCPPresetField[];
+}
+
 export interface MCPServerConfig {
     name: string;
     transport: 'stdio' | 'http' | 'sse' | 'streamable-http';
@@ -241,6 +262,15 @@ export interface MCPServerConfig {
     tool_prefix?: string;
     server_type?: string;
     tags?: string[];
+    preset?: MCPPreset;
+    /** Run and configured by yourdb elsewhere, such as the database; listed but not edited here. */
+    host_managed?: boolean;
+    default_enabled?: boolean;
+    /** Where a host-managed server is configured. */
+    settings_hint?: string;
+    field_values?: Record<string, string | string[]>;
+    /** Secrets typed on this page and not yet saved. */
+    field_inputs?: Record<string, string>;
 }
 
 export interface MCPConfig {

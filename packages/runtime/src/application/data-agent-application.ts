@@ -19,6 +19,7 @@ import {
 } from "./host.js";
 import type { ApplicationAuthService, ApplicationCommandHost, ApplicationEventFilter, EventReplay } from "./protocol-host.js";
 import { JevHypothesisChoiceAdvisor } from "../adapters/jev-hypothesis-choice-advisor.js";
+import type { McpPluginPort } from "../tools/mcp-plugins.js";
 
 export interface DataAgentApplicationOptions {
   readonly dataRoot: string;
@@ -66,6 +67,7 @@ const CHANNEL_CONFIG_KEY = "channels";
 
 export class DataAgentApplication implements ApplicationCommandHost {
   private queryExecutorPort: DataAgentApplicationOptions["queryExecutor"];
+  private mcpPlugins: McpPluginPort | undefined;
   private closed = false;
   private channels: { readonly hub: ChannelHub; readonly registry: ChannelRegistry } | undefined;
 
@@ -122,6 +124,7 @@ export class DataAgentApplication implements ApplicationCommandHost {
         if (!port) throw new Error("QUERY_EXECUTOR_NOT_CONFIGURED");
         return typeof port === "function" ? port() : port;
       },
+      mcpPluginTools: async () => application.mcpPlugins ? application.mcpPlugins.tools() : [],
       resultRoot: path.join(dataRoot, "results"),
       // doc/business.md is a canonical, model-unwritable document; its id cannot be reused by drafts.
       answeringEvidenceDocuments: { "business-definitions": "reviewed_definition" },
@@ -240,6 +243,11 @@ export class DataAgentApplication implements ApplicationCommandHost {
         return resolved.run(sql, rowLimit, runOptions);
       },
     };
+  }
+  /** The host's MCP plugin supervisor: it serves the plugin settings and the tools new sessions get. */
+  setMcpPlugins(plugins: McpPluginPort): void {
+    this.mcpPlugins = plugins;
+    this.runtime.mcpSupervisor = plugins;
   }
   setHostTesters(ports: HostTestPorts): void {
     if (ports.dbTester) this.runtime.dbTester = ports.dbTester;

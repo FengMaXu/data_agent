@@ -100,11 +100,16 @@ export function createConfiguredQueryExecutor(options: { readonly readSettings: 
     executorKey = nextKey;
     return executor;
   };
+  const resolve = (): Promise<DatabaseQueryExecutor> => {
+    const resolved = queue.then(resolveNow);
+    queue = resolved.catch(() => undefined);
+    return resolved;
+  };
   return {
-    resolve(): Promise<DatabaseQueryExecutor> {
-      const resolved = queue.then(resolveNow);
-      queue = resolved.catch(() => undefined);
-      return resolved;
+    resolve,
+    /** Whether the saved connection answers now: one trivial query under a short limit, through the same server process. */
+    async check(timeoutMs = 5_000): Promise<void> {
+      await (await resolve()).run("SELECT 1 AS ok", 1, { deadlineAt: Date.now() + timeoutMs });
     },
     async close(): Promise<void> {
       const all = [...replaced.splice(0), ...(executor ? [executor] : [])];

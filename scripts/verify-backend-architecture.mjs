@@ -15,6 +15,7 @@ const sourceRoots = [
   "packages/channel-feishu/src",
   "packages/electron-host/src",
   "packages/database/src",
+  "packages/mcp-plugins/src",
   "packages/mcp-mysql/src",
   "packages/mcp-pg/src",
   "apps/server/src",

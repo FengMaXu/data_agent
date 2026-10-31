@@ -26,6 +26,7 @@ import { HarnessChildExecutor, JsonlChildSessionRepository, MemoryChildSessionRe
 import { createQueryTaskDelegationResolver, type DelegationSqlExplorer } from "./delegation.js";
 import { createSubagentToolDefinition } from "../tools/subagent.js";
 import type { DataAgentToolDefinition } from "../tools/tool-definition.js";
+import { createMcpPluginToolDefinitions, type McpPluginTool } from "../tools/mcp-plugins.js";
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
 import { isRuntimeInjected } from "../runtime-injected.js";
 
@@ -56,6 +57,8 @@ export interface DataAgentSessionRuntimeOptions {
   readonly hypothesisChoiceAdvisor?: HypothesisChoiceAdvisor;
   /** Evaluation-only semantic-spec ablation. Product composition leaves this required. */
   readonly semanticSpecMode?: SemanticSpecMode;
+  /** Tools of the MCP plugins the user enabled, resolved when the session opens. */
+  readonly mcpPluginTools?: readonly McpPluginTool[];
   /** Explicit Answering budget; omitted uses the production default policy. */
   readonly answeringBudgetPolicy?: QueryBudgetPolicy;
   /** Explicit fanout capability setting; omitted uses the production default. */
@@ -325,6 +328,7 @@ export async function createDataAgentSessionHost(options: DataAgentSessionRuntim
     ),
     ...createChartToolDefinitions({ workspace: options.workspace, artifacts, derived: derivedDatasets }),
     ...(options.enableDashboards !== false ? createDashboardToolDefinitions({ workspace: options.workspace, artifacts, derived: derivedDatasets }) : []),
+    ...createMcpPluginToolDefinitions(options.mcpPluginTools ?? []),
   ];
   const delegation = options.enableSubagents ? new NativeDelegation({
     executor: new HarnessChildExecutor({
