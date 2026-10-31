@@ -9,8 +9,6 @@ import { KnowledgeIndex } from "../knowledge.js";
 import { ClarificationManager } from "../clarification.js";
 import { InMemoryAnsweringStore } from "../answering/answering-store.js";
 import type { CompareHypothesesInput, HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
-import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
-import type { SpecFeedbackAssessment } from "../answering/model.js";
 
 const profile: DataAgentModelProfile = { provider: "openai", model: "test-model", apiKey: "test" };
 const spec = { "population.entity": "orders", "population.eligibility": "n/a", "population.conditions": "n/a", "population.time": "n/a", "measure.formula": { op: "count", of: "orders" }, "measure.countGrain": "one row per order", grouping: "n/a", selection: "n/a", output: { rowMode: "scalar", rowCount: 1 } };
@@ -254,38 +252,6 @@ describe("Session Runtime scoped query composition", () => {
       const unchanged = await host.answering.inspect({ taskId: begun.taskId }, business("inspect-after-jev"));
       expect(unchanged.currentRevision.fields["measure.denominator"]).toMatchObject({ state: "open" });
       expect(unchanged.task.currentRevisionId).toBe(begun.revisionId);
-    } finally {
-      await host.close();
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("injects the post-commit Spec assessor with the exact Session request", async () => {
-    const root = await mkdtemp(path.join(process.cwd(), ".tmp-session-runtime-spec-feedback-"));
-    let observed: string | undefined;
-    let extracted: string | undefined;
-    const assessment: SpecFeedbackAssessment = { model: "jev-test", ruleVersion: "spec-alignment-v3", requirements: [], columns: [] };
-    const assessor: SpecAlignmentAssessor = {
-      assess: async (input) => { observed = input.originalQuestion; return assessment; },
-    };
-    const session = await new MemorySessionRepo().create({ id: "session-spec-feedback" }, TODO_CONTEXT);
-    const branch = await session.createBranch("main", null, TODO_CONTEXT);
-    const requestMessageId = await branch.appendMessage({ role: "user", content: "只统计已完成订单", timestamp: Date.now() }, TODO_CONTEXT);
-    const host = await createDataAgentSessionHost({
-      session,
-      sessionId: "session-spec-feedback",
-      principalId: "user-1",
-      workspace: new WorkspaceStore(path.join(root, "workspace")),
-      profile,
-      systemPrompt: "You are Data Agent.",
-      specAlignmentAssessor: assessor,
-      requirementExtractor: { extract: async (question) => { extracted = question; return []; } },
-    });
-    try {
-      const begun = await host.answering.set({ requestMessageId, requestId: "begin-spec-feedback", fields: spec }, business("begin-spec-feedback"));
-      expect(observed).toBe("只统计已完成订单");
-      expect(extracted).toBe("只统计已完成订单");
-      expect(begun.specFeedback).toMatchObject({ status: "completed", assessment: { model: "jev-test" } });
     } finally {
       await host.close();
       await rm(root, { recursive: true, force: true });

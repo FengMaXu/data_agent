@@ -39,7 +39,7 @@ export function isSpecPath(value: string): value is SpecPath {
   return isFieldPath(value) || MEASURE_DEFINITION.test(value);
 }
 
-/** The top-level nodes of the tree; SpecFeedback assesses one section at a time. */
+/** The top-level nodes of the tree. */
 export const FIELD_SECTIONS = ["population", "measure", "grouping", "selection", "output"] as const;
 export type FieldSection = typeof FIELD_SECTIONS[number];
 

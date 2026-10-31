@@ -434,13 +434,6 @@ export async function startElectronHost(deps: MainDeps, overrides: Partial<Elect
         ...(process.env.TYPESAFE_ENDPOINT?.trim() ? { endpoint: process.env.TYPESAFE_ENDPOINT.trim() } : {}),
       },
     } : {}),
-    ...(process.env.TYPESAFE_SPEC_ALIGNMENT === "1" && process.env.TYPESAFE_API_KEY?.trim() ? {
-      jevSpecAlignment: {
-        apiKey: process.env.TYPESAFE_API_KEY.trim(),
-        model: process.env.TYPESAFE_MODEL?.trim() || "jev-1.13.0",
-        ...(process.env.TYPESAFE_ENDPOINT?.trim() ? { endpoint: process.env.TYPESAFE_ENDPOINT.trim() } : {}),
-      },
-    } : {}),
     // Enable bounded reviewer and authorized knowledge exploration. Delegated
     // SQL stays unavailable until a database-enforced scoped executor is supplied.
     enableSubagents: true,

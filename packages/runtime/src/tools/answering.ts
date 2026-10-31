@@ -8,7 +8,6 @@ import type {
   Context,
 } from "@earendil-works/pi-agent-core";
 import { AnsweringError, FIELD_FORMS, FIELD_PATHS } from "../answering/public.js";
-import { renderSpecFeedback } from "../answering/spec-feedback.js";
 import { renderEntityIdentity } from "../answering/entity-identity.js";
 import { renderCalendarCoverage } from "../answering/calendar-coverage.js";
 import type {
@@ -310,7 +309,6 @@ function setSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
       const stale = before && view.revisionId !== before.task.currentRevisionId && before.candidate && before.publication?.candidateId !== before.candidate.candidateId
         ? [`- 失效: 上一版的结果候选 ${before.candidate.candidateId} 未发布，已不能发布`]
         : [];
-      const feedback = renderSpecFeedback(view.specFeedback);
       const identity = renderEntityIdentity(view.entityIdentity);
       const calendar = renderCalendarCoverage(view.calendarCoverage);
       const changed = !before || view.revisionId !== before.task.currentRevisionId;
@@ -323,7 +321,6 @@ function setSpecTool(answering: Answering): AgentHarnessTool<DataAgentToolContex
         ...stale,
         ...(identity ? [identity] : []),
         ...(calendar ? [calendar] : []),
-        ...(feedback ? [feedback] : []),
         fieldsJson(view),
       ].join("\n"), view);
     },
