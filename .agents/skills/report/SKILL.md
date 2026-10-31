@@ -1,5 +1,5 @@
 ---
-name: demo-report
+name: report
 description: 生成标准化数据分析报告的工作流 Skill
 when_to_use: 当用户要求生成正式的数据分析报告、或者明确提到"报告"、"report"时使用
 allowed-tools:
@@ -29,7 +29,7 @@ allowed-tools:
 
 ### 第二步：取数并发布
 
-- 每张图或每个数据表对应一个查询，按 answer-fields 流程完成 Answer Spec 与结果查询，并按其“报告与看板”一节：一个报告任务声明共用的统计总体和度量定义，每张图或表一个图表查询。
+- 每张图或每个数据表对应一个查询，按 spec Skill 的流程完成 Answer Spec 与结果查询，并按其“报告与看板”一节：一个报告任务声明共用的统计总体和度量定义，每张图或表一个图表查询。
 - **在查询中把数据聚合到图表需要的粒度**：每个类目（或类目加系列）一行；比率、均值等指标在 SQL 中算好，不依赖画图时相加。
 - 用 `publish_query_result` 或 `export_query` 发布结果，记下返回的 `receiptId`。图表只能引用已发布的结果。
 

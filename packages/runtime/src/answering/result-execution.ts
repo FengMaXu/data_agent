@@ -22,7 +22,6 @@ import { assertDeliverable } from "./report.js";
 import { equivalentPaths, realizationConflicts } from "./probes.js";
 import { candidateCheckFailure, evaluateCandidateCheckReport } from "./candidate-checks.js";
 import { evaluateFanout, fanoutCoverage, fanoutFindings } from "./fanout-execution.js";
-import { specFeedbackCoverage } from "./spec-feedback.js";
 import type { PrivateResultObject } from "./result-store.js";
 import { boundedResult } from "./sql-execution.js";
 import { resultFingerprint } from "./result-fingerprint.js";
@@ -378,17 +377,9 @@ export async function executeResult(
       if (currentTask.currentRevisionId !== revisionId) throw new AnsweringError("REVISION_STALE", "Revision changed while the result was executing");
       const prior = tx.findCandidateByInvocation(taskId, context.invocationId) ?? tx.findCandidateByQuery(taskId, revisionId, queryHash);
       if (prior) return prior;
-      // Feedback is read in the same transaction that freezes the Candidate,
-      // so a later report write cannot mutate this Candidate or its Receipt.
-      const latestRevision = tx.getRevision(revisionId);
-      const feedbackCoverage = specFeedbackCoverage(latestRevision?.specFeedback);
-      const candidate: ResultCandidateRecord = {
-        ...baseCandidate,
-        coverage: [...combinedCoverage, feedbackCoverage],
-      };
-      tx.putCandidate(candidate);
-      tx.putTask({ ...currentTask, latestCandidateId: candidate.candidateId, updatedAt: candidate.createdAt });
-      return candidate;
+      tx.putCandidate(baseCandidate);
+      tx.putTask({ ...currentTask, latestCandidateId: baseCandidate.candidateId, updatedAt: baseCandidate.createdAt });
+      return baseCandidate;
     }, context);
   } catch (error) {
     // A commit response may be lost after the Candidate became durable. Look

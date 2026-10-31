@@ -9,7 +9,6 @@ import type { AuthorizedArtifact, AuthorizedPublicationSql } from "../facets/art
 import type { DashboardRefreshRequest, DashboardRefreshResult } from "../facets/dashboard-refresh.js";
 import type { HypothesisChoiceAdvisor } from "../judgment/hypothesis-choice.js";
 import type { FanoutAnsweringOptions, QueryBudgetPolicy } from "../answering/public.js";
-import type { SpecAlignmentAssessor } from "../judgment/spec-alignment.js";
 import type { SemanticSpecMode } from "../tools/answering.js";
 
 export interface HostRequestContext {
@@ -40,7 +39,6 @@ export interface DataAgentSessionApplicationOptions {
   readonly queryExecutor?: SessionQueryExecutor | (() => SessionQueryExecutor | Promise<SessionQueryExecutor>);
   readonly resultRoot?: string;
   readonly hypothesisChoiceAdvisor?: HypothesisChoiceAdvisor;
-  readonly specAlignmentAssessor?: SpecAlignmentAssessor;
   /** Evaluation-only; ordinary product sessions use the required semantic Spec. */
   readonly semanticSpecMode?: SemanticSpecMode;
   readonly answeringBudgetPolicy?: QueryBudgetPolicy;
@@ -224,7 +222,6 @@ export class DataAgentSessionApplication {
       ...(queryExecutor ? { queryExecutor } : {}),
       ...(this.options.resultRoot ? { resultRoot: (await import("node:path")).join(this.options.resultRoot, context.sessionId) } : {}),
       ...(this.options.hypothesisChoiceAdvisor ? { hypothesisChoiceAdvisor: this.options.hypothesisChoiceAdvisor } : {}),
-      ...(this.options.specAlignmentAssessor ? { specAlignmentAssessor: this.options.specAlignmentAssessor } : {}),
       ...(this.options.semanticSpecMode ? { semanticSpecMode: this.options.semanticSpecMode } : {}),
       ...(this.options.answeringBudgetPolicy ? { answeringBudgetPolicy: this.options.answeringBudgetPolicy } : {}),
       ...(this.options.answeringFanout ? { answeringFanout: this.options.answeringFanout } : {}),

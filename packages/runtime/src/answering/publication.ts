@@ -17,7 +17,6 @@ import { assertDeliverable } from "./report.js";
 import { fanoutDisclosureSummary } from "./fanout-execution.js";
 import { entityIdentityDisclosure } from "./entity-identity.js";
 import { calendarCoverageDisclosure } from "./calendar-coverage.js";
-import { SPEC_FEEDBACK_CHECK_ID, specFeedbackDisclosureSummary } from "./spec-feedback.js";
 import { markCandidateCorrupt } from "./result-execution.js";
 import { realizationDisclosure } from "./realization-check.js";
 import { buildPhysicalProfile } from "./physical-profile.js";
@@ -31,7 +30,7 @@ const INLINE_ROW_LIMIT = 10;
  * Everything a Receipt must disclose about the exact published Candidate:
  * unverified fields, decisions made while the advisor was unavailable,
  * deviations, fanout observations, likely Spec realization conflicts,
- * entity identity counts, calendar coverage and SpecFeedback.
+ * entity identity counts and calendar coverage.
  * Disclosure is a record, never an approval.
  */
 export function composeDisclosure(revision: AnswerRevisionRecord, candidate: ResultCandidateRecord, parentSuperseded?: ParentSupersession): PublicationDisclosure | undefined {
@@ -41,7 +40,6 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
   const fanoutDisclosure = candidate.fanout && (candidate.fanout.status === "finding" || candidate.fanout.status === "unknown")
     ? fanoutDisclosureSummary(candidate.fanout)
     : "";
-  const feedbackDisclosure = specFeedbackDisclosureSummary(candidate.coverage?.find((coverage) => coverage.checkId === SPEC_FEEDBACK_CHECK_ID));
   const realization = realizationDisclosure(candidate.findings);
   const identity = entityIdentityDisclosure(candidate.findings);
   const calendar = calendarCoverageDisclosure(candidate.findings);
@@ -52,7 +50,7 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
     .filter(([, field]) => field.state === "decided" && field.adviceUndecided)
     .map(([path]) => path);
   const deviations = revision.deviations ?? [];
-  if (unverified.length === 0 && unadvised.length === 0 && undecided.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !feedbackDisclosure && !realization && !identity && !calendar) return undefined;
+  if (unverified.length === 0 && unadvised.length === 0 && undecided.length === 0 && deviations.length === 0 && !parentSuperseded && !fanoutDisclosure && !realization && !identity && !calendar) return undefined;
   return {
     required: true,
     unverifiedFields: unverified,
@@ -67,7 +65,6 @@ export function composeDisclosure(revision: AnswerRevisionRecord, candidate: Res
       ...(realization ? [realization] : []),
       ...(identity ? [identity] : []),
       ...(calendar ? [calendar] : []),
-      ...(feedbackDisclosure ? [feedbackDisclosure] : []),
     ].join(" "),
     ...(fanoutDisclosure && candidate.fanout ? { fanoutStatus: candidate.fanout.status } : {}),
     ...(deviations.length > 0 ? { deviations } : {}),

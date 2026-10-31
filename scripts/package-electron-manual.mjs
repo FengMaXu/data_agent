@@ -133,8 +133,8 @@ if (!pythonRuntimeExecutable) {
   process.exit(1);
 }
 for (const required of [
-  "../.agents/skills/analysis/SKILL.md",
-  "../.agents/skills/answer-fields/SKILL.md",
+  "../.agents/skills/chart/SKILL.md",
+  "../.agents/skills/spec/SKILL.md",
   "../.agents/knowledge/doc/rules.md",
   "../.agents/knowledge/doc/semantic_guide.md",
   "../.pi/SYSTEM.md",
