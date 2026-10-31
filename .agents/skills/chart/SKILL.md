@@ -1,5 +1,5 @@
 ---
-name: analysis
+name: chart
 description: 交互图表渲染 — 仅当用户明确要求画图或可视化时使用
 when_to_use: 仅当用户明确要求“画图”“图表”“可视化”“趋势图”“折线图”“柱状图”“饼图”“保存图表”或“下载图表”时使用。纯数据查询、统计计算或 CSV 导出不要加载此 Skill。
 allowed-tools:
@@ -26,7 +26,7 @@ allowed-tools:
 
 ## 路径 A：内联 Widget
 
-1. `query_database` → 按 answer-fields 流程取数，在查询中把数据聚合到图表需要的粒度
+1. `query_database` → 按 spec Skill 的流程取数，在查询中把数据聚合到图表需要的粒度
 2. `publish_query_result` 或 `export_query` → 发布结果，记下返回的 `receiptId`
 3. `show_widget(kind="chart", spec=<ChartSpec>)` → 渲染交互图表
 4. 输出简短的图表结论，并写明返回的 `[NOTICE]`、`[DISCLOSURE]`、`[SEMANTICS]`
@@ -53,7 +53,7 @@ allowed-tools:
 ## 路径 B：保存图表文件
 
 1. `search_knowledge` → 检索业务规则和图表风格
-2. `query_database` → 按 answer-fields 流程取数，在查询中把数据聚合到图表需要的粒度
+2. `query_database` → 按 spec Skill 的流程取数，在查询中把数据聚合到图表需要的粒度
 3. `publish_query_result` 或 `export_query` → 发布结果，记下返回的 `receiptId`
 4. `render_chart(spec, fileName)` → 渲染为 `charts/<fileName>.svg`
 5. 输出文件链接、图注和简短结论

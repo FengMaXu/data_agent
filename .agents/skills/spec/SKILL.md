@@ -1,5 +1,5 @@
 ---
-name: answer-fields
+name: spec
 description: 数据查询的 Answer Spec 流程——按字段树路径设置口径、探针与决定、最终查询、发布
 when_to_use: 每个需要从数据库取数、统计、排名或导出的请求，在第一次调用 set_answer_spec 之前加载。口径问答、闲聊和纯结果加工不需要加载。
 requires-tools:
